@@ -19,26 +19,28 @@ export default async function NewVehiclePage({
   const errorMsg = params.error
 
   return (
-    <main className="min-h-screen px-6 py-10">
-      <div className="max-w-xl mx-auto">
-        <Link href="/garage" className="text-sm text-steel hover:text-ink transition-colors">
+    <main className="min-h-[100svh] pb-32">
+      <div className="max-w-xl mx-auto px-6 pt-10">
+        <Link href="/garage" className="nav-pill hover:text-chalk transition-colors">
           ← Garage
         </Link>
-        <h1 className="text-3xl font-semibold text-ink mt-4">Add a vehicle</h1>
-        <p className="text-steel mt-1">Start its passport.</p>
+        <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-4">
+          Add a vehicle
+        </h1>
+        <p className="text-ash mt-1">Start its passport.</p>
 
         {errorMsg && (
-          <div className="mt-6 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded">
+          <div className="mt-6 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">
             {decodeURIComponent(errorMsg)}
           </div>
         )}
 
-        <form action={createVehicle} className="mt-8 space-y-4">
+        <form action={createVehicle} className="mt-8 space-y-4" id="vehicle-form">
           <Field label="Make" name="make" placeholder="Toyota" required />
           <Field label="Model" name="model" placeholder="Land Cruiser" required />
 
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Year" name="year" type="number" placeholder="2023" />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Year" name="year" type="number" inputMode="numeric" placeholder="2023" />
             <Field label="Color" name="color" placeholder="White" />
           </div>
 
@@ -49,36 +51,34 @@ export default async function NewVehiclePage({
             hint="Shows on your garage card."
           />
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2">
-              <Field label="Plate number" name="plate_number" placeholder="A 12345" />
+              <Field label="Plate" name="plate_number" placeholder="A 12345" />
             </div>
             <Select label="Emirate" name="plate_emirate" options={EMIRATES} />
           </div>
 
           <Field label="VIN / Chassis" name="vin" placeholder="17 characters" />
           <Field
-            label="Current odometer (km)"
+            label="Odometer (km)"
             name="current_odometer"
             type="number"
+            inputMode="numeric"
             placeholder="82000"
           />
-
-          <div className="pt-4 flex gap-3">
-            <button
-              type="submit"
-              className="bg-ink text-cream px-6 py-3 rounded font-medium hover:bg-ink/90 transition-colors"
-            >
-              Add vehicle
-            </button>
-            <Link
-              href="/garage"
-              className="px-6 py-3 rounded font-medium text-steel hover:text-ink transition-colors"
-            >
-              Cancel
-            </Link>
-          </div>
         </form>
+      </div>
+
+      {/* Sticky bottom action bar */}
+      <div className="fixed bottom-0 inset-x-0 px-6 pb-6 pt-4 bg-gradient-to-t from-noir via-noir/95 to-noir/0">
+        <div className="max-w-xl mx-auto flex gap-3">
+          <Link href="/garage" className="pill-ghost flex-1 text-center">
+            Cancel
+          </Link>
+          <button type="submit" form="vehicle-form" className="pill-primary flex-[2] text-center">
+            Add vehicle
+          </button>
+        </div>
       </div>
     </main>
   )
@@ -91,6 +91,7 @@ function Field({
   placeholder,
   required,
   hint,
+  inputMode,
 }: {
   label: string
   name: string
@@ -98,10 +99,11 @@ function Field({
   placeholder?: string
   required?: boolean
   hint?: string
+  inputMode?: 'text' | 'numeric' | 'decimal' | 'email' | 'tel' | 'url' | 'search'
 }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-ink mb-1">
+      <label htmlFor={name} className="label">
         {label} {required && <span className="text-signal">*</span>}
       </label>
       <input
@@ -110,9 +112,10 @@ function Field({
         name={name}
         placeholder={placeholder}
         required={required}
-        className="w-full px-3 py-2.5 rounded border border-mist bg-white focus:border-ink outline-none transition-colors"
+        inputMode={inputMode}
+        className="field"
       />
-      {hint && <p className="text-xs text-steel mt-1">{hint}</p>}
+      {hint && <p className="text-xs text-ash mt-1.5">{hint}</p>}
     </div>
   )
 }
@@ -128,15 +131,10 @@ function Select({
 }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-ink mb-1">
+      <label htmlFor={name} className="label">
         {label}
       </label>
-      <select
-        id={name}
-        name={name}
-        defaultValue=""
-        className="w-full px-3 py-2.5 rounded border border-mist bg-white focus:border-ink outline-none transition-colors"
-      >
+      <select id={name} name={name} defaultValue="" className="field">
         <option value="">—</option>
         {options.map((opt) => (
           <option key={opt} value={opt}>

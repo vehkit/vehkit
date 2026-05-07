@@ -17,9 +17,7 @@ export default function LoginPage() {
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     })
 
     if (error) {
@@ -31,40 +29,48 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-sm space-y-6">
-        <Link href="/" className="text-sm text-steel hover:text-ink transition-colors">
+    <main className="min-h-[100svh] flex items-center justify-center px-6 py-12">
+      <div className="w-full max-w-sm">
+        <Link href="/" className="nav-pill hover:text-chalk transition-colors">
           ← vehkit
         </Link>
 
-        <div>
-          <h1 className="text-2xl font-semibold text-ink">Sign in</h1>
-          <p className="text-sm text-steel mt-1">We'll email you a magic link.</p>
+        <div className="mt-10">
+          <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter">
+            Sign in
+          </h1>
+          <p className="text-sm text-ash mt-2">We'll email you a magic link.</p>
         </div>
 
         {status === 'sent' ? (
-          <div className="bg-white border border-mist rounded p-6">
-            <p className="text-ink font-medium">Check your inbox.</p>
-            <p className="text-sm text-steel mt-1">
-              We sent a sign-in link to <span className="font-mono">{email}</span>.
+          <div className="card p-6 mt-8">
+            <p className="text-chalk font-medium">Check your inbox.</p>
+            <p className="text-sm text-ash mt-1.5">
+              We sent a sign-in link to{' '}
+              <span className="font-mono text-chalk">{email}</span>.
+            </p>
+            <p className="text-xs text-ash/70 mt-4">
+              Link expires in 5 minutes. Use it on the same device.
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-3 mt-8">
             <input
               type="email"
               required
               autoFocus
+              autoComplete="email"
+              inputMode="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full px-4 py-3 rounded border border-mist bg-white focus:border-ink outline-none transition-colors"
+              className="field"
               disabled={status === 'sending'}
             />
             <button
               type="submit"
-              disabled={status === 'sending'}
-              className="w-full bg-ink text-cream py-3 rounded font-medium hover:bg-ink/90 transition-colors disabled:opacity-50"
+              disabled={status === 'sending' || !email}
+              className="pill-primary w-full disabled:opacity-50 disabled:active:scale-100"
             >
               {status === 'sending' ? 'Sending…' : 'Send magic link'}
             </button>

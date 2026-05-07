@@ -3,21 +3,68 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --color-ink: 14 23 38;
-    --color-verified: 0 168 107;
-    --color-cream: 250 247 242;
-  }
-
   html,
   body {
-    background: rgb(var(--color-cream));
-    color: rgb(var(--color-ink));
+    background: #0a0b0f;
+    color: #f4f4f2;
     -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
   }
 
-  /* Selection — uses brand verified color */
+  /* Selection */
   ::selection {
-    background: rgb(var(--color-verified) / 0.2);
+    background: rgb(25 230 140 / 0.25);
+    color: #f4f4f2;
+  }
+
+  /* Inputs respect dark surface */
+  input[type='date'],
+  input[type='number'],
+  input[type='text'],
+  input[type='email'],
+  textarea,
+  select {
+    color: #f4f4f2;
+    background-color: #16181d;
+  }
+
+  /* Color the date picker icon for dark mode */
+  input[type='date']::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.5);
+    cursor: pointer;
+  }
+
+  /* Mobile-friendly tap targets */
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  .pill {
+    @apply rounded-pill px-5 py-3 font-medium transition-colors active:scale-[0.98];
+  }
+  .pill-primary {
+    @apply pill bg-volt text-noir hover:bg-volt/90;
+  }
+  .pill-ghost {
+    @apply pill bg-iron text-chalk hover:bg-iron/70;
+  }
+  .pill-outline {
+    @apply pill border border-seam text-chalk hover:bg-iron/50;
+  }
+  .field {
+    @apply w-full px-4 py-3.5 rounded-DEFAULT bg-carbon border border-seam text-chalk placeholder:text-ash/60 focus:border-volt outline-none transition-colors;
+  }
+  .label {
+    @apply block text-sm font-medium text-chalk mb-1.5;
+  }
+  .card {
+    @apply bg-carbon border border-seam rounded-DEFAULT shadow-card;
+  }
+  .nav-pill {
+    @apply text-xs tracking-widest uppercase text-ash;
   }
 }

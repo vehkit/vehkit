@@ -31,31 +31,34 @@ export default async function NewServicePage({
   const today = new Date().toISOString().slice(0, 10)
 
   return (
-    <main className="min-h-screen px-6 py-10">
-      <div className="max-w-xl mx-auto">
+    <main className="min-h-[100svh] pb-32">
+      <div className="max-w-xl mx-auto px-6 pt-10">
         <Link
           href={`/vehicles/${id}`}
-          className="text-sm text-steel hover:text-ink transition-colors"
+          className="nav-pill hover:text-chalk transition-colors"
         >
           ← {vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`}
         </Link>
-        <h1 className="text-3xl font-semibold text-ink mt-4">Add service record</h1>
-        <p className="text-steel mt-1">Log what was done.</p>
+        <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-4">
+          Log service
+        </h1>
+        <p className="text-ash mt-1">What was done?</p>
 
         {errorMsg && (
-          <div className="mt-6 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded">
+          <div className="mt-6 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">
             {decodeURIComponent(errorMsg)}
           </div>
         )}
 
-        <form action={createServiceRecord} className="mt-8 space-y-4">
+        <form
+          action={createServiceRecord}
+          className="mt-8 space-y-4"
+          id="service-form"
+        >
           <input type="hidden" name="vehicle_id" value={id} />
 
           <div>
-            <label
-              htmlFor="service_type"
-              className="block text-sm font-medium text-ink mb-1"
-            >
+            <label htmlFor="service_type" className="label">
               Service type <span className="text-signal">*</span>
             </label>
             <select
@@ -63,10 +66,10 @@ export default async function NewServicePage({
               name="service_type"
               required
               defaultValue=""
-              className="w-full px-3 py-2.5 rounded border border-mist bg-white focus:border-ink outline-none transition-colors"
+              className="field"
             >
               <option value="" disabled>
-                Select…
+                Pick one…
               </option>
               {SERVICE_TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -77,32 +80,39 @@ export default async function NewServicePage({
           </div>
 
           <Field
-            label="Service date"
+            label="Date"
             name="service_date"
             type="date"
             required
             defaultValue={today}
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <Field
               label="Odometer (km)"
               name="odometer"
               type="number"
+              inputMode="numeric"
               defaultValue={vehicle.current_odometer?.toString() ?? ''}
             />
-            <Field label="Cost (AED)" name="cost_aed" type="number" placeholder="350" />
+            <Field
+              label="Cost (AED)"
+              name="cost_aed"
+              type="number"
+              inputMode="decimal"
+              placeholder="350"
+            />
           </div>
 
           <Field
             label="Workshop"
             name="workshop_name"
             placeholder="Al Quoz Auto Care"
-            hint="Free text for now. Verified workshop linking comes later."
+            hint="Free text for now."
           />
 
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-ink mb-1">
+            <label htmlFor="notes" className="label">
               Notes
             </label>
             <textarea
@@ -110,25 +120,22 @@ export default async function NewServicePage({
               name="notes"
               rows={3}
               placeholder="Mobil 1 5W-30, oil filter changed too"
-              className="w-full px-3 py-2.5 rounded border border-mist bg-white focus:border-ink outline-none transition-colors resize-none"
+              className="field resize-none"
             />
           </div>
-
-          <div className="pt-4 flex gap-3">
-            <button
-              type="submit"
-              className="bg-ink text-cream px-6 py-3 rounded font-medium hover:bg-ink/90 transition-colors"
-            >
-              Save record
-            </button>
-            <Link
-              href={`/vehicles/${id}`}
-              className="px-6 py-3 rounded font-medium text-steel hover:text-ink transition-colors"
-            >
-              Cancel
-            </Link>
-          </div>
         </form>
+      </div>
+
+      {/* Sticky bottom action bar */}
+      <div className="fixed bottom-0 inset-x-0 px-6 pb-6 pt-4 bg-gradient-to-t from-noir via-noir/95 to-noir/0">
+        <div className="max-w-xl mx-auto flex gap-3">
+          <Link href={`/vehicles/${id}`} className="pill-ghost flex-1 text-center">
+            Cancel
+          </Link>
+          <button type="submit" form="service-form" className="pill-primary flex-[2] text-center">
+            Save record
+          </button>
+        </div>
       </div>
     </main>
   )
@@ -142,6 +149,7 @@ function Field({
   required,
   defaultValue,
   hint,
+  inputMode,
 }: {
   label: string
   name: string
@@ -150,10 +158,11 @@ function Field({
   required?: boolean
   defaultValue?: string
   hint?: string
+  inputMode?: 'text' | 'numeric' | 'decimal' | 'email' | 'tel' | 'url' | 'search'
 }) {
   return (
     <div>
-      <label htmlFor={name} className="block text-sm font-medium text-ink mb-1">
+      <label htmlFor={name} className="label">
         {label} {required && <span className="text-signal">*</span>}
       </label>
       <input
@@ -163,9 +172,10 @@ function Field({
         placeholder={placeholder}
         required={required}
         defaultValue={defaultValue}
-        className="w-full px-3 py-2.5 rounded border border-mist bg-white focus:border-ink outline-none transition-colors"
+        inputMode={inputMode}
+        className="field"
       />
-      {hint && <p className="text-xs text-steel mt-1">{hint}</p>}
+      {hint && <p className="text-xs text-ash mt-1.5">{hint}</p>}
     </div>
   )
 }

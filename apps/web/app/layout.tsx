@@ -21,15 +21,16 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#FAF7F2',
+  themeColor: '#0A0B0F',
   width: 'device-width',
   initialScale: 1,
+  maximumScale: 1,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="font-sans">{children}</body>
+    <html lang="en" className={`${inter.variable} dark`}>
+      <body className="font-sans bg-noir text-chalk">{children}</body>
     </html>
   )
 }
