@@ -3,7 +3,6 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 
 const REMINDER_RULES: Record<
   string,
@@ -20,20 +19,13 @@ const REMINDER_RULES: Record<
   coolant: { months: 36, reminderType: 'coolant' },
 }
 
-function addMonths(date: Date, months: number): Date {
-  const d = new Date(date)
-  d.setMonth(d.getMonth() + months)
-  return d
-}
-
 function generate6DigitCode(): string {
-  // Pad to 6 digits — always 100000–999999
   return String(100000 + Math.floor(Math.random() * 900000))
 }
 
 /**
  * Owner generates a single-use workshop code valid for 1 hour.
- * Re-uses an existing un-used un-expired code if one exists.
+ * Uses owner's session — RLS enforces ownership of the vehicle.
  */
 export async function generateWorkshopCode(vehicleId: string): Promise<{
   code?: string
@@ -46,7 +38,7 @@ export async function generateWorkshopCode(vehicleId: string): Promise<{
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Not signed in' }
 
-  // Reuse if there's a still-valid one
+  // Reuse a still-valid one if present
   const { data: existing } = await supabase
     .from('workshop_codes')
     .select('code, expires_at')
@@ -61,7 +53,6 @@ export async function generateWorkshopCode(vehicleId: string): Promise<{
     return { code: existing.code, expiresAt: existing.expires_at }
   }
 
-  // Generate (retry on collision)
   for (let attempt = 0; attempt < 10; attempt++) {
     const candidate = generate6DigitCode()
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60).toISOString()
@@ -80,26 +71,12 @@ export async function generateWorkshopCode(vehicleId: string): Promise<{
 }
 
 /**
- * Workshop redeems a code and submits a verified service entry.
- * Public — uses admin client.
+ * Workshop redeems a code — calls a SECURITY DEFINER Postgres function
+ * that does the entire transaction atomically. No service-role key needed.
  */
 export async function logServiceViaCode(formData: FormData) {
   const code = String(formData.get('code') ?? '').trim()
   if (!code) redirect('/shop?error=Code+required')
-
-  const admin = createAdminClient()
-
-  const { data: codeRow } = await admin
-    .from('workshop_codes')
-    .select('id, vehicle_id, expires_at, used_at, created_by')
-    .eq('code', code)
-    .maybeSingle()
-
-  if (!codeRow) redirect('/shop?error=Invalid+code')
-  if (codeRow.used_at) redirect('/shop?error=Code+already+used')
-  if (new Date(codeRow.expires_at) < new Date()) {
-    redirect('/shop?error=Code+expired')
-  }
 
   const serviceType = String(formData.get('service_type') ?? '').trim()
   const serviceDate = String(formData.get('service_date') ?? '').trim()
@@ -111,77 +88,72 @@ export async function logServiceViaCode(formData: FormData) {
 
   const odoRaw = formData.get('odometer')
   const odometer =
-    odoRaw !== null && odoRaw !== '' && Number.isFinite(Number(odoRaw)) ? Number(odoRaw) : null
+    odoRaw !== null && odoRaw !== '' && Number.isFinite(Number(odoRaw))
+      ? Number(odoRaw)
+      : null
   const costRaw = formData.get('cost_aed')
   const costAed =
     costRaw !== null && costRaw !== '' && Number.isFinite(Number(costRaw))
       ? Number(costRaw)
       : null
+  const notes = String(formData.get('notes') ?? '').trim() || null
 
-  // Insert service record (workshop attestation)
-  const { data: record, error } = await admin
-    .from('service_records')
-    .insert({
-      vehicle_id: codeRow.vehicle_id,
-      service_type: serviceType,
-      service_date: serviceDate,
-      odometer,
-      cost_aed: costAed,
-      workshop_name_freetext: workshopName,
-      notes: String(formData.get('notes') ?? '').trim() || null,
-      attestation: 'workshop',
-      created_by: codeRow.created_by,
-    })
-    .select('id')
-    .single()
+  const supabase = await createClient()
 
-  if (error) {
-    redirect(`/shop/${code}?error=${encodeURIComponent(error.message)}`)
+  const { data: recordId, error } = await supabase.rpc('redeem_workshop_code', {
+    p_code: code,
+    p_workshop_name: workshopName,
+    p_service_type: serviceType,
+    p_service_date: serviceDate,
+    p_odometer: odometer,
+    p_cost_aed: costAed,
+    p_notes: notes,
+  })
+
+  if (error || !recordId) {
+    redirect(
+      `/shop/${code}?error=${encodeURIComponent(error?.message ?? 'Submission failed')}`
+    )
   }
 
-  // Mark code as used
-  await admin
-    .from('workshop_codes')
-    .update({
-      used_at: new Date().toISOString(),
-      used_by_workshop_name: workshopName,
-      used_for_record_id: record!.id,
-    })
-    .eq('id', codeRow.id)
-
-  // Update vehicle odometer
-  if (odometer !== null) {
-    await admin
-      .from('vehicles')
-      .update({
-        current_odometer: odometer,
-        current_odometer_at: new Date().toISOString(),
-      })
-      .eq('id', codeRow.vehicle_id)
-  }
-
-  // Auto-create / update reminders for this service type
+  // Auto-create reminder for this service type (best-effort, ignore errors)
   const rule = REMINDER_RULES[serviceType]
   if (rule) {
-    const dueDate = rule.months ? addMonths(new Date(serviceDate), rule.months) : null
+    const dueDate = rule.months
+      ? (() => {
+          const d = new Date(serviceDate)
+          d.setMonth(d.getMonth() + rule.months!)
+          return d.toISOString().slice(0, 10)
+        })()
+      : null
     const dueAtKm = rule.km && odometer !== null ? odometer + rule.km : null
 
-    await admin
-      .from('reminders')
-      .update({ status: 'done' })
-      .eq('vehicle_id', codeRow.vehicle_id)
-      .eq('reminder_type', rule.reminderType)
-      .eq('status', 'open')
+    // We don't have vehicle_id directly; fetch via the new record
+    const { data: rec } = await supabase
+      .from('service_records')
+      .select('vehicle_id')
+      .eq('id', recordId)
+      .maybeSingle()
 
-    await admin.from('reminders').insert({
-      vehicle_id: codeRow.vehicle_id,
-      reminder_type: rule.reminderType,
-      due_date: dueDate ? dueDate.toISOString().slice(0, 10) : null,
-      due_at_km: dueAtKm,
-      status: 'open',
-    })
+    if (rec?.vehicle_id) {
+      await supabase
+        .from('reminders')
+        .update({ status: 'done' })
+        .eq('vehicle_id', rec.vehicle_id)
+        .eq('reminder_type', rule.reminderType)
+        .eq('status', 'open')
+
+      await supabase.from('reminders').insert({
+        vehicle_id: rec.vehicle_id,
+        reminder_type: rule.reminderType,
+        due_date: dueDate,
+        due_at_km: dueAtKm,
+        status: 'open',
+      })
+
+      revalidatePath(`/vehicles/${rec.vehicle_id}`)
+    }
   }
 
-  revalidatePath(`/vehicles/${codeRow.vehicle_id}`)
   redirect(`/shop/${code}/done`)
 }

@@ -1,10 +1,24 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { logServiceViaCode } from '@/app/actions/workshop'
 import { SERVICE_TYPES } from '@vehkit/types'
 
 export const dynamic = 'force-dynamic'
+
+type CodePreview = {
+  vehicle_id: string
+  expires_at: string
+  used_at: string | null
+  vehicle_make: string
+  vehicle_model: string
+  vehicle_nickname: string | null
+  vehicle_year: number | null
+  vehicle_color: string | null
+  vehicle_plate_number: string | null
+  vehicle_plate_emirate: string | null
+  vehicle_current_odometer: number | null
+}
 
 export default async function ShopLogPage({
   params,
@@ -19,28 +33,27 @@ export default async function ShopLogPage({
 
   if (!/^\d{6}$/.test(code)) redirect('/shop?error=Invalid+code+format')
 
-  const admin = createAdminClient()
-  const { data: codeRow } = await admin
-    .from('workshop_codes')
-    .select('id, vehicle_id, expires_at, used_at')
-    .eq('code', code)
-    .maybeSingle()
+  const supabase = await createClient()
+  const { data: rows, error } = await supabase.rpc('preview_workshop_code', {
+    p_code: code,
+  })
 
-  if (!codeRow) redirect('/shop?error=Invalid+code')
-  if (codeRow.used_at) redirect('/shop?error=Code+already+used')
-  if (new Date(codeRow.expires_at) < new Date()) redirect('/shop?error=Code+expired')
+  if (error || !rows || rows.length === 0) {
+    redirect('/shop?error=Invalid+code')
+  }
 
-  const { data: vehicle } = await admin
-    .from('vehicles')
-    .select('id, make, model, nickname, year, color, plate_number, plate_emirate, current_odometer')
-    .eq('id', codeRow.vehicle_id)
-    .single()
-
-  if (!vehicle) notFound()
+  const preview = rows[0] as CodePreview
+  if (preview.used_at) redirect('/shop?error=Code+already+used')
+  if (new Date(preview.expires_at) < new Date()) {
+    redirect('/shop?error=Code+expired')
+  }
 
   const today = new Date().toISOString().slice(0, 10)
-  const expiresMs = new Date(codeRow.expires_at).getTime() - Date.now()
+  const expiresMs = new Date(preview.expires_at).getTime() - Date.now()
   const expiresMin = Math.max(0, Math.floor(expiresMs / 60000))
+
+  const heroName =
+    preview.vehicle_nickname ?? `${preview.vehicle_make} ${preview.vehicle_model}`
 
   return (
     <main className="min-h-[100svh] pb-32">
@@ -52,25 +65,32 @@ export default async function ShopLogPage({
         <div className="mt-6">
           <p className="nav-pill">Verified entry</p>
           <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-2">
-            {vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`}
+            {heroName}
           </h1>
           <p className="text-ash mt-1">
-            {[vehicle.year, vehicle.make, vehicle.model, vehicle.color]
+            {[
+              preview.vehicle_year,
+              preview.vehicle_make,
+              preview.vehicle_model,
+              preview.vehicle_color,
+            ]
               .filter(Boolean)
               .join(' · ')}
           </p>
-          {(vehicle.plate_emirate || vehicle.plate_number) && (
+          {(preview.vehicle_plate_emirate || preview.vehicle_plate_number) && (
             <div className="mt-3 inline-flex items-center gap-2 bg-iron border border-seam rounded-DEFAULT px-3 py-1.5">
-              {vehicle.plate_emirate && (
+              {preview.vehicle_plate_emirate && (
                 <span className="text-xs uppercase tracking-wider text-ash">
-                  {vehicle.plate_emirate}
+                  {preview.vehicle_plate_emirate}
                 </span>
               )}
-              {vehicle.plate_emirate && vehicle.plate_number && (
+              {preview.vehicle_plate_emirate && preview.vehicle_plate_number && (
                 <span className="text-seam">·</span>
               )}
-              {vehicle.plate_number && (
-                <span className="font-mono text-sm text-chalk">{vehicle.plate_number}</span>
+              {preview.vehicle_plate_number && (
+                <span className="font-mono text-sm text-chalk">
+                  {preview.vehicle_plate_number}
+                </span>
               )}
             </div>
           )}
@@ -133,7 +153,7 @@ export default async function ShopLogPage({
               name="odometer"
               type="number"
               inputMode="numeric"
-              defaultValue={vehicle.current_odometer?.toString() ?? ''}
+              defaultValue={preview.vehicle_current_odometer?.toString() ?? ''}
             />
             <Field
               label="Cost (AED)"
