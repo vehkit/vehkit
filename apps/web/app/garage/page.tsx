@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { reminderStatus, type ReminderRow } from '@/lib/reminders'
 
 export default async function GaragePage() {
   const supabase = await createClient()
@@ -14,6 +15,18 @@ export default async function GaragePage() {
     .select('*')
     .order('created_at', { ascending: false })
 
+  // Count due/overdue reminders across all vehicles
+  const { data: openReminders } = await supabase
+    .from('reminders')
+    .select('id, vehicle_id, reminder_type, due_date, due_at_km, status, notes')
+    .eq('status', 'open')
+
+  const reminderCount = (openReminders ?? []).filter((r: ReminderRow) => {
+    const v = vehicles?.find((x) => x.id === r.vehicle_id)
+    const s = reminderStatus(r, v?.current_odometer ?? null)
+    return s === 'overdue' || s === 'due_soon'
+  }).length
+
   return (
     <main className="min-h-[100svh] pb-24">
       <header className="px-6 pt-10 pb-6 flex items-center justify-between">
@@ -23,11 +36,24 @@ export default async function GaragePage() {
             Garage
           </h1>
         </div>
-        <form action="/auth/signout" method="post">
-          <button className="text-sm text-ash hover:text-chalk transition-colors">
-            Sign out
-          </button>
-        </form>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/reminders"
+            className="relative text-sm text-ash hover:text-chalk transition-colors"
+          >
+            Reminders
+            {reminderCount > 0 && (
+              <span className="absolute -top-1 -right-3 bg-signal text-noir text-[10px] font-mono font-bold px-1.5 py-px rounded-pill">
+                {reminderCount}
+              </span>
+            )}
+          </Link>
+          <form action="/auth/signout" method="post">
+            <button className="text-sm text-ash hover:text-chalk transition-colors">
+              Sign out
+            </button>
+          </form>
+        </div>
       </header>
 
       <div className="px-6">

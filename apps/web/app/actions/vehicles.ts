@@ -73,3 +73,20 @@ export async function deleteVehicle(formData: FormData) {
   revalidatePath('/garage')
   redirect('/garage')
 }
+
+export async function updateVehicleHero(vehicleId: string, imageUrl: string | null) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not signed in' }
+
+  const { error } = await supabase
+    .from('vehicles')
+    .update({ hero_image_url: imageUrl })
+    .eq('id', vehicleId)
+
+  revalidatePath(`/vehicles/${vehicleId}`)
+  revalidatePath('/garage')
+  return { error: error?.message ?? null }
+}

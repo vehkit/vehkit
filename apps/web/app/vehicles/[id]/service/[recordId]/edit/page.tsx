@@ -1,17 +1,17 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { createServiceRecord } from '@/app/actions/services'
+import { updateServiceRecord } from '@/app/actions/services'
 import { SERVICE_TYPES } from '@vehkit/types'
 
-export default async function NewServicePage({
+export default async function EditServicePage({
   params,
   searchParams,
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string; recordId: string }>
   searchParams: Promise<{ error?: string }>
 }) {
-  const { id } = await params
+  const { id, recordId } = await params
   const sp = await searchParams
   const errorMsg = sp.error
 
@@ -21,14 +21,21 @@ export default async function NewServicePage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: vehicle, error } = await supabase
+  const { data: record, error } = await supabase
+    .from('service_records')
+    .select('*')
+    .eq('id', recordId)
+    .eq('vehicle_id', id)
+    .single()
+
+  if (error || !record) notFound()
+
+  const { data: vehicle } = await supabase
     .from('vehicles')
-    .select('id, make, model, nickname, current_odometer')
+    .select('id, make, model, nickname')
     .eq('id', id)
     .single()
-  if (error || !vehicle) notFound()
-
-  const today = new Date().toISOString().slice(0, 10)
+  if (!vehicle) notFound()
 
   return (
     <main className="min-h-[100svh] pb-32">
@@ -40,9 +47,9 @@ export default async function NewServicePage({
           ← {vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`}
         </Link>
         <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-4">
-          Log service
+          Edit service
         </h1>
-        <p className="text-ash mt-1">What was done?</p>
+        <p className="text-ash mt-1">Fix what was wrong.</p>
 
         {errorMsg && (
           <div className="mt-6 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">
@@ -50,12 +57,8 @@ export default async function NewServicePage({
           </div>
         )}
 
-        <form
-          action={createServiceRecord}
-          encType="multipart/form-data"
-          className="mt-8 space-y-4"
-          id="service-form"
-        >
+        <form action={updateServiceRecord} className="mt-8 space-y-4" id="edit-form">
+          <input type="hidden" name="id" value={recordId} />
           <input type="hidden" name="vehicle_id" value={id} />
 
           <div>
@@ -66,12 +69,9 @@ export default async function NewServicePage({
               id="service_type"
               name="service_type"
               required
-              defaultValue=""
+              defaultValue={record.service_type}
               className="field"
             >
-              <option value="" disabled>
-                Pick one…
-              </option>
               {SERVICE_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {humanize(t)}
@@ -85,7 +85,7 @@ export default async function NewServicePage({
             name="service_date"
             type="date"
             required
-            defaultValue={today}
+            defaultValue={record.service_date}
           />
 
           <div className="grid grid-cols-2 gap-3">
@@ -94,21 +94,21 @@ export default async function NewServicePage({
               name="odometer"
               type="number"
               inputMode="numeric"
-              defaultValue={vehicle.current_odometer?.toString() ?? ''}
+              defaultValue={record.odometer?.toString() ?? ''}
             />
             <Field
               label="Cost (AED)"
               name="cost_aed"
               type="number"
               inputMode="decimal"
-              placeholder="350"
+              defaultValue={record.cost_aed?.toString() ?? ''}
             />
           </div>
 
           <Field
             label="Workshop"
             name="workshop_name"
-            placeholder="Al Quoz Auto Care"
+            defaultValue={record.workshop_name_freetext ?? ''}
           />
 
           <div>
@@ -119,25 +119,9 @@ export default async function NewServicePage({
               id="notes"
               name="notes"
               rows={3}
-              placeholder="Mobil 1 5W-30, oil filter changed too"
+              defaultValue={record.notes ?? ''}
               className="field resize-none"
             />
-          </div>
-
-          <div>
-            <label htmlFor="photo" className="label">
-              Photo / receipt
-            </label>
-            <input
-              type="file"
-              id="photo"
-              name="photo"
-              accept="image/*"
-              className="block w-full text-sm text-ash file:mr-4 file:py-2 file:px-4 file:rounded-pill file:border-0 file:text-sm file:font-medium file:bg-iron file:text-chalk hover:file:bg-iron/70 file:cursor-pointer cursor-pointer"
-            />
-            <p className="text-xs text-ash mt-1.5">
-              Optional. Snap the invoice or part you replaced.
-            </p>
           </div>
         </form>
       </div>
@@ -147,8 +131,8 @@ export default async function NewServicePage({
           <Link href={`/vehicles/${id}`} className="pill-ghost flex-1 text-center">
             Cancel
           </Link>
-          <button type="submit" form="service-form" className="pill-primary flex-[2] text-center">
-            Save record
+          <button type="submit" form="edit-form" className="pill-primary flex-[2] text-center">
+            Save changes
           </button>
         </div>
       </div>
@@ -160,7 +144,6 @@ function Field({
   label,
   name,
   type = 'text',
-  placeholder,
   required,
   defaultValue,
   inputMode,
@@ -168,7 +151,6 @@ function Field({
   label: string
   name: string
   type?: string
-  placeholder?: string
   required?: boolean
   defaultValue?: string
   inputMode?: 'text' | 'numeric' | 'decimal' | 'email' | 'tel' | 'url' | 'search'
@@ -182,7 +164,6 @@ function Field({
         type={type}
         id={name}
         name={name}
-        placeholder={placeholder}
         required={required}
         defaultValue={defaultValue}
         inputMode={inputMode}
