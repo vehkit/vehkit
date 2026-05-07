@@ -6,6 +6,7 @@ import { deleteVehicle } from '@/app/actions/vehicles'
 import { deleteServiceRecord } from '@/app/actions/services'
 import { HeroPhotoUpload } from '@/components/HeroPhotoUpload'
 import { ShareSheet } from '@/components/ShareSheet'
+import { WorkshopCodeSheet } from '@/components/WorkshopCodeSheet'
 import {
   reminderStatus,
   reminderLabel,
@@ -117,8 +118,9 @@ export default async function VehiclePage({
             )}
           </div>
 
-          <div className="mt-6 pt-6 border-t border-seam">
+          <div className="mt-6 pt-6 border-t border-seam flex flex-wrap gap-2">
             <ShareSheet vehicleId={id} baseUrl={baseUrl} />
+            <WorkshopCodeSheet vehicleId={id} />
           </div>
         </header>
 
