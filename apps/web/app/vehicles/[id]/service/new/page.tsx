@@ -125,18 +125,20 @@ export default async function NewServicePage({
           </div>
 
           <div>
-            <label htmlFor="photo" className="label">
-              Photo / receipt
+            <label htmlFor="photos" className="label">
+              Photos / receipts
             </label>
             <input
               type="file"
-              id="photo"
-              name="photo"
+              id="photos"
+              name="photos"
               accept="image/*"
+              multiple
               className="block w-full text-sm text-ash file:mr-4 file:py-2 file:px-4 file:rounded-pill file:border-0 file:text-sm file:font-medium file:bg-iron file:text-chalk hover:file:bg-iron/70 file:cursor-pointer cursor-pointer"
             />
             <p className="text-xs text-ash mt-1.5">
-              Optional. Snap the invoice or part you replaced.
+              Optional. Snap the invoice, part you replaced, or before/after shots. Multiple
+              allowed.
             </p>
           </div>
         </form>

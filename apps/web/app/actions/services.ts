@@ -80,29 +80,29 @@ export async function createServiceRecord(formData: FormData) {
     )
   }
 
-  // Optional photo upload
-  const photo = formData.get('photo')
-  if (photo instanceof File && photo.size > 0) {
+  // Optional multi-photo upload
+  const photos = formData.getAll('photos').filter((f): f is File => f instanceof File && f.size > 0)
+  for (const [i, photo] of photos.entries()) {
     const ext = photo.name.split('.').pop()?.toLowerCase() ?? 'jpg'
-    const path = `vehicles/${vehicleId}/services/${record!.id}/${Date.now()}.${ext}`
+    const path = `vehicles/${vehicleId}/services/${record!.id}/${Date.now()}-${i}.${ext}`
     const { error: upErr } = await supabase.storage
       .from('service-files')
       .upload(path, photo, { contentType: photo.type })
 
-    if (!upErr) {
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('service-files').getPublicUrl(path)
+    if (upErr) continue
 
-      await supabase.from('service_files').insert({
-        service_record_id: record!.id,
-        vehicle_id: vehicleId,
-        storage_path: publicUrl,
-        file_type: photo.type,
-        file_size_bytes: photo.size,
-        uploaded_by: user.id,
-      })
-    }
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from('service-files').getPublicUrl(path)
+
+    await supabase.from('service_files').insert({
+      service_record_id: record!.id,
+      vehicle_id: vehicleId,
+      storage_path: publicUrl,
+      file_type: photo.type,
+      file_size_bytes: photo.size,
+      uploaded_by: user.id,
+    })
   }
 
   // Update vehicle odometer

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createSampleVehicle } from '@/app/actions/vehicles'
 import { reminderStatus, type ReminderRow } from '@/lib/reminders'
 
 export default async function GaragePage() {
@@ -100,14 +101,51 @@ export default async function GaragePage() {
             </Link>
           ))
         ) : (
-          <div className="card p-10 text-center">
-            <p className="text-chalk font-medium">No vehicles yet.</p>
-            <p className="text-sm text-ash mt-2 mb-6">
-              Add your first car to start its passport.
-            </p>
-            <Link href="/vehicles/new" className="pill-primary inline-flex items-center">
-              Add a vehicle
-            </Link>
+          <div className="space-y-6">
+            <div className="card p-8">
+              <p className="nav-pill text-[10px]">Welcome to Vehkit</p>
+              <h2 className="text-2xl font-semibold text-chalk tracking-tighter mt-3">
+                Every car deserves a passport.
+              </h2>
+              <p className="text-ash mt-3 leading-relaxed text-sm">
+                Track every service, repair, and reminder for every car you own. Workshops verify
+                their work with a 6-digit code. The full record stays with the car — even when
+                you sell it.
+              </p>
+              <div className="mt-6 grid grid-cols-3 gap-3 text-center">
+                <Bullet n="1" label="Add your car" />
+                <Bullet n="2" label="Log services" />
+                <Bullet n="3" label="Share record" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Link
+                href="/vehicles/new"
+                className="card p-6 hover:border-volt/30 transition-colors block"
+              >
+                <p className="nav-pill text-[10px]">Get started</p>
+                <p className="text-lg font-semibold text-chalk mt-2">Add your car</p>
+                <p className="text-sm text-ash mt-1">
+                  Make, model, plate — under a minute.
+                </p>
+                <p className="text-volt text-sm mt-4 font-medium">+ New vehicle →</p>
+              </Link>
+
+              <form action={createSampleVehicle}>
+                <button
+                  type="submit"
+                  className="card p-6 hover:border-volt/30 transition-colors text-left w-full"
+                >
+                  <p className="nav-pill text-[10px]">Just exploring?</p>
+                  <p className="text-lg font-semibold text-chalk mt-2">Try with a sample car</p>
+                  <p className="text-sm text-ash mt-1">
+                    A demo Toyota Corolla with 3 service entries.
+                  </p>
+                  <p className="text-volt text-sm mt-4 font-medium">+ Sample car →</p>
+                </button>
+              </form>
+            </div>
           </div>
         )}
       </section>
@@ -124,5 +162,16 @@ export default async function GaragePage() {
         </div>
       )}
     </main>
+  )
+}
+
+function Bullet({ n, label }: { n: string; label: string }) {
+  return (
+    <div>
+      <div className="w-8 h-8 rounded-pill bg-iron border border-seam flex items-center justify-center mx-auto">
+        <span className="font-mono text-sm text-volt font-semibold">{n}</span>
+      </div>
+      <p className="text-xs text-ash mt-2">{label}</p>
+    </div>
   )
 }

@@ -121,6 +121,9 @@ export default async function VehiclePage({
           <div className="mt-6 pt-6 border-t border-seam flex flex-wrap gap-2">
             <ShareSheet vehicleId={id} baseUrl={baseUrl} />
             <WorkshopCodeSheet vehicleId={id} />
+            <Link href={`/vehicles/${id}/edit`} className="pill-outline text-sm">
+              Edit
+            </Link>
           </div>
         </header>
 
@@ -176,7 +179,9 @@ export default async function VehiclePage({
           {records && records.length > 0 ? (
             <ol className="space-y-3">
               {records.map((r) => {
-                const photo = r.service_files?.[0]?.storage_path
+                const photos = (r.service_files ?? [])
+                  .map((f: { storage_path: string }) => f.storage_path)
+                  .filter(Boolean)
                 return (
                   <li
                     key={r.id}
@@ -184,9 +189,35 @@ export default async function VehiclePage({
                       r.attestation === 'workshop' ? 'border-l-4 border-l-volt' : ''
                     }`}
                   >
-                    {photo && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={photo} alt="" className="w-full h-40 object-cover" />
+                    {photos.length > 0 && (
+                      <div
+                        className={
+                          photos.length === 1
+                            ? ''
+                            : 'grid grid-cols-2 gap-px bg-seam'
+                        }
+                      >
+                        {photos.slice(0, 4).map((url: string, i: number) => (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            key={i}
+                            src={url}
+                            alt=""
+                            className={`w-full object-cover ${
+                              photos.length === 1
+                                ? 'h-40'
+                                : photos.length === 2
+                                  ? 'h-32'
+                                  : 'h-24'
+                            }`}
+                          />
+                        ))}
+                        {photos.length > 4 && (
+                          <div className="col-span-2 px-3 py-1 text-xs text-ash bg-iron">
+                            +{photos.length - 4} more photos
+                          </div>
+                        )}
+                      </div>
                     )}
                     <div className="p-5 flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
