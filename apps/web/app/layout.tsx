@@ -18,6 +18,14 @@ export const metadata: Metadata = {
     description: 'Every car deserves a passport.',
     type: 'website',
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Vehkit',
+  },
+  formatDetection: {
+    telephone: false,
+  },
 }
 
 export const viewport: Viewport = {

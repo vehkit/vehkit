@@ -1,9 +1,11 @@
+import { headers } from 'next/headers'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { deleteVehicle } from '@/app/actions/vehicles'
 import { deleteServiceRecord } from '@/app/actions/services'
 import { HeroPhotoUpload } from '@/components/HeroPhotoUpload'
+import { ShareSheet } from '@/components/ShareSheet'
 import {
   reminderStatus,
   reminderLabel,
@@ -48,6 +50,12 @@ export default async function VehiclePage({
     const s = reminderStatus(r, vehicle.current_odometer)
     return s === 'overdue' || s === 'due_soon'
   })
+
+  // Compute base URL for share links
+  const h = await headers()
+  const host = h.get('host') ?? 'vehkit.com'
+  const proto = h.get('x-forwarded-proto') ?? 'https'
+  const baseUrl = `${proto}://${host}`
 
   return (
     <main className="min-h-[100svh] pb-32">
@@ -107,6 +115,10 @@ export default async function VehiclePage({
                 </p>
               </div>
             )}
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-seam">
+            <ShareSheet vehicleId={id} baseUrl={baseUrl} />
           </div>
         </header>
 
