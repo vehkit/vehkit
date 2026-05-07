@@ -15,14 +15,19 @@ export async function generateMetadata({
 
   const { data: share } = await supabase
     .from('vehicle_share_tokens')
-    .select('vehicle_id, vehicles(make, model, nickname, year)')
+    .select('vehicle_id')
     .eq('token', token)
     .is('revoked_at', null)
     .maybeSingle()
 
-  const vehicle = share?.vehicles as
-    | { make: string; model: string; nickname: string | null; year: number | null }
-    | null
+  if (!share) return { title: 'Vehkit · Vehicle Passport' }
+
+  const { data: vehicle } = await supabase
+    .from('vehicles')
+    .select('make, model, nickname, year')
+    .eq('id', share.vehicle_id)
+    .maybeSingle()
+
   if (!vehicle) return { title: 'Vehkit · Vehicle Passport' }
 
   const name = vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`
