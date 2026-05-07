@@ -1,10 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-export default function LoginPage() {
+function LoginForm() {
+  const searchParams = useSearchParams()
+  const next = searchParams?.get('next') ?? '/garage'
+
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -15,9 +20,11 @@ export default function LoginPage() {
     setStatus('sending')
     setError(null)
 
+    const callbackUrl = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
+
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: callbackUrl },
     })
 
     if (error) {
@@ -79,5 +86,19 @@ export default function LoginPage() {
         )}
       </div>
     </main>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-[100svh] flex items-center justify-center">
+          <p className="text-ash text-sm">Loading…</p>
+        </main>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   )
 }

@@ -31,8 +31,14 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Auth gate for protected routes.
-  const protectedPrefixes = ['/garage', '/vehicles', '/workshop', '/reminders']
-  const requiresAuth = protectedPrefixes.some((p) => request.nextUrl.pathname.startsWith(p))
+  const path = request.nextUrl.pathname
+  const protectedPrefixes = ['/garage', '/vehicles', '/reminders']
+  const isWorkshopArea = path.startsWith('/workshop')
+  const isPublicWorkshopPath =
+    path.startsWith('/workshop/claim') || path.startsWith('/workshop/start')
+  const requiresAuth =
+    protectedPrefixes.some((p) => path.startsWith(p)) ||
+    (isWorkshopArea && !isPublicWorkshopPath)
 
   if (requiresAuth && !user) {
     const url = request.nextUrl.clone()
