@@ -1,0 +1,25 @@
+{
+  "name": "vehkit",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Every car deserves a passport.",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "db:push": "supabase db push",
+    "db:reset": "supabase db reset",
+    "db:types": "supabase gen types typescript --linked > packages/types/src/database.ts",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "turbo": "^2.1.0",
+    "typescript": "^5.6.2"
+  },
+  "packageManager": "pnpm@9.10.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

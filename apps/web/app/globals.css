@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-ink: 14 23 38;
+    --color-verified: 0 168 107;
+    --color-cream: 250 247 242;
+  }
+
+  html,
+  body {
+    background: rgb(var(--color-cream));
+    color: rgb(var(--color-ink));
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Selection — uses brand verified color */
+  ::selection {
+    background: rgb(var(--color-verified) / 0.2);
+  }
+}
