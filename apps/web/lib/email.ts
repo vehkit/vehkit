@@ -239,7 +239,7 @@ export async function emailReminderDigest(args: {
   const client = getClient()
   if (!client) return { skipped: true }
 
-  const greeting = args.ownerName ? args.ownerName.split(' ')[0] : 'there'
+  const greeting = args.ownerName?.split(' ')[0] ?? 'there'
   const totalReminders = args.vehicles.reduce((sum, v) => sum + v.reminders.length, 0)
   const overdueCount = args.vehicles.reduce(
     (sum, v) => sum + v.reminders.filter((r) => r.isOverdue).length,
