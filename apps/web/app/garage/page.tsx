@@ -87,7 +87,7 @@ export default async function GaragePage() {
       </header>
 
       {/* Identity card */}
-      <section className="px-6 pb-2">
+      <section className="px-6 pb-2 max-w-3xl mx-auto">
         <Link
           href="/profile"
           className="card flex items-center gap-4 p-4 hover:border-volt/30 transition-colors"
@@ -111,13 +111,13 @@ export default async function GaragePage() {
       </section>
 
       {/* Heading */}
-      <div className="px-6 pt-6 pb-3">
+      <div className="px-6 pt-6 pb-3 max-w-3xl mx-auto">
         <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter">
           Garage
         </h1>
       </div>
 
-      <section className="px-6 space-y-3">
+      <section className="px-6 space-y-3 max-w-3xl mx-auto">
         {vehicles && vehicles.length > 0 ? (
           vehicles.map((v) => {
             const isShared = v.owner_id !== user.id
@@ -129,7 +129,7 @@ export default async function GaragePage() {
                 href={`/vehicles/${v.id}`}
                 className={`card block overflow-hidden hover:border-volt/30 transition-colors group relative ${
                   pendingForThis > 0 ? 'border-l-4 border-l-wallet' : ''
-                } ${heroPhoto ? 'aspect-[2/1]' : ''}`}
+                } ${heroPhoto ? 'h-40 md:h-44' : ''}`}
               >
                 {heroPhoto && (
                   <>
