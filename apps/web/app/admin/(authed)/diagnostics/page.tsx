@@ -45,7 +45,7 @@ async function runChecks(): Promise<Check[]> {
       checks.push({
         label: 'profiles count',
         ok: false,
-        detail: `${error.message} · ${error.code ?? '—'}`,
+        detail: `${error.message || '(empty message)'} · ${error.code ?? '—'} · ${JSON.stringify(error)}`,
       })
     } else {
       checks.push({
@@ -72,7 +72,7 @@ async function runChecks(): Promise<Check[]> {
       checks.push({
         label: 'vehicles count',
         ok: false,
-        detail: `${error.message} · ${error.code ?? '—'}`,
+        detail: `${error.message || '(empty message)'} · ${error.code ?? '—'} · ${JSON.stringify(error)}`,
       })
     } else {
       checks.push({
@@ -99,7 +99,7 @@ async function runChecks(): Promise<Check[]> {
       checks.push({
         label: 'workshops count',
         ok: false,
-        detail: `${error.message} · ${error.code ?? '—'}`,
+        detail: `${error.message || '(empty message)'} · ${error.code ?? '—'} · ${JSON.stringify(error)}`,
       })
     } else {
       checks.push({
@@ -126,7 +126,7 @@ async function runChecks(): Promise<Check[]> {
       checks.push({
         label: 'service_records count',
         ok: false,
-        detail: `${error.message} · ${error.code ?? '—'}`,
+        detail: `${error.message || '(empty message)'} · ${error.code ?? '—'} · ${JSON.stringify(error)}`,
       })
     } else {
       checks.push({
@@ -151,7 +151,7 @@ async function runChecks(): Promise<Check[]> {
       checks.push({
         label: 'admin_overview_stats RPC',
         ok: false,
-        detail: `${error.message} · ${error.code ?? '—'}`,
+        detail: `${error.message || '(empty message)'} · ${error.code ?? '—'} · ${JSON.stringify(error)}`,
       })
     } else {
       checks.push({
