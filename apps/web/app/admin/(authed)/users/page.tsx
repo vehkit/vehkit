@@ -36,10 +36,10 @@ export default async function AdminUsersPage({
     )
   }
 
-  const { data: profiles } = await query
+  const { data: profiles, error: profilesError } = await query
 
   // Vehicle counts per owner (just for context)
-  const { data: vehicles } = await supabase
+  const { data: vehicles, error: vehiclesError } = await supabase
     .from('vehicles')
     .select('owner_id')
 
@@ -77,6 +77,13 @@ export default async function AdminUsersPage({
           )}
         </form>
       </header>
+
+      {(profilesError || vehiclesError) && (
+        <div className="mb-4 bg-signal/10 border border-signal/30 text-signal text-xs px-4 py-3 rounded-DEFAULT font-mono">
+          {profilesError && <div>profiles: {profilesError.message} · {profilesError.code}</div>}
+          {vehiclesError && <div>vehicles: {vehiclesError.message} · {vehiclesError.code}</div>}
+        </div>
+      )}
 
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">
