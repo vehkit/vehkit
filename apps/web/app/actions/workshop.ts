@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { generateCode, normalizeCode } from '@/lib/workshop-codes'
+import { emailWorkshopEntryToOwner } from '@/lib/email'
 
 const REMINDER_RULES: Record<
   string,
@@ -121,6 +122,49 @@ export async function logServiceViaCode(formData: FormData) {
   const ip = xff ? xff.split(',')[0]?.trim() : h.get('x-real-ip')
   if (ip) {
     await supabase.rpc('mark_shop_attempt_success', { p_ip: ip, p_code: code })
+  }
+
+  // Notify the vehicle owner by email — fire-and-forget, never blocks the flow
+  try {
+    const { data: rec } = await supabase
+      .from('service_records')
+      .select(
+        'vehicle_id, service_type, service_date, odometer, cost_aed, vehicles(make, model, nickname, owner_id)'
+      )
+      .eq('id', recordId)
+      .maybeSingle()
+
+    if (rec?.vehicle_id) {
+      const v = (Array.isArray(rec.vehicles) ? rec.vehicles[0] : rec.vehicles) as
+        | { make: string; model: string; nickname: string | null; owner_id: string }
+        | null
+      if (v?.owner_id) {
+        const { data: owner } = await supabase
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', v.owner_id)
+          .maybeSingle()
+
+        if (owner?.email) {
+          const host = h.get('host') ?? 'vehkit.com'
+          const proto = h.get('x-forwarded-proto') ?? 'https'
+          await emailWorkshopEntryToOwner({
+            to: owner.email,
+            ownerName: owner.full_name,
+            vehicleName: v.nickname ?? `${v.make} ${v.model}`,
+            vehicleId: rec.vehicle_id,
+            workshopName,
+            serviceType,
+            serviceDate,
+            odometer,
+            costAed,
+            baseUrl: `${proto}://${host}`,
+          })
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[email] failed to notify owner of new workshop entry:', err)
   }
 
   // Auto-create reminder for this service type (best-effort, ignore errors)
