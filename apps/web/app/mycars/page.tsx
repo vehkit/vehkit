@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createSampleVehicle } from '@/app/actions/vehicles'
 import { MyCarsList } from '@/components/MyCarsList'
 
-export default async function GaragePage() {
+export default async function MyCarsPage() {
   const supabase = await createClient()
   const {
     data: { user },

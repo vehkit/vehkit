@@ -23,8 +23,8 @@ export default async function Home() {
 
           <div className="pt-4">
             {user ? (
-              <Link href="/garage" className="pill-primary inline-flex items-center gap-2">
-                Open my garage <span aria-hidden>→</span>
+              <Link href="/mycars" className="pill-primary inline-flex items-center gap-2">
+                Open my cars <span aria-hidden>→</span>
               </Link>
             ) : (
               <Link href="/login" className="pill-primary inline-flex items-center">

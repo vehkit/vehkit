@@ -33,7 +33,8 @@ export async function updateSession(request: NextRequest) {
   // Auth gate for protected routes.
   const path = request.nextUrl.pathname
   const protectedPrefixes = [
-    '/garage',
+    '/mycars',
+    '/garage', // legacy — redirects to /mycars but still gates auth
     '/vehicles',
     '/reminders',
     '/notifications',

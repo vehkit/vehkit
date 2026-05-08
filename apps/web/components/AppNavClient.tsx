@@ -6,21 +6,25 @@ import { AvatarDisplay } from './AvatarUpload'
 import { getInitials } from '@/lib/initials'
 
 type Tab = {
-  href: '/garage' | '/notifications' | '/workshops' | '/profile'
+  href: '/mycars' | '/notifications' | '/workshops' | '/profile'
   label: string
   icon: 'garage' | 'bell' | 'search' | 'user'
 }
 
 const TABS: Tab[] = [
-  { href: '/garage', label: 'My Cars', icon: 'garage' },
+  { href: '/mycars', label: 'My Cars', icon: 'garage' },
   { href: '/notifications', label: 'Inbox', icon: 'bell' },
   { href: '/workshops', label: 'Workshops', icon: 'search' },
   { href: '/profile', label: 'You', icon: 'user' },
 ]
 
 function isPathActive(pathname: string, href: string): boolean {
-  if (href === '/garage') {
-    return pathname.startsWith('/garage') || pathname.startsWith('/vehicles')
+  if (href === '/mycars') {
+    return (
+      pathname.startsWith('/mycars') ||
+      pathname.startsWith('/garage') ||
+      pathname.startsWith('/vehicles')
+    )
   }
   if (href === '/notifications') {
     return pathname.startsWith('/notifications') || pathname.startsWith('/reminders')
@@ -58,7 +62,7 @@ export function AppNavClient({
       <header className="hidden md:block sticky top-0 z-30 bg-noir/90 backdrop-blur border-b border-seam">
         <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link
-            href="/garage"
+            href="/mycars"
             className="text-sm font-semibold tracking-tightest text-chalk hover:text-volt transition-colors"
           >
             vehkit

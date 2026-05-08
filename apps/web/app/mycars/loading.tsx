@@ -1,4 +1,4 @@
-export default function GarageLoading() {
+export default function MyCarsLoading() {
   return (
     <main className="min-h-[100svh] pb-24">
       <header className="px-6 pt-10 pb-6">
