@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { StarRating } from '@/components/StarRating'
+import { snoozeReminder, completeReminder } from '@/app/actions/reminders'
 import {
   reminderStatus,
   reminderLabel,
@@ -181,28 +182,15 @@ export default async function NotificationsPage() {
             {overdue.map((r) => {
               const v = vMap.get(r.vehicle_id)
               return (
-                <Link
+                <ReminderItem
                   key={r.id}
-                  href={`/vehicles/${r.vehicle_id}/service/new`}
-                  className="card block p-4 border-l-4 border-l-signal hover:border-volt/30 transition-colors"
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-chalk">
-                        {humanizeReminderType(r.reminder_type)}
-                      </p>
-                      {v && (
-                        <p className="text-sm text-ash mt-0.5 truncate">
-                          {v.nickname ?? `${v.make} ${v.model}`}
-                        </p>
-                      )}
-                      <p className="text-xs text-ash mt-1 font-mono">
-                        {reminderLabel(r, v?.current_odometer ?? null)}
-                      </p>
-                    </div>
-                    <span className="text-xs tracking-widest uppercase text-signal">Log →</span>
-                  </div>
-                </Link>
+                  reminderId={r.id}
+                  vehicleId={r.vehicle_id}
+                  label={humanizeReminderType(r.reminder_type)}
+                  vehicleName={v ? v.nickname ?? `${v.make} ${v.model}` : null}
+                  meta={reminderLabel(r, v?.current_odometer ?? null)}
+                  tone="signal"
+                />
               )
             })}
           </Section>
@@ -214,28 +202,15 @@ export default async function NotificationsPage() {
             {dueSoon.map((r) => {
               const v = vMap.get(r.vehicle_id)
               return (
-                <Link
+                <ReminderItem
                   key={r.id}
-                  href={`/vehicles/${r.vehicle_id}/service/new`}
-                  className="card block p-4 border-l-4 border-l-wallet hover:border-volt/30 transition-colors"
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-chalk">
-                        {humanizeReminderType(r.reminder_type)}
-                      </p>
-                      {v && (
-                        <p className="text-sm text-ash mt-0.5 truncate">
-                          {v.nickname ?? `${v.make} ${v.model}`}
-                        </p>
-                      )}
-                      <p className="text-xs text-ash mt-1 font-mono">
-                        {reminderLabel(r, v?.current_odometer ?? null)}
-                      </p>
-                    </div>
-                    <span className="text-xs tracking-widest uppercase text-wallet">Log →</span>
-                  </div>
-                </Link>
+                  reminderId={r.id}
+                  vehicleId={r.vehicle_id}
+                  label={humanizeReminderType(r.reminder_type)}
+                  vehicleName={v ? v.nickname ?? `${v.make} ${v.model}` : null}
+                  meta={reminderLabel(r, v?.current_odometer ?? null)}
+                  tone="wallet"
+                />
               )
             })}
           </Section>
@@ -302,4 +277,65 @@ function Section({
 
 function humanize(s: string): string {
   return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function ReminderItem({
+  reminderId,
+  vehicleId,
+  label,
+  vehicleName,
+  meta,
+  tone,
+}: {
+  reminderId: string
+  vehicleId: string
+  label: string
+  vehicleName: string | null
+  meta: string
+  tone: 'signal' | 'wallet'
+}) {
+  const borderClass = tone === 'signal' ? 'border-l-signal' : 'border-l-wallet'
+  const textClass = tone === 'signal' ? 'text-signal' : 'text-wallet'
+  return (
+    <div className={`card p-4 border-l-4 ${borderClass}`}>
+      <div className="flex items-start justify-between gap-3">
+        <Link href={`/vehicles/${vehicleId}/service/new`} className="min-w-0 flex-1">
+          <p className="font-medium text-chalk">{label}</p>
+          {vehicleName && (
+            <p className="text-sm text-ash mt-0.5 truncate">{vehicleName}</p>
+          )}
+          <p className="text-xs text-ash mt-1 font-mono">{meta}</p>
+        </Link>
+        <Link
+          href={`/vehicles/${vehicleId}/service/new`}
+          className={`text-xs tracking-widest uppercase font-medium shrink-0 ${textClass} hover:underline`}
+        >
+          Log →
+        </Link>
+      </div>
+      <div className="flex gap-3 mt-3 pt-3 border-t border-seam">
+        <form action={snoozeReminder}>
+          <input type="hidden" name="id" value={reminderId} />
+          <input type="hidden" name="vehicle_id" value={vehicleId} />
+          <input type="hidden" name="snooze_days" value="7" />
+          <button
+            type="submit"
+            className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
+          >
+            Snooze 7d
+          </button>
+        </form>
+        <form action={completeReminder}>
+          <input type="hidden" name="id" value={reminderId} />
+          <input type="hidden" name="vehicle_id" value={vehicleId} />
+          <button
+            type="submit"
+            className="text-xs tracking-widest uppercase text-ash hover:text-volt transition-colors"
+          >
+            Mark done
+          </button>
+        </form>
+      </div>
+    </div>
+  )
 }

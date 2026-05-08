@@ -4,5 +4,11 @@
     "apps/web/**": {
       "maxDuration": 30
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/reminder-digest",
+      "schedule": "0 4 * * *"
+    }
+  ]
 }

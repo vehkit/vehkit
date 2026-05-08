@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { deleteVehicle } from '@/app/actions/vehicles'
 import { deleteServiceRecord } from '@/app/actions/services'
+import { snoozeReminder, completeReminder } from '@/app/actions/reminders'
 import { HeroPhotoUpload } from '@/components/HeroPhotoUpload'
 import { ShareSheet } from '@/components/ShareSheet'
 import { WorkshopCodeSheet } from '@/components/WorkshopCodeSheet'
@@ -144,30 +145,63 @@ export default async function VehiclePage({
                   key={r.id}
                   className={`card p-4 border-l-4 ${
                     isOverdue ? 'border-l-signal' : 'border-l-wallet'
-                  } flex items-center justify-between`}
+                  }`}
                 >
-                  <div>
-                    <p className="text-xs tracking-widest uppercase text-ash">
-                      {isOverdue ? 'Overdue' : 'Due soon'}
-                    </p>
-                    <p className="font-medium text-chalk mt-0.5">
-                      {humanizeReminderType(r.reminder_type)}
-                    </p>
-                    <p className="text-sm text-ash mt-0.5">
-                      {reminderLabel(r, vehicle.current_odometer)}
-                    </p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs tracking-widest uppercase text-ash">
+                        {isOverdue ? 'Overdue' : 'Due soon'}
+                      </p>
+                      <p className="font-medium text-chalk mt-0.5">
+                        {humanizeReminderType(r.reminder_type)}
+                      </p>
+                      <p className="text-sm text-ash mt-0.5">
+                        {reminderLabel(r, vehicle.current_odometer)}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/vehicles/${id}/service/new`}
+                      className={`text-xs tracking-widest uppercase font-medium shrink-0 ${
+                        isOverdue ? 'text-signal' : 'text-wallet'
+                      } hover:underline`}
+                    >
+                      Log →
+                    </Link>
                   </div>
-                  <Link
-                    href={`/vehicles/${id}/service/new`}
-                    className={`text-xs tracking-widest uppercase font-medium ${
-                      isOverdue ? 'text-signal' : 'text-wallet'
-                    } hover:underline`}
-                  >
-                    Log →
-                  </Link>
+                  <div className="flex gap-3 mt-3 pt-3 border-t border-seam">
+                    <form action={snoozeReminder} className="inline">
+                      <input type="hidden" name="id" value={r.id} />
+                      <input type="hidden" name="vehicle_id" value={id} />
+                      <input type="hidden" name="snooze_days" value="7" />
+                      <button
+                        type="submit"
+                        className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
+                      >
+                        Snooze 7d
+                      </button>
+                    </form>
+                    <form action={completeReminder} className="inline">
+                      <input type="hidden" name="id" value={r.id} />
+                      <input type="hidden" name="vehicle_id" value={id} />
+                      <button
+                        type="submit"
+                        className="text-xs tracking-widest uppercase text-ash hover:text-volt transition-colors"
+                      >
+                        Mark done
+                      </button>
+                    </form>
+                  </div>
                 </div>
               )
             })}
+            <div className="pt-2 text-right">
+              <Link
+                href={`/vehicles/${id}/reminders/new`}
+                className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
+              >
+                + Add custom reminder
+              </Link>
+            </div>
           </section>
         )}
 
