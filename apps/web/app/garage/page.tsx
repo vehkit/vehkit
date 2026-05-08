@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createSampleVehicle } from '@/app/actions/vehicles'
+import { MyCarsList } from '@/components/MyCarsList'
 
 export default async function GaragePage() {
   const supabase = await createClient()
@@ -45,78 +46,13 @@ export default async function GaragePage() {
         </h1>
       </div>
 
-      <section className="px-6 space-y-3 max-w-3xl mx-auto">
+      <section className="px-6 max-w-3xl mx-auto">
         {vehicles && vehicles.length > 0 ? (
-          vehicles.map((v) => {
-            const isShared = v.owner_id !== user.id
-            const pendingForThis = pendingByVehicle.get(v.id) ?? 0
-            const heroPhoto = v.hero_image_url
-            return (
-              <Link
-                key={v.id}
-                href={`/vehicles/${v.id}`}
-                className={`card block overflow-hidden hover:border-volt/30 transition-colors group relative ${
-                  pendingForThis > 0 ? 'border-l-4 border-l-wallet' : ''
-                } ${heroPhoto ? 'h-40 md:h-44' : ''}`}
-              >
-                {heroPhoto && (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={heroPhoto}
-                      alt=""
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-noir via-noir/40 to-transparent" />
-                  </>
-                )}
-
-                <div
-                  className={
-                    heroPhoto ? 'absolute inset-x-0 bottom-0 p-5 flex items-end justify-between gap-4' : 'p-5 flex items-start justify-between gap-4'
-                  }
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {(v.year || v.color) && (
-                        <p className="nav-pill text-[10px]">
-                          {[v.year, v.color].filter(Boolean).join(' · ')}
-                        </p>
-                      )}
-                      {isShared && (
-                        <span className="text-[10px] tracking-wider uppercase bg-iron/80 text-ash px-2 py-0.5 rounded-pill font-medium">
-                          Shared
-                        </span>
-                      )}
-                      {pendingForThis > 0 && (
-                        <span className="text-[10px] tracking-wider uppercase bg-wallet/20 text-wallet px-2 py-0.5 rounded-pill font-medium">
-                          {pendingForThis} pending
-                        </span>
-                      )}
-                    </div>
-                    <h2 className="text-xl md:text-2xl font-semibold text-chalk mt-1 truncate tracking-tighter">
-                      {v.nickname ?? `${v.make} ${v.model}`}
-                    </h2>
-                    <p className="text-sm text-ash mt-0.5 truncate">
-                      {v.make} {v.model}
-                      {v.plate_number && (
-                        <>
-                          {' · '}
-                          <span className="font-mono">{v.plate_number}</span>
-                        </>
-                      )}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-mono text-2xl md:text-3xl font-semibold text-chalk tabular-nums">
-                      {v.current_odometer?.toLocaleString() ?? '—'}
-                    </p>
-                    <p className="text-[10px] tracking-widest uppercase text-ash mt-0.5">km</p>
-                  </div>
-                </div>
-              </Link>
-            )
-          })
+          <MyCarsList
+            vehicles={vehicles}
+            currentUserId={user.id}
+            pendingByVehicle={Object.fromEntries(pendingByVehicle)}
+          />
         ) : (
           <div className="space-y-6">
             <div className="card p-8">
