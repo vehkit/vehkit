@@ -2,9 +2,6 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createSampleVehicle } from '@/app/actions/vehicles'
-import { AvatarDisplay } from '@/components/AvatarUpload'
-import { getInitials } from '@/lib/initials'
-import { reminderStatus, type ReminderRow } from '@/lib/reminders'
 
 export default async function GaragePage() {
   const supabase = await createClient()
@@ -15,51 +12,24 @@ export default async function GaragePage() {
 
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
-  // Parallelize four queries
-  const [vehiclesRes, remindersRes, pendingRes, profileRes] = await Promise.all([
+  // Parallelize: vehicles + per-vehicle pending count.
+  // Reminder/inbox count lives in AppNav now.
+  const [vehiclesRes, pendingRes] = await Promise.all([
     supabase.from('vehicles').select('*').order('created_at', { ascending: false }),
     supabase
-      .from('reminders')
-      .select('id, vehicle_id, reminder_type, due_date, due_at_km, status, notes')
-      .eq('status', 'open'),
-    supabase
       .from('service_records')
-      .select('vehicle_id, created_at')
+      .select('vehicle_id')
       .eq('attestation', 'workshop')
       .gte('created_at', oneDayAgo),
-    supabase
-      .from('profiles')
-      .select('full_name, avatar_url, email, created_at')
-      .eq('id', user.id)
-      .single(),
   ])
 
   const vehicles = vehiclesRes.data
-  const openReminders = remindersRes.data
   const pendingEntries = pendingRes.data
-  const profile = profileRes.data
-
-  const reminderCount = (openReminders ?? []).filter((r: ReminderRow) => {
-    const v = vehicles?.find((x) => x.id === r.vehicle_id)
-    const s = reminderStatus(r, v?.current_odometer ?? null)
-    return s === 'overdue' || s === 'due_soon'
-  }).length
 
   const pendingByVehicle = new Map<string, number>()
   for (const p of pendingEntries ?? []) {
     pendingByVehicle.set(p.vehicle_id, (pendingByVehicle.get(p.vehicle_id) ?? 0) + 1)
   }
-  const totalPending = pendingEntries?.length ?? 0
-  const notificationCount = reminderCount + totalPending
-
-  const initials = getInitials(profile?.full_name, profile?.email ?? user.email)
-  const ownedCount = (vehicles ?? []).filter((v) => v.owner_id === user.id).length
-  const memberSince = profile?.created_at
-    ? new Date(profile.created_at).toLocaleDateString('en-GB', {
-        month: 'short',
-        year: 'numeric',
-      })
-    : null
 
   return (
     <main className="min-h-[100svh] pb-24 md:pb-12">
@@ -68,32 +38,8 @@ export default async function GaragePage() {
         <p className="nav-pill">vehkit</p>
       </header>
 
-      {/* Identity card */}
-      <section className="px-6 pb-2 max-w-3xl mx-auto">
-        <Link
-          href="/profile"
-          className="card flex items-center gap-4 p-4 hover:border-volt/30 transition-colors"
-        >
-          <AvatarDisplay
-            url={profile?.avatar_url}
-            initials={initials}
-            size="md"
-          />
-          <div className="flex-1 min-w-0">
-            <p className="text-base font-semibold text-chalk truncate">
-              {profile?.full_name ?? user.email}
-            </p>
-            <p className="text-xs text-ash mt-0.5">
-              {ownedCount} {ownedCount === 1 ? 'vehicle' : 'vehicles'}
-              {memberSince && <> · Since {memberSince}</>}
-            </p>
-          </div>
-          <span className="text-xs tracking-widest uppercase text-ash shrink-0">Edit</span>
-        </Link>
-      </section>
-
       {/* Heading */}
-      <div className="px-6 pt-6 pb-3 max-w-3xl mx-auto">
+      <div className="px-6 pt-2 md:pt-8 pb-3 max-w-3xl mx-auto">
         <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter">
           Garage
         </h1>
