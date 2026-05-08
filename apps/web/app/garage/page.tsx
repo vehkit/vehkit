@@ -69,11 +69,11 @@ export default async function GaragePage() {
         <div className="flex items-center gap-4">
           <Link
             href="/notifications"
-            className="relative text-sm text-ash hover:text-chalk transition-colors"
+            className="text-sm text-ash hover:text-chalk transition-colors inline-flex items-center gap-1.5"
           >
             Inbox
             {notificationCount > 0 && (
-              <span className="absolute -top-1 -right-3 bg-signal text-noir text-[10px] font-mono font-bold px-1.5 py-px rounded-pill">
+              <span className="bg-signal text-noir text-[10px] font-mono font-bold px-1.5 py-px rounded-pill leading-none min-w-[18px] text-center">
                 {notificationCount}
               </span>
             )}
