@@ -25,4 +25,7 @@ jobs:
 
       - run: pnpm type-check
 
-      - run: pnpm lint
+      # Lint is enforced by Vercel's `next build` on every deploy.
+      # Re-add `pnpm lint` here once we migrate from `next lint` (deprecated)
+      # to standalone ESLint CLI:
+      #   cd apps/web && npx @next/codemod@canary next-lint-to-eslint-cli .
