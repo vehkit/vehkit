@@ -171,13 +171,14 @@ function BarChart({
   accent: 'volt' | 'wallet'
 }) {
   const max = Math.max(1, ...data.map((d) => d.value))
-  const fill = accent === 'volt' ? 'fill-volt' : 'fill-wallet'
 
   if (data.length === 0) {
     return (
       <div className="card p-6 text-center text-sm text-ash">No data yet</div>
     )
   }
+
+  const barColor = accent === 'volt' ? 'bg-volt' : 'bg-wallet'
 
   return (
     <div className="card p-5">
@@ -187,23 +188,13 @@ function BarChart({
           return (
             <div
               key={i}
-              className="flex-1 relative group"
+              className="flex-1 flex items-end h-full"
               title={`${d.label} · ${d.value}`}
             >
-              <svg
-                className="w-full h-full"
-                viewBox={`0 0 100 100`}
-                preserveAspectRatio="none"
-              >
-                <rect
-                  x="10"
-                  y={100 - h}
-                  width="80"
-                  height={h}
-                  className={fill}
-                  rx="1"
-                />
-              </svg>
+              <div
+                className={`w-full ${barColor} rounded-sm`}
+                style={{ height: `${h}%` }}
+              />
             </div>
           )
         })}
