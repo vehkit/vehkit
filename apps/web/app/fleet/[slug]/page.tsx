@@ -1,7 +1,9 @@
+import { headers } from 'next/headers'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { assignVehicleToFleet, removeVehicleFromFleet } from '@/app/actions/fleet'
+import { FleetInviteSheet } from '@/components/FleetInviteSheet'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,6 +69,15 @@ export default async function FleetOrgPage({
     .select('user_id, role, created_at')
     .eq('org_id', org.id)
     .order('created_at', { ascending: true })
+
+  const myMembership = members?.find((m) => m.user_id === user.id)
+  const isAdmin = myMembership?.role === 'admin'
+
+  // Base URL for share links
+  const h = await headers()
+  const host = h.get('host') ?? 'vehkit.com'
+  const proto = h.get('x-forwarded-proto') ?? 'https'
+  const baseUrl = `${proto}://${host}`
 
   return (
     <main className="min-h-[100svh] pb-24">
@@ -180,7 +191,10 @@ export default async function FleetOrgPage({
 
         {/* Members */}
         <section className="mt-10">
-          <h2 className="nav-pill mb-3">Members · {members?.length ?? 0}</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="nav-pill">Members · {members?.length ?? 0}</h2>
+            {isAdmin && <FleetInviteSheet orgId={org.id} baseUrl={baseUrl} />}
+          </div>
           {members && members.length > 0 ? (
             <ul className="space-y-2">
               {members.map((m) => (
@@ -195,9 +209,6 @@ export default async function FleetOrgPage({
               ))}
             </ul>
           ) : null}
-          <p className="text-xs text-ash mt-3">
-            Inviting team members by email — coming next push.
-          </p>
         </section>
       </div>
     </main>

@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
+type FleetRole = 'admin' | 'member' | 'viewer'
+
 export async function createFleetOrg(formData: FormData) {
   const supabase = await createClient()
   const {
@@ -72,6 +74,54 @@ export async function assignVehicleToFleet(formData: FormData) {
   revalidatePath(`/fleet/${slug}`)
   revalidatePath('/garage')
   redirect(`/fleet/${slug}`)
+}
+
+export async function createFleetInvite(
+  orgId: string,
+  role: FleetRole
+): Promise<{ token?: string; error?: string }> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not signed in' }
+
+  const { data: token, error } = await supabase.rpc('create_fleet_invite', {
+    p_org_id: orgId,
+    p_role: role,
+    p_email: null,
+  })
+
+  if (error) return { error: error.message }
+  return { token: token as string }
+}
+
+export async function acceptFleetInvite(token: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent(`/f/${token}`)}`)
+  }
+
+  const { data: orgId, error } = await supabase.rpc('accept_fleet_invite', {
+    p_token: token,
+  })
+
+  if (error || !orgId) {
+    redirect(`/f/${token}?error=${encodeURIComponent(error?.message ?? 'Accept failed')}`)
+  }
+
+  // Look up slug for redirect
+  const { data: org } = await supabase
+    .from('fleet_orgs')
+    .select('slug')
+    .eq('id', orgId)
+    .single()
+
+  revalidatePath('/fleet')
+  redirect(org ? `/fleet/${org.slug}` : '/fleet')
 }
 
 export async function removeVehicleFromFleet(formData: FormData) {
