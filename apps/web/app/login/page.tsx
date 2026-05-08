@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 
 function LoginForm() {
   const searchParams = useSearchParams()
-  const next = searchParams?.get('next') ?? '/garage'
+  const next = searchParams?.get('next') ?? '/mycars'
 
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')

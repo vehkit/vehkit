@@ -17,26 +17,36 @@ export default async function WorkshopDashboardPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/workshop')
 
-  const { data: membership } = await supabase
+  const { data: membership, error: membershipError } = await supabase
     .from('workshop_members')
     .select('workshop_id, role')
     .eq('user_id', user.id)
     .limit(1)
     .maybeSingle()
 
-  if (!membership || !membership.workshop_id) {
+  if (membershipError) {
+    redirect(
+      `/workshop/claim?error=${encodeURIComponent(`membership lookup failed: ${membershipError.message}`)}`
+    )
+  }
+
+  if (!membership) {
     redirect('/workshop/claim')
   }
 
   const workshopId = membership.workshop_id
 
-  const { data: workshop } = await supabase
+  const { data: workshop, error: workshopError } = await supabase
     .from('workshops')
     .select('id, name, slug, emirate, verification_tier, phone, email, trade_license_url')
     .eq('id', workshopId)
     .single()
 
-  if (!workshop) redirect('/workshop/claim')
+  if (workshopError || !workshop) {
+    redirect(
+      `/workshop/claim?error=${encodeURIComponent(`workshop fetch failed: ${workshopError?.message ?? 'not found'}`)}`
+    )
+  }
 
   // Stats via RPC
   const { data: statsRaw } = await supabase.rpc('workshop_stats', {

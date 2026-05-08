@@ -4,7 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/garage'
+  const rawNext = searchParams.get('next') ?? '/mycars'
+
+  // Only allow same-origin relative paths as `next` (defense in depth against open-redirect)
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/mycars'
 
   if (code) {
     const supabase = await createClient()
@@ -12,6 +15,9 @@ export async function GET(request: NextRequest) {
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`)
     }
+    return NextResponse.redirect(
+      `${origin}/login?error=${encodeURIComponent(error.message)}`
+    )
   }
 
   return NextResponse.redirect(`${origin}/login?error=auth_failed`)
