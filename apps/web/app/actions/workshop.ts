@@ -1,5 +1,6 @@
 'use server'
 
+import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -112,6 +113,14 @@ export async function logServiceViaCode(formData: FormData) {
     redirect(
       `/shop/${code}?error=${encodeURIComponent(error?.message ?? 'Submission failed')}`
     )
+  }
+
+  // Mark this IP's attempt as successful → doesn't count toward rate limit
+  const h = await headers()
+  const xff = h.get('x-forwarded-for')
+  const ip = xff ? xff.split(',')[0]?.trim() : h.get('x-real-ip')
+  if (ip) {
+    await supabase.rpc('mark_shop_attempt_success', { p_ip: ip, p_code: code })
   }
 
   // Auto-create reminder for this service type (best-effort, ignore errors)

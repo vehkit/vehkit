@@ -1,3 +1,4 @@
+import { headers } from 'next/headers'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -6,6 +7,12 @@ import { normalizeCode, formatCode } from '@/lib/workshop-codes'
 import { SERVICE_TYPES } from '@vehkit/types'
 
 export const dynamic = 'force-dynamic'
+
+function getClientIp(h: Headers): string | null {
+  const xff = h.get('x-forwarded-for')
+  if (xff) return xff.split(',')[0]?.trim() ?? null
+  return h.get('x-real-ip') ?? null
+}
 
 type CodePreview = {
   vehicle_id: string
@@ -36,6 +43,18 @@ export default async function ShopLogPage({
   if (!code) redirect('/shop?error=Invalid+code+format')
 
   const supabase = await createClient()
+
+  // Rate limit before any DB lookup
+  const h = await headers()
+  const ip = getClientIp(h)
+  const { data: allowed } = await supabase.rpc('check_and_track_shop_attempt', {
+    p_ip: ip,
+    p_code: code,
+  })
+  if (allowed === false) {
+    redirect('/shop?error=Too+many+attempts.+Try+again+in+10+minutes.')
+  }
+
   const { data: rows, error } = await supabase.rpc('preview_workshop_code', {
     p_code: code,
   })
