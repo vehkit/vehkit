@@ -53,7 +53,7 @@ export default async function AdminWorkshopsPage({
     query = query.eq('verification_tier', tierFilter)
   }
 
-  const { data: workshops } = await query
+  const { data: workshops, error: workshopsError } = await query
   const list = (workshops ?? []) as Workshop[]
 
   return (
@@ -89,6 +89,12 @@ export default async function AdminWorkshopsPage({
           )}
         </form>
       </header>
+
+      {workshopsError && (
+        <div className="mb-4 bg-signal/10 border border-signal/30 text-signal text-xs px-4 py-3 rounded-DEFAULT font-mono">
+          workshops: {workshopsError.message} · {workshopsError.code}
+        </div>
+      )}
 
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">

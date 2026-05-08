@@ -41,18 +41,18 @@ export default async function AdminServicesPage({
     )
   }
 
-  const { data: records } = await query
+  const { data: records, error: recordsError } = await query
   const list = (records ?? []) as Record_[]
 
   // Vehicle names
   const vehicleIds = [...new Set(list.map((r) => r.vehicle_id))]
-  const { data: vehicles } =
+  const { data: vehicles, error: vehiclesError } =
     vehicleIds.length > 0
       ? await supabase
           .from('vehicles')
           .select('id, make, model, nickname, plate_number')
           .in('id', vehicleIds)
-      : { data: [] }
+      : { data: [], error: null }
   const vMap = new Map<string, { name: string; plate: string | null }>()
   for (const v of vehicles ?? []) {
     vMap.set(v.id, {
@@ -98,6 +98,13 @@ export default async function AdminServicesPage({
           )}
         </form>
       </header>
+
+      {(recordsError || vehiclesError) && (
+        <div className="mb-4 bg-signal/10 border border-signal/30 text-signal text-xs px-4 py-3 rounded-DEFAULT font-mono">
+          {recordsError && <div>service_records: {recordsError.message} · {recordsError.code}</div>}
+          {vehiclesError && <div>vehicles: {vehiclesError.message} · {vehiclesError.code}</div>}
+        </div>
+      )}
 
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">

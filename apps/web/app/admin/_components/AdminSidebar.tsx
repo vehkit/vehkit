@@ -12,6 +12,7 @@ const NAV = [
   { href: '/admin/services', label: 'Service records' },
   { href: '/admin/reviews', label: 'Reviews' },
   { href: '/admin/cron', label: 'Cron + jobs' },
+  { href: '/admin/diagnostics', label: 'Diagnostics' },
 ] as const
 
 export function AdminSidebar() {

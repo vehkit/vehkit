@@ -43,18 +43,18 @@ export default async function AdminVehiclesPage({
     query = query.eq('plate_emirate', emirateFilter)
   }
 
-  const { data: vehicles } = await query
+  const { data: vehicles, error: vehiclesError } = await query
   const list = (vehicles ?? []) as Vehicle[]
 
   // Owner emails for display
   const ownerIds = [...new Set(list.map((v) => v.owner_id))]
-  const { data: owners } =
+  const { data: owners, error: ownersError } =
     ownerIds.length > 0
       ? await supabase
           .from('profiles')
           .select('id, email, full_name')
           .in('id', ownerIds)
-      : { data: [] }
+      : { data: [], error: null }
   const ownerMap = new Map<string, { email: string | null; name: string | null }>()
   for (const o of owners ?? []) {
     ownerMap.set(o.id, { email: o.email, name: o.full_name })
@@ -87,6 +87,13 @@ export default async function AdminVehiclesPage({
           )}
         </form>
       </header>
+
+      {(vehiclesError || ownersError) && (
+        <div className="mb-4 bg-signal/10 border border-signal/30 text-signal text-xs px-4 py-3 rounded-DEFAULT font-mono">
+          {vehiclesError && <div>vehicles: {vehiclesError.message} · {vehiclesError.code}</div>}
+          {ownersError && <div>owners: {ownersError.message} · {ownersError.code}</div>}
+        </div>
+      )}
 
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">

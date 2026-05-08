@@ -24,7 +24,7 @@ async function deleteReview(formData: FormData) {
 export default async function AdminReviewsPage() {
   const supabase = createAdminClient()
 
-  const { data: reviews } = await supabase
+  const { data: reviews, error: reviewsError } = await supabase
     .from('workshop_reviews')
     .select('*')
     .order('created_at', { ascending: false })
@@ -33,10 +33,10 @@ export default async function AdminReviewsPage() {
   const list = (reviews ?? []) as Review[]
 
   const workshopIds = [...new Set(list.map((r) => r.workshop_id))]
-  const { data: workshops } =
+  const { data: workshops, error: workshopsError } =
     workshopIds.length > 0
       ? await supabase.from('workshops').select('id, name, slug').in('id', workshopIds)
-      : { data: [] }
+      : { data: [], error: null }
   const wMap = new Map<string, { name: string; slug: string }>()
   for (const w of workshops ?? []) {
     wMap.set(w.id, { name: w.name, slug: w.slug })
@@ -59,6 +59,13 @@ export default async function AdminReviewsPage() {
           </p>
         </div>
       </header>
+
+      {(reviewsError || workshopsError) && (
+        <div className="mb-4 bg-signal/10 border border-signal/30 text-signal text-xs px-4 py-3 rounded-DEFAULT font-mono">
+          {reviewsError && <div>workshop_reviews: {reviewsError.message} · {reviewsError.code}</div>}
+          {workshopsError && <div>workshops: {workshopsError.message} · {workshopsError.code}</div>}
+        </div>
+      )}
 
       <div className="space-y-3">
         {list.map((r) => {
