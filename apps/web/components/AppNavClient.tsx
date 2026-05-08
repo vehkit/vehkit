@@ -64,24 +64,31 @@ export function AppNavClient({
             vehkit
           </Link>
           <nav className="flex items-center gap-1">
-            {TABS.slice(0, 3).map((t) => (
-              <Link
-                key={t.href}
-                href={t.href}
-                className={`relative text-sm px-3 py-1.5 rounded-pill transition-colors ${
-                  isPathActive(pathname, t.href)
-                    ? 'text-chalk bg-iron'
-                    : 'text-ash hover:text-chalk'
-                }`}
-              >
-                {t.label}
-                {t.href === '/notifications' && notificationCount > 0 && (
-                  <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-signal text-noir text-[10px] font-mono font-bold rounded-pill align-middle">
-                    {notificationCount}
-                  </span>
-                )}
-              </Link>
-            ))}
+            {TABS.slice(0, 3).map((t) => {
+              const active = isPathActive(pathname, t.href)
+              return (
+                <Link
+                  key={t.href}
+                  href={t.href}
+                  className={`relative text-sm px-3 py-1.5 rounded-pill transition-colors flex items-center gap-2 ${
+                    active ? 'text-chalk bg-iron' : 'text-ash hover:text-chalk'
+                  }`}
+                >
+                  <NavIcon
+                    name={t.icon}
+                    avatarUrl={null}
+                    initials=""
+                    active={active}
+                  />
+                  {t.label}
+                  {t.href === '/notifications' && notificationCount > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-signal text-noir text-[10px] font-mono font-bold rounded-pill">
+                      {notificationCount}
+                    </span>
+                  )}
+                </Link>
+              )
+            })}
           </nav>
           <Link
             href="/profile"
