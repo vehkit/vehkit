@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { AppNav } from '@/components/AppNav'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -38,7 +39,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} dark`}>
-      <body className="font-sans bg-noir text-chalk">{children}</body>
+      <body className="font-sans bg-noir text-chalk pb-16 md:pb-0">
+        <AppNav />
+        {children}
+      </body>
     </html>
   )
 }

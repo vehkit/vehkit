@@ -345,7 +345,7 @@ export default async function VehiclePage({
 
       {/* Sticky bottom action */}
       {records && records.length > 0 && (
-        <div className="fixed bottom-0 inset-x-0 px-6 pb-6 pt-4 bg-gradient-to-t from-noir via-noir/95 to-noir/0">
+        <div className="fixed bottom-16 md:bottom-0 inset-x-0 px-6 pb-6 pt-4 bg-gradient-to-t from-noir via-noir/95 to-noir/0 z-20">
           <div className="max-w-3xl mx-auto">
             <Link
               href={`/vehicles/${id}/service/new`}

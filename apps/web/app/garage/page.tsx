@@ -62,28 +62,10 @@ export default async function GaragePage() {
     : null
 
   return (
-    <main className="min-h-[100svh] pb-24">
-      {/* Top bar */}
-      <header className="px-6 pt-8 pb-4 flex items-center justify-between">
+    <main className="min-h-[100svh] pb-24 md:pb-12">
+      {/* Top bar — header on mobile only; desktop uses AppNav */}
+      <header className="px-6 pt-6 pb-2 md:hidden max-w-3xl mx-auto">
         <p className="nav-pill">vehkit</p>
-        <div className="flex items-center gap-4">
-          <Link
-            href="/notifications"
-            className="text-sm text-ash hover:text-chalk transition-colors inline-flex items-center gap-1.5"
-          >
-            Inbox
-            {notificationCount > 0 && (
-              <span className="bg-signal text-noir text-[10px] font-mono font-bold px-1.5 py-px rounded-pill leading-none min-w-[18px] text-center">
-                {notificationCount}
-              </span>
-            )}
-          </Link>
-          <form action="/auth/signout" method="post">
-            <button className="text-sm text-ash hover:text-chalk transition-colors">
-              Sign out
-            </button>
-          </form>
-        </div>
       </header>
 
       {/* Identity card */}
@@ -239,9 +221,9 @@ export default async function GaragePage() {
         )}
       </section>
 
-      {/* Sticky bottom add button (mobile-first) */}
+      {/* Sticky bottom add button (mobile-first) — sits above bottom tab bar */}
       {vehicles && vehicles.length > 0 && (
-        <div className="fixed bottom-0 inset-x-0 px-6 pb-6 pt-4 bg-gradient-to-t from-noir via-noir/95 to-noir/0 pointer-events-none">
+        <div className="fixed bottom-16 md:bottom-0 inset-x-0 px-6 pb-6 pt-4 bg-gradient-to-t from-noir via-noir/95 to-noir/0 pointer-events-none z-20">
           <Link
             href="/vehicles/new"
             className="pill-primary block text-center pointer-events-auto max-w-md mx-auto"

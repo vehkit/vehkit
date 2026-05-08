@@ -70,7 +70,7 @@ export default async function NewVehiclePage({
       </div>
 
       {/* Sticky bottom action bar */}
-      <div className="fixed bottom-0 inset-x-0 px-6 pb-6 pt-4 bg-gradient-to-t from-noir via-noir/95 to-noir/0">
+      <div className="fixed bottom-16 md:bottom-0 inset-x-0 px-6 pb-6 pt-4 bg-gradient-to-t from-noir via-noir/95 to-noir/0 z-20">
         <div className="max-w-xl mx-auto flex gap-3">
           <Link href="/garage" className="pill-ghost flex-1 text-center">
             Cancel
