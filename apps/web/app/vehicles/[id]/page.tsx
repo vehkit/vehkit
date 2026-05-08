@@ -8,6 +8,9 @@ import { HeroPhotoUpload } from '@/components/HeroPhotoUpload'
 import { ShareSheet } from '@/components/ShareSheet'
 import { WorkshopCodeSheet } from '@/components/WorkshopCodeSheet'
 import { FamilyShareSheet } from '@/components/FamilyShareSheet'
+import { PhotoLightbox } from '@/components/PhotoLightbox'
+import { ReviewForm } from '@/components/ReviewForm'
+import { StarRating } from '@/components/StarRating'
 import {
   reminderStatus,
   reminderLabel,
@@ -37,7 +40,7 @@ export default async function VehiclePage({
 
   const { data: records } = await supabase
     .from('service_records')
-    .select('*, service_files(storage_path)')
+    .select('*, service_files(storage_path), workshop_reviews(id, rating, comment, created_by)')
     .eq('vehicle_id', id)
     .order('service_date', { ascending: false })
 
@@ -201,36 +204,7 @@ export default async function VehiclePage({
                         : ''
                     }`}
                   >
-                    {photos.length > 0 && (
-                      <div
-                        className={
-                          photos.length === 1
-                            ? ''
-                            : 'grid grid-cols-2 gap-px bg-seam'
-                        }
-                      >
-                        {photos.slice(0, 4).map((url: string, i: number) => (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            key={i}
-                            src={url}
-                            alt=""
-                            className={`w-full object-cover ${
-                              photos.length === 1
-                                ? 'h-40'
-                                : photos.length === 2
-                                  ? 'h-32'
-                                  : 'h-24'
-                            }`}
-                          />
-                        ))}
-                        {photos.length > 4 && (
-                          <div className="col-span-2 px-3 py-1 text-xs text-ash bg-iron">
-                            +{photos.length - 4} more photos
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {photos.length > 0 && <PhotoLightbox photos={photos} />}
                     <div className="p-5 flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -274,7 +248,7 @@ export default async function VehiclePage({
                         {r.notes && (
                           <p className="text-sm text-chalk/80 mt-2 leading-relaxed">{r.notes}</p>
                         )}
-                        <div className="flex gap-3 mt-3">
+                        <div className="flex gap-3 mt-3 flex-wrap">
                           {r.attestation !== 'workshop' && (
                             <Link
                               href={`/vehicles/${id}/service/${r.id}/edit`}
@@ -300,7 +274,25 @@ export default async function VehiclePage({
                               </button>
                             </form>
                           )}
+                          {r.attestation === 'workshop' && !isPending && (
+                            <ReviewForm
+                              recordId={r.id}
+                              vehicleId={id}
+                              existingRating={r.workshop_reviews?.[0]?.rating ?? null}
+                              existingComment={r.workshop_reviews?.[0]?.comment ?? null}
+                            />
+                          )}
                         </div>
+                        {r.workshop_reviews?.[0] && (
+                          <div className="mt-3 pt-3 border-t border-seam flex items-center gap-2">
+                            <StarRating rating={r.workshop_reviews[0].rating} />
+                            {r.workshop_reviews[0].comment && (
+                              <span className="text-xs text-ash italic">
+                                "{r.workshop_reviews[0].comment}"
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       {r.cost_aed != null && (
                         <p className="text-sm text-chalk font-mono whitespace-nowrap tabular-nums">
@@ -328,9 +320,16 @@ export default async function VehiclePage({
           )}
         </section>
 
-        {/* Danger zone */}
-        <section className="mt-16 pt-6 border-t border-seam">
-          <form action={deleteVehicle} className="text-right">
+        {/* Footer actions */}
+        <section className="mt-16 pt-6 border-t border-seam flex items-center justify-between">
+          <a
+            href={`/vehicles/${id}/export`}
+            className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
+            download
+          >
+            Export CSV
+          </a>
+          <form action={deleteVehicle}>
             <input type="hidden" name="id" value={id} />
             <button
               type="submit"
