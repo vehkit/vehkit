@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { TradeLicenseUpload } from '@/components/TradeLicenseUpload'
 
 type WorkshopStats = {
   total_entries: number
@@ -18,7 +19,7 @@ export default async function WorkshopDashboardPage() {
 
   const { data: membership } = await supabase
     .from('workshop_members')
-    .select('workshop_id, role, workshops(id, name, slug, emirate, verification_tier, phone, email)')
+    .select('workshop_id, role')
     .eq('user_id', user.id)
     .limit(1)
     .maybeSingle()
@@ -28,19 +29,12 @@ export default async function WorkshopDashboardPage() {
   }
 
   const workshopId = membership.workshop_id
-  const workshop = (Array.isArray(membership.workshops)
-    ? membership.workshops[0]
-    : membership.workshops) as
-    | {
-        id: string
-        name: string
-        slug: string
-        emirate: string | null
-        verification_tier: string
-        phone: string | null
-        email: string | null
-      }
-    | null
+
+  const { data: workshop } = await supabase
+    .from('workshops')
+    .select('id, name, slug, emirate, verification_tier, phone, email, trade_license_url')
+    .eq('id', workshopId)
+    .single()
 
   if (!workshop) redirect('/workshop/claim')
 
@@ -110,17 +104,30 @@ export default async function WorkshopDashboardPage() {
           />
         </section>
 
-        {/* Get verified */}
-        {workshop.verification_tier === 'unverified' && (
-          <section className="card p-5 mt-6 border-l-4 border-l-wallet">
-            <p className="nav-pill text-[10px] text-wallet">Upgrade to Silver</p>
-            <p className="text-sm text-chalk mt-1.5 leading-relaxed">
-              Add a trade license to unlock the Silver verified badge. Verified workshops get
-              prioritized in the workshop directory and visible review badges.
-            </p>
-            <p className="text-xs text-ash mt-3">Trade license upload — coming soon.</p>
-          </section>
-        )}
+        {/* Verification panel */}
+        <section className="mt-6">
+          <TradeLicenseUpload
+            workshopId={workshop.id}
+            hasLicense={!!workshop.trade_license_url}
+            currentTier={workshop.verification_tier}
+          />
+        </section>
+
+        {/* Public profile link */}
+        <section className="mt-6">
+          <Link
+            href={`/w/${workshop.slug}`}
+            className="card block p-4 hover:border-volt/30 transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="nav-pill text-[10px]">Your public profile</p>
+                <p className="text-sm font-mono text-volt mt-1">vehkit.com/w/{workshop.slug}</p>
+              </div>
+              <span className="text-xs tracking-widest uppercase text-ash">View →</span>
+            </div>
+          </Link>
+        </section>
 
         {/* Recent entries */}
         <section className="mt-10">
