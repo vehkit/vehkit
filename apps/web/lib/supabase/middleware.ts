@@ -38,6 +38,7 @@ export async function updateSession(request: NextRequest) {
     '/reminders',
     '/notifications',
     '/fleet',
+    '/profile',
   ]
   const isWorkshopArea = path.startsWith('/workshop')
   const isPublicWorkshopPath =

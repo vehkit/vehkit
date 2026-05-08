@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createSampleVehicle } from '@/app/actions/vehicles'
+import { AvatarDisplay } from '@/components/AvatarUpload'
+import { getInitials } from '@/lib/initials'
 import { reminderStatus, type ReminderRow } from '@/lib/reminders'
 
 export default async function GaragePage() {
@@ -13,12 +15,9 @@ export default async function GaragePage() {
 
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
-  // Parallelize three queries
-  const [vehiclesRes, remindersRes, pendingRes] = await Promise.all([
-    supabase
-      .from('vehicles')
-      .select('*')
-      .order('created_at', { ascending: false }),
+  // Parallelize four queries
+  const [vehiclesRes, remindersRes, pendingRes, profileRes] = await Promise.all([
+    supabase.from('vehicles').select('*').order('created_at', { ascending: false }),
     supabase
       .from('reminders')
       .select('id, vehicle_id, reminder_type, due_date, due_at_km, status, notes')
@@ -28,11 +27,17 @@ export default async function GaragePage() {
       .select('vehicle_id, created_at')
       .eq('attestation', 'workshop')
       .gte('created_at', oneDayAgo),
+    supabase
+      .from('profiles')
+      .select('full_name, avatar_url, email, created_at')
+      .eq('id', user.id)
+      .single(),
   ])
 
   const vehicles = vehiclesRes.data
   const openReminders = remindersRes.data
   const pendingEntries = pendingRes.data
+  const profile = profileRes.data
 
   const reminderCount = (openReminders ?? []).filter((r: ReminderRow) => {
     const v = vehicles?.find((x) => x.id === r.vehicle_id)
@@ -47,15 +52,20 @@ export default async function GaragePage() {
   const totalPending = pendingEntries?.length ?? 0
   const notificationCount = reminderCount + totalPending
 
+  const initials = getInitials(profile?.full_name, profile?.email ?? user.email)
+  const ownedCount = (vehicles ?? []).filter((v) => v.owner_id === user.id).length
+  const memberSince = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString('en-GB', {
+        month: 'short',
+        year: 'numeric',
+      })
+    : null
+
   return (
     <main className="min-h-[100svh] pb-24">
-      <header className="px-6 pt-10 pb-6 flex items-center justify-between">
-        <div>
-          <p className="nav-pill">vehkit</p>
-          <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-1">
-            Garage
-          </h1>
-        </div>
+      {/* Top bar */}
+      <header className="px-6 pt-8 pb-4 flex items-center justify-between">
+        <p className="nav-pill">vehkit</p>
         <div className="flex items-center gap-4">
           <Link
             href="/notifications"
@@ -76,26 +86,68 @@ export default async function GaragePage() {
         </div>
       </header>
 
-      <div className="px-6">
-        <p className="text-xs text-ash">
-          <span className="font-mono">{user.email}</span>
-        </p>
+      {/* Identity card */}
+      <section className="px-6 pb-2">
+        <Link
+          href="/profile"
+          className="card flex items-center gap-4 p-4 hover:border-volt/30 transition-colors"
+        >
+          <AvatarDisplay
+            url={profile?.avatar_url}
+            initials={initials}
+            size="md"
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-base font-semibold text-chalk truncate">
+              {profile?.full_name ?? user.email}
+            </p>
+            <p className="text-xs text-ash mt-0.5">
+              {ownedCount} {ownedCount === 1 ? 'vehicle' : 'vehicles'}
+              {memberSince && <> · Since {memberSince}</>}
+            </p>
+          </div>
+          <span className="text-xs tracking-widest uppercase text-ash shrink-0">Edit</span>
+        </Link>
+      </section>
+
+      {/* Heading */}
+      <div className="px-6 pt-6 pb-3">
+        <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter">
+          Garage
+        </h1>
       </div>
 
-      <section className="px-6 mt-8 space-y-3">
+      <section className="px-6 space-y-3">
         {vehicles && vehicles.length > 0 ? (
           vehicles.map((v) => {
             const isShared = v.owner_id !== user.id
             const pendingForThis = pendingByVehicle.get(v.id) ?? 0
+            const heroPhoto = v.hero_image_url
             return (
               <Link
                 key={v.id}
                 href={`/vehicles/${v.id}`}
-                className={`card block p-5 hover:border-volt/30 transition-colors group ${
+                className={`card block overflow-hidden hover:border-volt/30 transition-colors group relative ${
                   pendingForThis > 0 ? 'border-l-4 border-l-wallet' : ''
-                }`}
+                } ${heroPhoto ? 'aspect-[2/1]' : ''}`}
               >
-                <div className="flex items-start justify-between gap-4">
+                {heroPhoto && (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={heroPhoto}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-noir via-noir/40 to-transparent" />
+                  </>
+                )}
+
+                <div
+                  className={
+                    heroPhoto ? 'absolute inset-x-0 bottom-0 p-5 flex items-end justify-between gap-4' : 'p-5 flex items-start justify-between gap-4'
+                  }
+                >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       {(v.year || v.color) && (
@@ -104,17 +156,17 @@ export default async function GaragePage() {
                         </p>
                       )}
                       {isShared && (
-                        <span className="text-[10px] tracking-wider uppercase bg-iron text-ash px-2 py-0.5 rounded-pill font-medium">
+                        <span className="text-[10px] tracking-wider uppercase bg-iron/80 text-ash px-2 py-0.5 rounded-pill font-medium">
                           Shared
                         </span>
                       )}
                       {pendingForThis > 0 && (
-                        <span className="text-[10px] tracking-wider uppercase bg-wallet/15 text-wallet px-2 py-0.5 rounded-pill font-medium">
+                        <span className="text-[10px] tracking-wider uppercase bg-wallet/20 text-wallet px-2 py-0.5 rounded-pill font-medium">
                           {pendingForThis} pending
                         </span>
                       )}
                     </div>
-                    <h2 className="text-xl font-semibold text-chalk mt-1 truncate">
+                    <h2 className="text-xl md:text-2xl font-semibold text-chalk mt-1 truncate tracking-tighter">
                       {v.nickname ?? `${v.make} ${v.model}`}
                     </h2>
                     <p className="text-sm text-ash mt-0.5 truncate">
@@ -128,7 +180,7 @@ export default async function GaragePage() {
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="font-mono text-2xl font-semibold text-chalk tabular-nums">
+                    <p className="font-mono text-2xl md:text-3xl font-semibold text-chalk tabular-nums">
                       {v.current_odometer?.toLocaleString() ?? '—'}
                     </p>
                     <p className="text-[10px] tracking-widest uppercase text-ash mt-0.5">km</p>
