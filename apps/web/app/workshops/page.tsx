@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { StarRating } from '@/components/StarRating'
 import { EMIRATES } from '@vehkit/types'
 
 type DirectoryRow = {
@@ -9,6 +10,8 @@ type DirectoryRow = {
   emirate: string | null
   verification_tier: string
   total_entries: number
+  avg_rating: number
+  review_count: number
 }
 
 export const dynamic = 'force-dynamic'
@@ -75,6 +78,15 @@ export default async function WorkshopDirectoryPage({
                     </div>
                     {w.emirate && (
                       <p className="text-sm text-ash mt-0.5">{w.emirate}</p>
+                    )}
+                    {w.review_count > 0 && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <StarRating rating={w.avg_rating} size="sm" />
+                        <span className="text-xs text-ash">
+                          {w.avg_rating.toFixed(1)} · {w.review_count}{' '}
+                          {w.review_count === 1 ? 'review' : 'reviews'}
+                        </span>
+                      </div>
                     )}
                   </div>
                   <div className="text-right shrink-0">

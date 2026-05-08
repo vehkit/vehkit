@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { StarRating } from '@/components/StarRating'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,6 +18,14 @@ type WorkshopProfile = {
   member_since: string
   total_entries: number
   unique_vehicles: number
+  avg_rating: number
+  review_count: number
+}
+
+type Review = {
+  rating: number
+  comment: string | null
+  created_at: string
 }
 
 export async function generateMetadata({
@@ -47,6 +56,12 @@ export default async function WorkshopPublicPage({
   const w = data as WorkshopProfile | null
 
   if (!w) notFound()
+
+  const { data: reviewsData } = await supabase.rpc('public_workshop_reviews', {
+    p_slug: slug,
+    p_limit: 20,
+  })
+  const reviews = (reviewsData ?? []) as Review[]
 
   const tierLabel =
     w.verification_tier === 'gold'
@@ -97,9 +112,28 @@ export default async function WorkshopPublicPage({
         </header>
 
         {/* Stats */}
-        <section className="grid grid-cols-2 gap-3 mt-6">
+        <section className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6">
           <Stat label="Verified entries" value={w.total_entries.toLocaleString()} />
           <Stat label="Cars served" value={w.unique_vehicles.toLocaleString()} />
+          {w.review_count > 0 ? (
+            <div className="card p-5 text-center">
+              <p className="text-[10px] tracking-widest uppercase text-ash">Rating</p>
+              <p className="font-mono text-3xl font-semibold text-chalk tabular-nums tracking-tighter mt-1">
+                {Number(w.avg_rating).toFixed(1)}
+              </p>
+              <div className="mt-1 flex justify-center">
+                <StarRating rating={Number(w.avg_rating)} size="sm" />
+              </div>
+              <p className="text-[10px] text-ash mt-1">
+                {w.review_count} {w.review_count === 1 ? 'review' : 'reviews'}
+              </p>
+            </div>
+          ) : (
+            <div className="card p-5 text-center opacity-60">
+              <p className="text-[10px] tracking-widest uppercase text-ash">Rating</p>
+              <p className="text-sm text-ash mt-2">No reviews yet</p>
+            </div>
+          )}
         </section>
 
         {/* Contact */}
@@ -141,10 +175,41 @@ export default async function WorkshopPublicPage({
           </p>
         </section>
 
-        {/* Reviews placeholder */}
-        <section className="card p-5 mt-6 opacity-60">
-          <p className="nav-pill text-[10px]">Reviews</p>
-          <p className="text-sm text-ash mt-2">Coming soon — owners will be able to rate verified entries.</p>
+        {/* Reviews */}
+        <section className="mt-10">
+          <h2 className="nav-pill mb-4">
+            Reviews{' '}
+            {reviews.length > 0 && (
+              <span className="text-[10px] text-ash">· {reviews.length}</span>
+            )}
+          </h2>
+          {reviews.length > 0 ? (
+            <div className="space-y-3">
+              {reviews.map((r, i) => (
+                <article key={i} className="card p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <StarRating rating={r.rating} size="sm" />
+                    <p className="text-xs text-ash">
+                      {new Date(r.created_at).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </p>
+                  </div>
+                  {r.comment && (
+                    <p className="text-sm text-chalk/90 mt-2 leading-relaxed">{r.comment}</p>
+                  )}
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="card p-6 text-center">
+              <p className="text-sm text-ash">
+                No reviews yet. Reviews appear here once owners rate verified entries.
+              </p>
+            </div>
+          )}
         </section>
       </div>
     </main>
