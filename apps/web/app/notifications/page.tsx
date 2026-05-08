@@ -105,21 +105,22 @@ export default async function NotificationsPage() {
 
   return (
     <main className="min-h-[100svh] pb-24">
-      <header className="px-6 pt-10 pb-6">
-        <Link href="/garage" className="nav-pill hover:text-chalk transition-colors">
-          ← Garage
-        </Link>
-        <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-3">
-          Notifications
-        </h1>
-        <p className="text-ash mt-1 text-sm">
-          {totalCount === 0
-            ? 'All caught up.'
-            : `${totalCount} ${totalCount === 1 ? 'item' : 'items'} need attention`}
-        </p>
-      </header>
+      <div className="max-w-3xl mx-auto px-6">
+        <header className="pt-10 pb-6">
+          <Link href="/garage" className="nav-pill hover:text-chalk transition-colors">
+            ← Garage
+          </Link>
+          <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-3">
+            Notifications
+          </h1>
+          <p className="text-ash mt-1 text-sm">
+            {totalCount === 0
+              ? 'All caught up.'
+              : `${totalCount} ${totalCount === 1 ? 'item' : 'items'} need attention`}
+          </p>
+        </header>
 
-      <div className="px-6 max-w-3xl mx-auto space-y-10">
+        <div className="space-y-10">
         {totalCount === 0 && (
           <div className="card p-10 text-center">
             <p className="text-chalk font-medium">All clear.</p>
@@ -266,6 +267,7 @@ export default async function NotificationsPage() {
             ))}
           </Section>
         )}
+        </div>
       </div>
     </main>
   )

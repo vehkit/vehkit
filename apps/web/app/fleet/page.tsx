@@ -35,21 +35,22 @@ export default async function FleetIndexPage({
 
   return (
     <main className="min-h-[100svh] pb-24">
-      <header className="px-6 pt-10 pb-6">
-        <Link href="/garage" className="nav-pill hover:text-chalk transition-colors">
-          ← Garage
-        </Link>
-        <p className="nav-pill mt-3">Fleet</p>
-        <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-2">
-          Your fleets
-        </h1>
-        <p className="text-ash mt-2 text-sm leading-relaxed">
-          For SMBs running multiple vehicles — taxi co-ops, delivery fleets, rental ops, corporate
-          motor pools.
-        </p>
-      </header>
+      <div className="max-w-3xl mx-auto px-6">
+        <header className="pt-10 pb-6">
+          <Link href="/garage" className="nav-pill hover:text-chalk transition-colors">
+            ← Garage
+          </Link>
+          <p className="nav-pill mt-3">Fleet</p>
+          <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-2">
+            Your fleets
+          </h1>
+          <p className="text-ash mt-2 text-sm leading-relaxed">
+            For SMBs running multiple vehicles — taxi co-ops, delivery fleets, rental ops,
+            corporate motor pools.
+          </p>
+        </header>
 
-      <div className="max-w-3xl mx-auto px-6 space-y-8">
+        <div className="space-y-8">
         {errorMsg && (
           <div className="bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">
             {decodeURIComponent(errorMsg)}
@@ -138,6 +139,7 @@ export default async function FleetIndexPage({
             </p>
           </section>
         )}
+        </div>
       </div>
     </main>
   )

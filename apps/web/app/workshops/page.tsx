@@ -35,20 +35,20 @@ export default async function WorkshopDirectoryPage({
 
   return (
     <main className="min-h-[100svh] pb-24">
-      <header className="px-6 pt-10 pb-6">
-        <Link href="/" className="nav-pill hover:text-chalk transition-colors">
-          ← vehkit
-        </Link>
-        <p className="nav-pill mt-3">Workshop directory</p>
-        <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-2">
-          Find a verified workshop
-        </h1>
-        <p className="text-ash mt-2 text-sm">
-          Workshops on Vehkit who've logged verified service entries. Sorted by tier.
-        </p>
-      </header>
-
       <div className="max-w-3xl mx-auto px-6">
+        <header className="pt-10 pb-6">
+          <Link href="/" className="nav-pill hover:text-chalk transition-colors">
+            ← vehkit
+          </Link>
+          <p className="nav-pill mt-3">Workshop directory</p>
+          <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-2">
+            Find a verified workshop
+          </h1>
+          <p className="text-ash mt-2 text-sm">
+            Workshops on Vehkit who've logged verified service entries. Sorted by tier.
+          </p>
+        </header>
+
         {/* Emirate filter */}
         <form className="mb-6 flex gap-2 flex-wrap">
           <FilterPill href="/workshops" label="All" active={emirate === null} />

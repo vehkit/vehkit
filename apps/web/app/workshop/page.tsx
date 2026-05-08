@@ -72,27 +72,27 @@ export default async function WorkshopDashboardPage() {
 
   return (
     <main className="min-h-[100svh] pb-24">
-      <header className="px-6 pt-10 pb-6 flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <p className="nav-pill">Workshop</p>
-          <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter mt-1 truncate">
-            {workshop.name}
-          </h1>
-          <p className="text-sm mt-1">
-            <span className={`uppercase tracking-wider text-xs ${tierColor}`}>
-              {tierLabel}
-            </span>
-            {workshop.emirate && <span className="text-ash"> · {workshop.emirate}</span>}
-          </p>
-        </div>
-        <form action="/auth/signout" method="post">
-          <button className="text-sm text-ash hover:text-chalk transition-colors">
-            Sign out
-          </button>
-        </form>
-      </header>
-
       <div className="max-w-3xl mx-auto px-6">
+        <header className="pt-10 pb-6 flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="nav-pill">Workshop</p>
+            <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter mt-1 truncate">
+              {workshop.name}
+            </h1>
+            <p className="text-sm mt-1">
+              <span className={`uppercase tracking-wider text-xs ${tierColor}`}>
+                {tierLabel}
+              </span>
+              {workshop.emirate && <span className="text-ash"> · {workshop.emirate}</span>}
+            </p>
+          </div>
+          <form action="/auth/signout" method="post">
+            <button className="text-sm text-ash hover:text-chalk transition-colors">
+              Sign out
+            </button>
+          </form>
+        </header>
+
         {/* Stats grid */}
         <section className="grid grid-cols-3 gap-3">
           <Stat label="Verified entries" value={stats.total_entries.toString()} />
