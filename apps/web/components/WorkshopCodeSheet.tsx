@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { generateWorkshopCode } from '@/app/actions/workshop'
+import { formatCode } from '@/lib/workshop-codes'
 
 export function WorkshopCodeSheet({ vehicleId }: { vehicleId: string }) {
   const [open, setOpen] = useState(false)
@@ -77,8 +78,8 @@ export function WorkshopCodeSheet({ vehicleId }: { vehicleId: string }) {
             </p>
 
             <div className="bg-noir border border-seam rounded-DEFAULT py-8 text-center">
-              <p className="font-mono text-6xl md:text-7xl font-semibold text-chalk tracking-[0.15em] tabular-nums">
-                {code}
+              <p className="font-mono text-5xl md:text-6xl font-semibold text-chalk tracking-[0.1em]">
+                {formatCode(code)}
               </p>
             </div>
 

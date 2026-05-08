@@ -184,11 +184,21 @@ export default async function VehiclePage({
                 const photos = (r.service_files ?? [])
                   .map((f: { storage_path: string }) => f.storage_path)
                   .filter(Boolean)
+                const ageMs = Date.now() - new Date(r.created_at).getTime()
+                const isPending =
+                  r.attestation === 'workshop' && ageMs < 24 * 60 * 60 * 1000
+                const hoursLeft = isPending
+                  ? Math.max(1, Math.ceil((24 * 60 * 60 * 1000 - ageMs) / (60 * 60 * 1000)))
+                  : 0
                 return (
                   <li
                     key={r.id}
                     className={`card overflow-hidden ${
-                      r.attestation === 'workshop' ? 'border-l-4 border-l-volt' : ''
+                      r.attestation === 'workshop'
+                        ? isPending
+                          ? 'border-l-4 border-l-wallet'
+                          : 'border-l-4 border-l-volt'
+                        : ''
                     }`}
                   >
                     {photos.length > 0 && (
@@ -227,7 +237,12 @@ export default async function VehiclePage({
                           <span className="font-medium text-chalk">
                             {humanize(r.service_type)}
                           </span>
-                          {r.attestation === 'workshop' && (
+                          {r.attestation === 'workshop' && isPending && (
+                            <span className="text-[10px] tracking-wider uppercase bg-wallet/15 text-wallet px-2 py-0.5 rounded-pill font-medium">
+                              Pending · {hoursLeft}h
+                            </span>
+                          )}
+                          {r.attestation === 'workshop' && !isPending && (
                             <span className="text-[10px] tracking-wider uppercase bg-volt/15 text-volt px-2 py-0.5 rounded-pill font-medium">
                               ✓ Verified
                             </span>
@@ -260,23 +275,31 @@ export default async function VehiclePage({
                           <p className="text-sm text-chalk/80 mt-2 leading-relaxed">{r.notes}</p>
                         )}
                         <div className="flex gap-3 mt-3">
-                          <Link
-                            href={`/vehicles/${id}/service/${r.id}/edit`}
-                            className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
-                          >
-                            Edit
-                          </Link>
-                          <form action={deleteServiceRecord}>
-                            <input type="hidden" name="id" value={r.id} />
-                            <input type="hidden" name="vehicle_id" value={id} />
-                            <button
-                              type="submit"
-                              className="text-xs tracking-widest uppercase text-ash hover:text-signal transition-colors"
-                              formNoValidate
+                          {r.attestation !== 'workshop' && (
+                            <Link
+                              href={`/vehicles/${id}/service/${r.id}/edit`}
+                              className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
                             >
-                              Delete
-                            </button>
-                          </form>
+                              Edit
+                            </Link>
+                          )}
+                          {(r.attestation !== 'workshop' || isPending) && (
+                            <form action={deleteServiceRecord}>
+                              <input type="hidden" name="id" value={r.id} />
+                              <input type="hidden" name="vehicle_id" value={id} />
+                              <button
+                                type="submit"
+                                className={`text-xs tracking-widest uppercase transition-colors ${
+                                  isPending
+                                    ? 'text-wallet hover:text-wallet/80'
+                                    : 'text-ash hover:text-signal'
+                                }`}
+                                formNoValidate
+                              >
+                                {isPending ? 'Retract' : 'Delete'}
+                              </button>
+                            </form>
+                          )}
                         </div>
                       </div>
                       {r.cost_aed != null && (

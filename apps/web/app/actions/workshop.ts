@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { generateCode, normalizeCode } from '@/lib/workshop-codes'
 
 const REMINDER_RULES: Record<
   string,
@@ -17,10 +18,6 @@ const REMINDER_RULES: Record<
   spark_plugs: { km: 60_000, reminderType: 'spark_plugs' },
   brake_fluid: { months: 24, reminderType: 'brake_fluid' },
   coolant: { months: 36, reminderType: 'coolant' },
-}
-
-function generate6DigitCode(): string {
-  return String(100000 + Math.floor(Math.random() * 900000))
 }
 
 /**
@@ -54,7 +51,7 @@ export async function generateWorkshopCode(vehicleId: string): Promise<{
   }
 
   for (let attempt = 0; attempt < 10; attempt++) {
-    const candidate = generate6DigitCode()
+    const candidate = generateCode()
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60).toISOString()
     const { error } = await supabase.from('workshop_codes').insert({
       vehicle_id: vehicleId,
@@ -75,8 +72,9 @@ export async function generateWorkshopCode(vehicleId: string): Promise<{
  * that does the entire transaction atomically. No service-role key needed.
  */
 export async function logServiceViaCode(formData: FormData) {
-  const code = String(formData.get('code') ?? '').trim()
-  if (!code) redirect('/shop?error=Code+required')
+  const rawCode = String(formData.get('code') ?? '').trim()
+  const code = normalizeCode(rawCode)
+  if (!code) redirect('/shop?error=Invalid+code+format')
 
   const serviceType = String(formData.get('service_type') ?? '').trim()
   const serviceDate = String(formData.get('service_date') ?? '').trim()

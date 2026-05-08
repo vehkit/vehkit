@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { normalizeCode } from '@/lib/workshop-codes'
 
 export default async function ShopEntryPage({
   searchParams,
@@ -12,11 +13,12 @@ export default async function ShopEntryPage({
 
   async function go(formData: FormData) {
     'use server'
-    const code = String(formData.get('code') ?? '').trim()
-    if (!code || !/^\d{6}$/.test(code)) {
-      redirect('/shop?error=Enter+a+valid+6-digit+code')
+    const raw = String(formData.get('code') ?? '').trim()
+    const normalized = normalizeCode(raw)
+    if (!normalized) {
+      redirect('/shop?error=Enter+a+valid+code')
     }
-    redirect(`/shop/${code}`)
+    redirect(`/shop/${normalized}`)
   }
 
   return (
@@ -47,14 +49,16 @@ export default async function ShopEntryPage({
           <input
             type="text"
             name="code"
-            inputMode="numeric"
-            pattern="[0-9]{6}"
-            maxLength={6}
+            inputMode="text"
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            maxLength={8}
             required
             autoFocus
             defaultValue={prefilled}
-            placeholder="6-digit code"
-            className="field font-mono text-center text-3xl tracking-[0.4em] tabular-nums"
+            placeholder="ABC-123"
+            className="field font-mono text-center text-3xl tracking-[0.2em] uppercase"
           />
           <button type="submit" className="pill-primary w-full">
             Continue →
@@ -64,6 +68,19 @@ export default async function ShopEntryPage({
         <p className="text-xs text-ash/60 mt-8 text-center">
           One code · One entry · Auto-expires
         </p>
+
+        <div className="mt-12 card p-5">
+          <p className="nav-pill text-[10px]">Want a workshop dashboard?</p>
+          <p className="text-sm text-chalk mt-2 leading-relaxed">
+            Track every customer car you've serviced, view stats, get verified.
+          </p>
+          <Link
+            href="/workshop/start"
+            className="inline-block mt-3 text-sm text-volt font-medium hover:underline"
+          >
+            Sign up your workshop →
+          </Link>
+        </div>
       </div>
     </main>
   )

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { logServiceViaCode } from '@/app/actions/workshop'
+import { normalizeCode, formatCode } from '@/lib/workshop-codes'
 import { SERVICE_TYPES } from '@vehkit/types'
 
 export const dynamic = 'force-dynamic'
@@ -27,11 +28,12 @@ export default async function ShopLogPage({
   params: Promise<{ code: string }>
   searchParams: Promise<{ error?: string }>
 }) {
-  const { code } = await params
+  const { code: rawCode } = await params
   const sp = await searchParams
   const errorMsg = sp.error
 
-  if (!/^\d{6}$/.test(code)) redirect('/shop?error=Invalid+code+format')
+  const code = normalizeCode(rawCode)
+  if (!code) redirect('/shop?error=Invalid+code+format')
 
   const supabase = await createClient()
   const { data: rows, error } = await supabase.rpc('preview_workshop_code', {
