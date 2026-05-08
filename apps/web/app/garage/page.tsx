@@ -41,7 +41,7 @@ export default async function GaragePage() {
       {/* Heading */}
       <div className="px-6 pt-2 md:pt-8 pb-3 max-w-3xl mx-auto">
         <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter">
-          Garage
+          My Cars
         </h1>
       </div>
 

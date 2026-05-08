@@ -171,10 +171,10 @@ export default async function VehiclePage({
           </section>
         )}
 
-        {/* Timeline */}
+        {/* Feed */}
         <section className="mt-10">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="nav-pill">Service history</h2>
+            <h2 className="nav-pill">Service feed</h2>
             {records && records.length > 0 && (
               <p className="nav-pill text-[10px]">
                 {records.length} {records.length === 1 ? 'entry' : 'entries'}
@@ -183,7 +183,7 @@ export default async function VehiclePage({
           </div>
 
           {records && records.length > 0 ? (
-            <ol className="space-y-3">
+            <ol className="space-y-4">
               {records.map((r) => {
                 const photos = (r.service_files ?? [])
                   .map((f: { storage_path: string }) => f.storage_path)
@@ -194,6 +194,7 @@ export default async function VehiclePage({
                 const hoursLeft = isPending
                   ? Math.max(1, Math.ceil((24 * 60 * 60 * 1000 - ageMs) / (60 * 60 * 1000)))
                   : 0
+                const review = r.workshop_reviews?.[0]
                 return (
                   <li
                     key={r.id}
@@ -205,101 +206,125 @@ export default async function VehiclePage({
                         : ''
                     }`}
                   >
+                    {/* Post header — date + badge */}
+                    <div className="px-5 pt-4 pb-2 flex items-center justify-between gap-2 flex-wrap">
+                      <p className="text-xs tracking-widest uppercase text-ash">
+                        {relativeDate(r.service_date)}
+                      </p>
+                      {r.attestation === 'workshop' && isPending && (
+                        <span className="text-[10px] tracking-wider uppercase bg-wallet/15 text-wallet px-2 py-0.5 rounded-pill font-medium">
+                          Pending · {hoursLeft}h
+                        </span>
+                      )}
+                      {r.attestation === 'workshop' && !isPending && (
+                        <span className="text-[10px] tracking-wider uppercase bg-volt/15 text-volt px-2 py-0.5 rounded-pill font-medium">
+                          ✓ Verified
+                        </span>
+                      )}
+                      {r.attestation === 'receipt' && (
+                        <span className="text-[10px] tracking-wider uppercase bg-iron text-ash px-2 py-0.5 rounded-pill font-medium">
+                          Receipt
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Photos full-bleed (Instagram style) */}
                     {photos.length > 0 && <PhotoLightbox photos={photos} />}
-                    <div className="p-5 flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-chalk">
-                            {humanize(r.service_type)}
-                          </span>
-                          {r.attestation === 'workshop' && isPending && (
-                            <span className="text-[10px] tracking-wider uppercase bg-wallet/15 text-wallet px-2 py-0.5 rounded-pill font-medium">
-                              Pending · {hoursLeft}h
-                            </span>
-                          )}
-                          {r.attestation === 'workshop' && !isPending && (
-                            <span className="text-[10px] tracking-wider uppercase bg-volt/15 text-volt px-2 py-0.5 rounded-pill font-medium">
-                              ✓ Verified
-                            </span>
-                          )}
-                          {r.attestation === 'receipt' && (
-                            <span className="text-[10px] tracking-wider uppercase bg-iron text-ash px-2 py-0.5 rounded-pill font-medium">
-                              Receipt
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-ash mt-1.5">
-                          {new Date(r.service_date).toLocaleDateString('en-GB', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                          {r.odometer && (
-                            <>
-                              {' · '}
-                              <span className="font-mono">
-                                {r.odometer.toLocaleString()} km
-                              </span>
-                            </>
-                          )}
-                        </p>
+
+                    {/* Body */}
+                    <div className="px-5 pt-3 pb-4 space-y-3">
+                      <div>
+                        <h3 className="text-xl font-semibold text-chalk tracking-tighter">
+                          {humanize(r.service_type)}
+                        </h3>
                         {r.workshop_name_freetext && (
-                          <p className="text-sm text-ash/80 mt-1">@ {r.workshop_name_freetext}</p>
-                        )}
-                        {r.notes && (
-                          <p className="text-sm text-chalk/80 mt-2 leading-relaxed">{r.notes}</p>
-                        )}
-                        <div className="flex gap-3 mt-3 flex-wrap">
-                          {r.attestation !== 'workshop' && (
-                            <Link
-                              href={`/vehicles/${id}/service/${r.id}/edit`}
-                              className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
-                            >
-                              Edit
-                            </Link>
-                          )}
-                          {(r.attestation !== 'workshop' || isPending) && (
-                            <form action={deleteServiceRecord}>
-                              <input type="hidden" name="id" value={r.id} />
-                              <input type="hidden" name="vehicle_id" value={id} />
-                              <button
-                                type="submit"
-                                className={`text-xs tracking-widest uppercase transition-colors ${
-                                  isPending
-                                    ? 'text-wallet hover:text-wallet/80'
-                                    : 'text-ash hover:text-signal'
-                                }`}
-                                formNoValidate
-                              >
-                                {isPending ? 'Retract' : 'Delete'}
-                              </button>
-                            </form>
-                          )}
-                          {r.attestation === 'workshop' && !isPending && (
-                            <ReviewForm
-                              recordId={r.id}
-                              vehicleId={id}
-                              existingRating={r.workshop_reviews?.[0]?.rating ?? null}
-                              existingComment={r.workshop_reviews?.[0]?.comment ?? null}
-                            />
-                          )}
-                        </div>
-                        {r.workshop_reviews?.[0] && (
-                          <div className="mt-3 pt-3 border-t border-seam flex items-center gap-2">
-                            <StarRating rating={r.workshop_reviews[0].rating} />
-                            {r.workshop_reviews[0].comment && (
-                              <span className="text-xs text-ash italic">
-                                "{r.workshop_reviews[0].comment}"
-                              </span>
-                            )}
-                          </div>
+                          <p className="text-sm text-ash mt-0.5">
+                            at {r.workshop_name_freetext}
+                          </p>
                         )}
                       </div>
-                      {r.cost_aed != null && (
-                        <p className="text-sm text-chalk font-mono whitespace-nowrap tabular-nums">
-                          AED {Number(r.cost_aed).toLocaleString()}
+
+                      {/* Stats inline */}
+                      {(r.odometer != null || r.cost_aed != null) && (
+                        <div className="flex flex-wrap gap-6">
+                          {r.odometer != null && (
+                            <div>
+                              <p className="text-[10px] tracking-widest uppercase text-ash">
+                                Odometer
+                              </p>
+                              <p className="font-mono text-base text-chalk tabular-nums">
+                                {r.odometer.toLocaleString()} km
+                              </p>
+                            </div>
+                          )}
+                          {r.cost_aed != null && (
+                            <div>
+                              <p className="text-[10px] tracking-widest uppercase text-ash">
+                                Cost
+                              </p>
+                              <p className="font-mono text-base text-chalk tabular-nums">
+                                AED {Number(r.cost_aed).toLocaleString()}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Notes */}
+                      {r.notes && (
+                        <p className="text-sm text-chalk/85 leading-relaxed whitespace-pre-wrap">
+                          {r.notes}
                         </p>
                       )}
+
+                      {/* Existing review */}
+                      {review && (
+                        <div className="pt-3 border-t border-seam flex items-start gap-3 flex-wrap">
+                          <StarRating rating={review.rating} />
+                          {review.comment && (
+                            <span className="text-sm text-ash italic flex-1 min-w-0">
+                              "{review.comment}"
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Action footer */}
+                      <div className="pt-3 border-t border-seam flex gap-4 flex-wrap">
+                        {r.attestation !== 'workshop' && (
+                          <Link
+                            href={`/vehicles/${id}/service/${r.id}/edit`}
+                            className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
+                          >
+                            Edit
+                          </Link>
+                        )}
+                        {(r.attestation !== 'workshop' || isPending) && (
+                          <form action={deleteServiceRecord}>
+                            <input type="hidden" name="id" value={r.id} />
+                            <input type="hidden" name="vehicle_id" value={id} />
+                            <button
+                              type="submit"
+                              className={`text-xs tracking-widest uppercase transition-colors ${
+                                isPending
+                                  ? 'text-wallet hover:text-wallet/80'
+                                  : 'text-ash hover:text-signal'
+                              }`}
+                              formNoValidate
+                            >
+                              {isPending ? 'Retract' : 'Delete'}
+                            </button>
+                          </form>
+                        )}
+                        {r.attestation === 'workshop' && !isPending && (
+                          <ReviewForm
+                            recordId={r.id}
+                            vehicleId={id}
+                            existingRating={review?.rating ?? null}
+                            existingComment={review?.comment ?? null}
+                          />
+                        )}
+                      </div>
                     </div>
                   </li>
                 )
@@ -362,4 +387,30 @@ export default async function VehiclePage({
 
 function humanize(s: string): string {
   return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function relativeDate(dateStr: string): string {
+  const d = new Date(dateStr)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const target = new Date(d)
+  target.setHours(0, 0, 0, 0)
+  const diffDays = Math.floor((today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24))
+
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7) return `${diffDays} days ago`
+  if (diffDays < 30) {
+    const w = Math.floor(diffDays / 7)
+    return `${w} ${w === 1 ? 'week' : 'weeks'} ago`
+  }
+  if (diffDays < 365) {
+    const m = Math.floor(diffDays / 30)
+    return `${m} ${m === 1 ? 'month' : 'months'} ago`
+  }
+  return d.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 }

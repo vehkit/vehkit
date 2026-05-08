@@ -12,9 +12,9 @@ type Tab = {
 }
 
 const TABS: Tab[] = [
-  { href: '/garage', label: 'Garage', icon: 'garage' },
+  { href: '/garage', label: 'My Cars', icon: 'garage' },
   { href: '/notifications', label: 'Inbox', icon: 'bell' },
-  { href: '/workshops', label: 'Discover', icon: 'search' },
+  { href: '/workshops', label: 'Workshops', icon: 'search' },
   { href: '/profile', label: 'You', icon: 'user' },
 ]
 
@@ -56,7 +56,7 @@ export function AppNavClient({
     <>
       {/* Desktop top nav */}
       <header className="hidden md:block sticky top-0 z-30 bg-noir/90 backdrop-blur border-b border-seam">
-        <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
+        <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link
             href="/garage"
             className="text-sm font-semibold tracking-tightest text-chalk hover:text-volt transition-colors"
@@ -90,7 +90,7 @@ export function AppNavClient({
               isPathActive(pathname, '/profile') ? 'ring-2 ring-volt ring-offset-2 ring-offset-noir' : ''
             }`}
           >
-            <AvatarDisplay url={avatarUrl} initials={initials} size="sm" />
+            <AvatarDisplay url={avatarUrl} initials={initials} size="md" />
           </Link>
         </div>
       </header>
@@ -146,7 +146,7 @@ function NavIcon({
       <span
         className={`block rounded-pill ${active ? 'ring-2 ring-volt ring-offset-1 ring-offset-noir' : ''}`}
       >
-        <AvatarDisplay url={avatarUrl} initials={initials} size="sm" />
+        <AvatarDisplay url={avatarUrl} initials={initials} size="md" />
       </span>
     )
   }
