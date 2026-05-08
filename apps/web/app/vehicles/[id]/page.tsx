@@ -7,6 +7,7 @@ import { deleteServiceRecord } from '@/app/actions/services'
 import { HeroPhotoUpload } from '@/components/HeroPhotoUpload'
 import { ShareSheet } from '@/components/ShareSheet'
 import { WorkshopCodeSheet } from '@/components/WorkshopCodeSheet'
+import { FamilyShareSheet } from '@/components/FamilyShareSheet'
 import {
   reminderStatus,
   reminderLabel,
@@ -121,6 +122,7 @@ export default async function VehiclePage({
           <div className="mt-6 pt-6 border-t border-seam flex flex-wrap gap-2">
             <ShareSheet vehicleId={id} baseUrl={baseUrl} />
             <WorkshopCodeSheet vehicleId={id} />
+            <FamilyShareSheet vehicleId={id} baseUrl={baseUrl} />
             <Link href={`/vehicles/${id}/edit`} className="pill-outline text-sm">
               Edit
             </Link>
