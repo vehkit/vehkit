@@ -32,7 +32,7 @@ export async function updateSession(request: NextRequest) {
 
   // Auth gate for protected routes.
   const path = request.nextUrl.pathname
-  const protectedPrefixes = ['/garage', '/vehicles', '/reminders']
+  const protectedPrefixes = ['/garage', '/vehicles', '/reminders', '/notifications']
   const isWorkshopArea = path.startsWith('/workshop')
   const isPublicWorkshopPath =
     path.startsWith('/workshop/claim') || path.startsWith('/workshop/start')

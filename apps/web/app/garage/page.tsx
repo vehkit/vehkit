@@ -41,6 +41,7 @@ export default async function GaragePage() {
     pendingByVehicle.set(p.vehicle_id, (pendingByVehicle.get(p.vehicle_id) ?? 0) + 1)
   }
   const totalPending = pendingEntries?.length ?? 0
+  const notificationCount = reminderCount + totalPending
 
   return (
     <main className="min-h-[100svh] pb-24">
@@ -53,13 +54,13 @@ export default async function GaragePage() {
         </div>
         <div className="flex items-center gap-4">
           <Link
-            href="/reminders"
+            href="/notifications"
             className="relative text-sm text-ash hover:text-chalk transition-colors"
           >
-            Reminders
-            {reminderCount > 0 && (
+            Inbox
+            {notificationCount > 0 && (
               <span className="absolute -top-1 -right-3 bg-signal text-noir text-[10px] font-mono font-bold px-1.5 py-px rounded-pill">
-                {reminderCount}
+                {notificationCount}
               </span>
             )}
           </Link>
