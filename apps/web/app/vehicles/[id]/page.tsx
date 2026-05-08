@@ -30,26 +30,27 @@ export default async function VehiclePage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: vehicle, error } = await supabase
-    .from('vehicles')
-    .select('*')
-    .eq('id', id)
-    .single()
+  // Parallelize all three reads — saves 2 round trips
+  const [vehicleRes, recordsRes, remindersRes] = await Promise.all([
+    supabase.from('vehicles').select('*').eq('id', id).single(),
+    supabase
+      .from('service_records')
+      .select('*, service_files(storage_path), workshop_reviews(id, rating, comment, created_by)')
+      .eq('vehicle_id', id)
+      .order('service_date', { ascending: false }),
+    supabase
+      .from('reminders')
+      .select('*')
+      .eq('vehicle_id', id)
+      .eq('status', 'open')
+      .order('due_date', { ascending: true, nullsFirst: false }),
+  ])
 
-  if (error || !vehicle) notFound()
+  const vehicle = vehicleRes.data
+  if (vehicleRes.error || !vehicle) notFound()
 
-  const { data: records } = await supabase
-    .from('service_records')
-    .select('*, service_files(storage_path), workshop_reviews(id, rating, comment, created_by)')
-    .eq('vehicle_id', id)
-    .order('service_date', { ascending: false })
-
-  const { data: reminders } = await supabase
-    .from('reminders')
-    .select('*')
-    .eq('vehicle_id', id)
-    .eq('status', 'open')
-    .order('due_date', { ascending: true, nullsFirst: false })
+  const records = recordsRes.data
+  const reminders = remindersRes.data
 
   const dueReminders = (reminders ?? []).filter((r: ReminderRow) => {
     const s = reminderStatus(r, vehicle.current_odometer)

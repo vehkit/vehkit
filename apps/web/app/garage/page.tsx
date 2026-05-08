@@ -11,30 +11,34 @@ export default async function GaragePage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: vehicles } = await supabase
-    .from('vehicles')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
-  // Count due/overdue reminders across all vehicles
-  const { data: openReminders } = await supabase
-    .from('reminders')
-    .select('id, vehicle_id, reminder_type, due_date, due_at_km, status, notes')
-    .eq('status', 'open')
+  // Parallelize three queries
+  const [vehiclesRes, remindersRes, pendingRes] = await Promise.all([
+    supabase
+      .from('vehicles')
+      .select('*')
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('reminders')
+      .select('id, vehicle_id, reminder_type, due_date, due_at_km, status, notes')
+      .eq('status', 'open'),
+    supabase
+      .from('service_records')
+      .select('vehicle_id, created_at')
+      .eq('attestation', 'workshop')
+      .gte('created_at', oneDayAgo),
+  ])
+
+  const vehicles = vehiclesRes.data
+  const openReminders = remindersRes.data
+  const pendingEntries = pendingRes.data
 
   const reminderCount = (openReminders ?? []).filter((r: ReminderRow) => {
     const v = vehicles?.find((x) => x.id === r.vehicle_id)
     const s = reminderStatus(r, v?.current_odometer ?? null)
     return s === 'overdue' || s === 'due_soon'
   }).length
-
-  // Pending workshop entries (last 24h) — needs owner attention
-  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  const { data: pendingEntries } = await supabase
-    .from('service_records')
-    .select('vehicle_id, created_at')
-    .eq('attestation', 'workshop')
-    .gte('created_at', oneDayAgo)
 
   const pendingByVehicle = new Map<string, number>()
   for (const p of pendingEntries ?? []) {
