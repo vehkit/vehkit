@@ -28,6 +28,20 @@ export default async function GaragePage() {
     return s === 'overdue' || s === 'due_soon'
   }).length
 
+  // Pending workshop entries (last 24h) — needs owner attention
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const { data: pendingEntries } = await supabase
+    .from('service_records')
+    .select('vehicle_id, created_at')
+    .eq('attestation', 'workshop')
+    .gte('created_at', oneDayAgo)
+
+  const pendingByVehicle = new Map<string, number>()
+  for (const p of pendingEntries ?? []) {
+    pendingByVehicle.set(p.vehicle_id, (pendingByVehicle.get(p.vehicle_id) ?? 0) + 1)
+  }
+  const totalPending = pendingEntries?.length ?? 0
+
   return (
     <main className="min-h-[100svh] pb-24">
       <header className="px-6 pt-10 pb-6 flex items-center justify-between">
@@ -67,11 +81,14 @@ export default async function GaragePage() {
         {vehicles && vehicles.length > 0 ? (
           vehicles.map((v) => {
             const isShared = v.owner_id !== user.id
+            const pendingForThis = pendingByVehicle.get(v.id) ?? 0
             return (
               <Link
                 key={v.id}
                 href={`/vehicles/${v.id}`}
-                className="card block p-5 hover:border-volt/30 transition-colors group"
+                className={`card block p-5 hover:border-volt/30 transition-colors group ${
+                  pendingForThis > 0 ? 'border-l-4 border-l-wallet' : ''
+                }`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
@@ -84,6 +101,11 @@ export default async function GaragePage() {
                       {isShared && (
                         <span className="text-[10px] tracking-wider uppercase bg-iron text-ash px-2 py-0.5 rounded-pill font-medium">
                           Shared
+                        </span>
+                      )}
+                      {pendingForThis > 0 && (
+                        <span className="text-[10px] tracking-wider uppercase bg-wallet/15 text-wallet px-2 py-0.5 rounded-pill font-medium">
+                          {pendingForThis} pending
                         </span>
                       )}
                     </div>

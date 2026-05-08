@@ -35,10 +35,18 @@ export default async function Home() {
         </div>
       </div>
 
-      <footer className="px-6 py-8 text-center">
+      <footer className="px-6 py-8 text-center space-y-3">
         <p className="text-xs tracking-widest uppercase text-ash/60">
           One log · Every car · Every workshop
         </p>
+        <div className="flex justify-center gap-6 text-xs tracking-widest uppercase">
+          <Link href="/workshops" className="text-ash hover:text-chalk transition-colors">
+            Workshop directory
+          </Link>
+          <Link href="/workshop/start" className="text-ash hover:text-chalk transition-colors">
+            For workshops
+          </Link>
+        </div>
       </footer>
     </main>
   )
