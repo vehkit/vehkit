@@ -6,8 +6,10 @@ export function getInitials(name: string | null | undefined, email: string | nul
   const source = (name ?? '').trim() || (email ?? '').split('@')[0] || ''
   if (!source) return '?'
   const parts = source.split(/[\s.\-_]+/).filter(Boolean)
-  if (parts.length >= 2 && parts[0] && parts[1]) {
-    return (parts[0][0] + parts[1][0]).toUpperCase()
+  const a = parts[0]
+  const b = parts[1]
+  if (a && b) {
+    return (a.charAt(0) + b.charAt(0)).toUpperCase()
   }
   return source.slice(0, 2).toUpperCase()
 }
