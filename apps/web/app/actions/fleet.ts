@@ -1,8 +1,10 @@
 'use server'
 
+import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { emailFleetInvite } from '@/lib/email'
 
 type FleetRole = 'admin' | 'member' | 'viewer'
 
@@ -78,8 +80,9 @@ export async function assignVehicleToFleet(formData: FormData) {
 
 export async function createFleetInvite(
   orgId: string,
-  role: FleetRole
-): Promise<{ token?: string; error?: string }> {
+  role: FleetRole,
+  email?: string
+): Promise<{ token?: string; error?: string; emailSent?: boolean }> {
   const supabase = await createClient()
   const {
     data: { user },
@@ -89,11 +92,50 @@ export async function createFleetInvite(
   const { data: token, error } = await supabase.rpc('create_fleet_invite', {
     p_org_id: orgId,
     p_role: role,
-    p_email: null,
+    p_email: email ?? null,
   })
 
   if (error) return { error: error.message }
-  return { token: token as string }
+
+  let emailSent = false
+
+  if (email && token) {
+    try {
+      const [orgRes, profileRes] = await Promise.all([
+        supabase.from('fleet_orgs').select('name').eq('id', orgId).maybeSingle(),
+        supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', user.id)
+          .maybeSingle(),
+      ])
+
+      const o = orgRes.data
+      const p = profileRes.data
+
+      if (o) {
+        const h = await headers()
+        const host = h.get('host') ?? 'vehkit.com'
+        const proto = h.get('x-forwarded-proto') ?? 'https'
+
+        const result = await emailFleetInvite({
+          to: email,
+          inviterName: p?.full_name ?? null,
+          inviterEmail: p?.email ?? user.email ?? '',
+          orgName: o.name,
+          role,
+          token: token as string,
+          baseUrl: `${proto}://${host}`,
+        })
+
+        emailSent = !!('sent' in result && result.sent)
+      }
+    } catch (err) {
+      console.error('[email] fleet invite send failed:', err)
+    }
+  }
+
+  return { token: token as string, emailSent }
 }
 
 export async function acceptFleetInvite(token: string) {
