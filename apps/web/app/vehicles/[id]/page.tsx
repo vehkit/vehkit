@@ -71,70 +71,57 @@ export default async function VehiclePage({
           ← My Cars
         </Link>
 
-        {/* Hero photo */}
+        {/* Hero card — photo + overlaid title/odometer (matches /mycars language) */}
         <div className="mt-4">
-          <HeroPhotoUpload vehicleId={id} currentUrl={vehicle.hero_image_url} />
-        </div>
-
-        {/* Vehicle header — match /mycars typography */}
-        <header className="card p-5 mt-4">
-          {(vehicle.year || vehicle.color) && (
-            <p className="text-[10px] tracking-widest uppercase text-ash">
-              {[vehicle.year, vehicle.color].filter(Boolean).join(' · ')}
-            </p>
-          )}
-          <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter mt-1">
-            {vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`}
-          </h1>
-          <p className="text-sm text-ash mt-0.5">
-            {vehicle.make} {vehicle.model}
-          </p>
-
-          {(vehicle.plate_emirate || vehicle.plate_number) && (
-            <div className="mt-3 inline-flex items-center gap-2 bg-iron border border-seam rounded-DEFAULT px-2.5 py-1">
-              {vehicle.plate_emirate && (
-                <>
-                  <span className="text-[10px] text-ash uppercase tracking-wider">
-                    {vehicle.plate_emirate}
-                  </span>
-                  {vehicle.plate_number && <span className="text-seam text-xs">·</span>}
-                </>
-              )}
-              {vehicle.plate_number && (
-                <span className="font-mono text-xs text-chalk">{vehicle.plate_number}</span>
-              )}
-            </div>
-          )}
-
-          <div className="mt-4 pt-4 border-t border-seam flex items-end justify-between gap-4">
-            <div>
-              <p className="text-[10px] tracking-widest uppercase text-ash">Odometer</p>
-              <p className="font-mono text-xl md:text-2xl font-semibold text-chalk tabular-nums tracking-tight mt-0.5">
-                {vehicle.current_odometer?.toLocaleString() ?? '—'}
-                <span className="text-ash text-xs ml-1 font-normal tracking-widest uppercase">
-                  km
-                </span>
-              </p>
-            </div>
-            {vehicle.vin && (
-              <div className="text-right">
-                <p className="text-[10px] tracking-widest uppercase text-ash">VIN</p>
-                <p className="text-[11px] text-ash mt-0.5 font-mono break-all max-w-[160px]">
-                  {vehicle.vin}
+          <HeroPhotoUpload vehicleId={id} currentUrl={vehicle.hero_image_url}>
+            <div className="flex items-end justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                {(vehicle.year || vehicle.color) && (
+                  <p className="text-[10px] tracking-widest uppercase text-chalk/70 mb-1">
+                    {[vehicle.year, vehicle.color].filter(Boolean).join(' · ')}
+                  </p>
+                )}
+                <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter truncate drop-shadow-sm">
+                  {vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`}
+                </h1>
+                <p className="text-xs text-chalk/70 mt-1 truncate">
+                  {[
+                    `${vehicle.make} ${vehicle.model}`,
+                    vehicle.plate_emirate && vehicle.plate_number
+                      ? `${vehicle.plate_emirate} · ${vehicle.plate_number}`
+                      : vehicle.plate_number,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </p>
               </div>
-            )}
-          </div>
+              <div className="text-right shrink-0">
+                <p className="font-mono text-xl md:text-2xl font-semibold text-chalk tabular-nums tracking-tight drop-shadow-sm">
+                  {vehicle.current_odometer?.toLocaleString() ?? '—'}
+                </p>
+                <p className="text-[10px] tracking-widest uppercase text-chalk/60 mt-0.5">km</p>
+              </div>
+            </div>
+          </HeroPhotoUpload>
+        </div>
 
-          <div className="mt-4 pt-4 border-t border-seam flex flex-wrap gap-2">
-            <ShareSheet vehicleId={id} baseUrl={baseUrl} />
-            <WorkshopCodeSheet vehicleId={id} />
-            <FamilyShareSheet vehicleId={id} baseUrl={baseUrl} />
-            <Link href={`/vehicles/${id}/edit`} className="pill-outline text-sm">
-              Edit
-            </Link>
-          </div>
-        </header>
+        {/* Action row — compact pills, no card wrapper */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <ShareSheet vehicleId={id} baseUrl={baseUrl} />
+          <WorkshopCodeSheet vehicleId={id} />
+          <FamilyShareSheet vehicleId={id} baseUrl={baseUrl} />
+          <Link href={`/vehicles/${id}/edit`} className="pill-outline text-sm">
+            Edit
+          </Link>
+          {vehicle.vin && (
+            <span
+              className="pill-outline text-xs font-mono text-ash select-all"
+              title="VIN"
+            >
+              VIN: {vehicle.vin}
+            </span>
+          )}
+        </div>
 
         {/* Reminders banner */}
         {dueReminders.length > 0 && (
