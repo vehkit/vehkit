@@ -346,7 +346,7 @@ export default async function VehiclePage({
                                 className="inline-flex items-center gap-1.5 text-xs tracking-widest uppercase font-semibold text-noir bg-volt hover:bg-volt/90 px-4 py-2 rounded-pill transition-colors"
                                 formNoValidate
                               >
-                                ✓ Confirm + rate
+                                Confirm
                               </button>
                             </form>
                             <form action={deleteServiceRecord}>
