@@ -21,7 +21,9 @@ export default async function MyCarsPage() {
       .from('service_records')
       .select('vehicle_id')
       .eq('attestation', 'workshop')
-      .gte('created_at', oneDayAgo),
+      .gte('created_at', oneDayAgo)
+      .is('confirmed_at', null)
+      .is('rejected_at', null),
   ])
 
   const vehicles = vehiclesRes.data

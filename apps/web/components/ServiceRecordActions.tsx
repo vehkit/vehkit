@@ -4,6 +4,7 @@ import { useFormStatus } from 'react-dom'
 import {
   confirmServiceRecord,
   deleteServiceRecord,
+  retractServiceRecord,
 } from '@/app/actions/services'
 
 /**
@@ -62,25 +63,6 @@ function CheckIcon() {
   )
 }
 
-function UndoIcon() {
-  return (
-    <svg
-      width={ICON_SIZE}
-      height={ICON_SIZE}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <polyline points="3 7 8 7 8 12" />
-      <path d="M5.5 9.5A8 8 0 1 0 12 4" />
-    </svg>
-  )
-}
-
 function TrashIcon() {
   return (
     <svg
@@ -128,11 +110,11 @@ export function RetractButton({
   vehicleId: string
 }) {
   return (
-    <form action={deleteServiceRecord}>
+    <form action={retractServiceRecord}>
       <input type="hidden" name="id" value={recordId} />
       <input type="hidden" name="vehicle_id" value={vehicleId} />
-      <IconSubmit tone="wallet" label="Retract entry">
-        <UndoIcon />
+      <IconSubmit tone="wallet" label="Reject entry">
+        <TrashIcon />
       </IconSubmit>
     </form>
   )

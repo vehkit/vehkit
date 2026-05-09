@@ -106,6 +106,7 @@ export default async function VehiclePage({
     return (
       r.attestation === 'workshop' &&
       !r.confirmed_at &&
+      !r.rejected_at &&
       ageMs < 24 * 60 * 60 * 1000
     )
   }).length

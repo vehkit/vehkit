@@ -49,6 +49,7 @@ export type ServiceRecord = {
   notes: string | null
   created_at: string
   confirmed_at: string | null
+  rejected_at: string | null
   service_files?: ServiceFile[] | null
   workshop_reviews?: ServiceReview[] | null
 }
@@ -69,9 +70,11 @@ export function ServiceRecordRow({
     .filter(Boolean)
   const ageMs = Date.now() - new Date(record.created_at).getTime()
   const isConfirmed = !!record.confirmed_at
+  const isRejected = !!record.rejected_at
   const isPending =
     record.attestation === 'workshop' &&
     !isConfirmed &&
+    !isRejected &&
     ageMs < 24 * 60 * 60 * 1000
   const hoursLeft = isPending
     ? Math.max(1, Math.ceil((24 * 60 * 60 * 1000 - ageMs) / (60 * 60 * 1000)))
@@ -87,20 +90,26 @@ export function ServiceRecordRow({
       .join('') || '·'
 
   const hasExtras = photos.length > 0 || !!record.notes || !!review
+  // ReviewForm opens for any workshop entry the owner has decided on —
+  // confirmed OR rejected. Both close the trust loop with the same prompt.
   const showReview =
     isOwner && record.attestation === 'workshop' && !isPending
   const showAuxiliary = hasExtras || showReview || (!isOwner && isPending)
-  const showActionCluster = isOwner
+  // Owner can still hard-delete owner-logged records even after rejection
+  // is irrelevant (rejection is a workshop concept). Pending workshop entries
+  // get confirm/reject; rejected entries are read-only with the review form.
+  const showActionCluster = isOwner && !isRejected
 
-  const avatarTone =
-    record.attestation === 'workshop'
+  const avatarTone = isRejected
+    ? 'bg-iron/40 text-ash/60'
+    : record.attestation === 'workshop'
       ? isPending
         ? 'bg-wallet/20 text-wallet'
         : 'bg-volt/20 text-volt'
       : 'bg-iron text-ash'
 
   return (
-    <li className="card p-4">
+    <li className={`card p-4 ${isRejected ? 'opacity-70' : ''}`}>
       {/* Primary row */}
       <div className="flex items-center gap-3">
         <div
@@ -112,36 +121,47 @@ export function ServiceRecordRow({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="text-sm md:text-base font-semibold text-chalk truncate leading-snug">
+            <p
+              className={`text-sm md:text-base font-semibold truncate leading-snug ${
+                isRejected ? 'text-ash line-through' : 'text-chalk'
+              }`}
+            >
               {workshopName}
             </p>
-            {record.attestation === 'workshop' && isPending && (
+            {isRejected && (
+              <span className="text-[10px] tracking-widest uppercase bg-signal/15 text-signal px-2 py-0.5 rounded-pill font-medium shrink-0">
+                Rejected
+              </span>
+            )}
+            {!isRejected && record.attestation === 'workshop' && isPending && (
               <span className="text-[10px] tracking-widest uppercase bg-wallet/15 text-wallet px-2 py-0.5 rounded-pill font-medium shrink-0">
                 {hoursLeft}h
               </span>
             )}
-            {record.attestation === 'workshop' && !isPending && (
-              <span
-                className="text-volt shrink-0"
-                aria-label="Verified"
-                title="Verified"
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden
+            {!isRejected &&
+              record.attestation === 'workshop' &&
+              !isPending && (
+                <span
+                  className="text-volt shrink-0"
+                  aria-label="Verified"
+                  title="Verified"
                 >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </span>
-            )}
-            {record.attestation === 'receipt' && (
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </span>
+              )}
+            {!isRejected && record.attestation === 'receipt' && (
               <span className="text-[10px] tracking-widest uppercase text-ash shrink-0">
                 Receipt
               </span>

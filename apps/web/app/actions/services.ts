@@ -256,3 +256,61 @@ export async function deleteServiceRecord(formData: FormData) {
   revalidatePath(`/vehicles/${vehicleId}`)
   redirect(`/vehicles/${vehicleId}`)
 }
+
+/**
+ * Owner retracts a pending workshop entry.
+ *
+ * Soft-retract: we DON'T delete the row — we set rejected_at. The record
+ * stays so:
+ *   1. We preserve the audit trail (workshop attempted to log this)
+ *   2. The owner can immediately leave a workshop review explaining why
+ *      (workshop_reviews.service_record_id is NOT NULL — needs the row)
+ *
+ * Redirects with ?review=<id> to auto-open the review form, mirroring
+ * the confirm flow. Either action — confirm or retract — closes with
+ * the same review prompt.
+ */
+export async function retractServiceRecord(formData: FormData) {
+  const id = strOrNull(formData.get('id'))
+  const vehicleId = strOrNull(formData.get('vehicle_id'))
+  if (!id || !vehicleId) redirect('/mycars')
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  // Defense in depth — RLS also enforces this
+  const { data: vehicle } = await supabase
+    .from('vehicles')
+    .select('owner_id')
+    .eq('id', vehicleId)
+    .single()
+  if (!vehicle || vehicle.owner_id !== user.id) {
+    redirect(`/vehicles/${vehicleId}?error=Not+allowed`)
+  }
+
+  const { data: updated, error } = await supabase
+    .from('service_records')
+    .update({ rejected_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('vehicle_id', vehicleId)
+    .is('confirmed_at', null) // can only retract un-confirmed entries
+    .select('id')
+
+  if (error) {
+    redirect(
+      `/vehicles/${vehicleId}?error=${encodeURIComponent(`Retract failed: ${error.message}`)}`
+    )
+  }
+  if (!updated || updated.length === 0) {
+    redirect(
+      `/vehicles/${vehicleId}?error=${encodeURIComponent('Only the vehicle owner can retract pending entries.')}`
+    )
+  }
+
+  revalidatePath(`/vehicles/${vehicleId}`)
+  revalidatePath('/notifications')
+  redirect(`/vehicles/${vehicleId}?review=${id}#review-${id}`)
+}
