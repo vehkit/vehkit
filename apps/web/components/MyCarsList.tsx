@@ -90,21 +90,23 @@ export function MyCarsList({
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {filtered.map((v) => {
           const isShared = v.owner_id !== currentUserId
           const pendingForThis = pendingByVehicle[v.id] ?? 0
           const heroPhoto = v.hero_image_url
           const title = v.nickname ?? `${v.make} ${v.model}`
-          const subtitle = [
+          const subline = [
             v.year && String(v.year),
             `${v.make} ${v.model}`,
-            v.plate_emirate && v.plate_number
-              ? `${v.plate_emirate} · ${v.plate_number}`
-              : v.plate_number,
+            v.color,
           ]
             .filter(Boolean)
             .join(' · ')
+          const plateBadge =
+            v.plate_emirate && v.plate_number
+              ? `${v.plate_emirate} · ${v.plate_number}`
+              : v.plate_number
 
           return (
             <Link
@@ -114,77 +116,79 @@ export function MyCarsList({
                 pendingForThis > 0 ? 'ring-1 ring-wallet/40' : ''
               }`}
             >
-              {/* Photo — top, prominent */}
-              <div className="relative aspect-[16/10] md:aspect-[16/9] bg-iron overflow-hidden">
-                {heroPhoto ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={heroPhoto}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-iron via-carbon to-noir">
-                    <svg
-                      width="36"
-                      height="36"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      className="text-ash/60"
-                      aria-hidden
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M3 13l1.66-4.97A2 2 0 016.55 6.5h10.9a2 2 0 011.89 1.53L21 13M5 13h14M7 17h.01M17 17h.01M5 13v4a1 1 0 001 1h12a1 1 0 001-1v-4"
-                      />
-                    </svg>
-                  </div>
-                )}
+              <div className="flex items-stretch">
+                {/* Photo thumb — left, square-ish on mobile, slightly wider desktop */}
+                <div className="relative w-28 sm:w-36 md:w-44 shrink-0 bg-iron overflow-hidden">
+                  {heroPhoto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={heroPhoto}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-iron via-carbon to-noir">
+                      <svg
+                        width="28"
+                        height="28"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        className="text-ash/60"
+                        aria-hidden
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M3 13l1.66-4.97A2 2 0 016.55 6.5h10.9a2 2 0 011.89 1.53L21 13M5 13h14M7 17h.01M17 17h.01M5 13v4a1 1 0 001 1h12a1 1 0 001-1v-4"
+                        />
+                      </svg>
+                    </div>
+                  )}
+                </div>
 
-                {/* Floating top-right badges — over the photo */}
-                {(isShared || pendingForThis > 0) && (
-                  <div className="absolute top-3 right-3 flex gap-2">
+                {/* Content — right side, PF insight-card rhythm */}
+                <div className="flex-1 min-w-0 p-4 md:p-5 flex flex-col">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-base md:text-lg font-semibold text-chalk truncate leading-snug">
+                        {title}
+                      </h2>
+                      <p className="text-xs text-ash mt-1 truncate">
+                        {subline}
+                      </p>
+                    </div>
                     {pendingForThis > 0 && (
-                      <span className="text-[10px] tracking-widest uppercase bg-wallet text-noir px-2.5 py-1 rounded-pill font-semibold">
+                      <span className="text-[10px] tracking-widest uppercase bg-wallet/15 text-wallet px-2 py-0.5 rounded-pill font-semibold shrink-0">
                         {pendingForThis} pending
                       </span>
                     )}
-                    {isShared && (
-                      <span className="text-[10px] tracking-widest uppercase bg-noir/70 text-chalk px-2.5 py-1 rounded-pill font-medium backdrop-blur-sm">
+                    {isShared && pendingForThis === 0 && (
+                      <span className="text-[10px] tracking-widest uppercase bg-iron text-ash px-2 py-0.5 rounded-pill font-medium shrink-0">
                         Shared
                       </span>
                     )}
                   </div>
-                )}
-              </div>
 
-              {/* Content below photo — PropertyFinder pattern */}
-              <div className="p-4 md:p-5">
-                {/* Title + subtitle */}
-                <div className="min-w-0">
-                  <h2 className="text-lg md:text-xl font-semibold text-chalk tracking-tight truncate">
-                    {title}
-                  </h2>
-                  <p className="text-xs text-ash mt-0.5 truncate">{subtitle}</p>
-                </div>
-
-                {/* Stats row — vertical dividers, PropertyFinder-style */}
-                <div className="grid grid-cols-3 divide-x divide-seam border-t border-seam mt-4 pt-4">
-                  <Stat
-                    value={v.current_odometer?.toLocaleString() ?? '—'}
-                    label="km"
-                  />
-                  <Stat
-                    value={v.year ? String(v.year) : '—'}
-                    label="Year"
-                  />
-                  <Stat
-                    value={v.color ?? '—'}
-                    label="Color"
-                  />
+                  {/* Bottom row — plate left, odometer right */}
+                  <div className="mt-auto pt-3 flex items-end justify-between gap-3">
+                    {plateBadge ? (
+                      <span className="text-[11px] font-mono text-ash truncate">
+                        {plateBadge}
+                      </span>
+                    ) : (
+                      <span />
+                    )}
+                    <div className="text-right shrink-0">
+                      <span className="font-mono text-base md:text-lg font-semibold text-chalk tabular-nums tracking-tight">
+                        {v.current_odometer?.toLocaleString() ?? '—'}
+                      </span>
+                      <span className="text-[10px] tracking-widest uppercase text-ash ml-1">
+                        km
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </Link>
@@ -211,15 +215,3 @@ export function MyCarsList({
   )
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="text-center px-2">
-      <p className="font-mono text-base md:text-lg font-semibold text-chalk tabular-nums tracking-tight leading-none truncate">
-        {value}
-      </p>
-      <p className="text-[10px] tracking-widest uppercase text-ash mt-1.5 truncate">
-        {label}
-      </p>
-    </div>
-  )
-}

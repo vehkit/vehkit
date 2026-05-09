@@ -321,146 +321,7 @@ export default async function VehiclePage({
           </section>
         )}
 
-        {/* INSIGHTS — PropertyFinder-style comparison cards */}
-        {totalRecords > 0 && (
-          <section className="mt-10">
-            <SectionHeader title="Insights" />
-            <div className="space-y-3">
-              {(() => {
-                const insights: Array<{
-                  headline: string
-                  detail: string
-                  tone: 'good' | 'bad' | 'neutral'
-                }> = []
-
-                // Score health
-                if (scoreData?.score != null) {
-                  if (scoreData.score >= 80) {
-                    insights.push({
-                      headline: `Strong passport · score of ${scoreData.score}/100`,
-                      detail:
-                        'Above the 80-point threshold buyers look for at resale.',
-                      tone: 'good',
-                    })
-                  } else if (scoreData.score >= 60) {
-                    insights.push({
-                      headline: `Healthy passport · score of ${scoreData.score}/100`,
-                      detail:
-                        'Solid history. A few more verified entries would push it past 80.',
-                      tone: 'neutral',
-                    })
-                  } else {
-                    insights.push({
-                      headline: `Score is ${scoreData.score}/100 — improvable`,
-                      detail:
-                        'Add workshop-verified services and stay current with reminders to lift it.',
-                      tone: 'bad',
-                    })
-                  }
-                }
-
-                // Verification ratio
-                if (totalRecords > 0) {
-                  const verifiedPct = Math.round(
-                    (verifiedRecords / totalRecords) * 100
-                  )
-                  if (verifiedPct >= 70) {
-                    insights.push({
-                      headline: `${verifiedPct}% of services are workshop-verified`,
-                      detail: `${verifiedRecords} of ${totalRecords} entries attested by a verified workshop.`,
-                      tone: 'good',
-                    })
-                  } else if (verifiedPct >= 30) {
-                    insights.push({
-                      headline: `${verifiedPct}% of services are workshop-verified`,
-                      detail:
-                        'A higher verified share strengthens the passport for resale.',
-                      tone: 'neutral',
-                    })
-                  } else {
-                    insights.push({
-                      headline: `Only ${verifiedPct}% of services are workshop-verified`,
-                      detail:
-                        'Owner-logged entries count, but verified ones move the score.',
-                      tone: 'bad',
-                    })
-                  }
-                }
-
-                // Workshop diversity
-                if (verifiedRecords > 0) {
-                  if (distinctWorkshops >= 2) {
-                    insights.push({
-                      headline: `Serviced across ${distinctWorkshops} distinct workshops`,
-                      detail:
-                        'Multi-workshop history rules out single-source bias and lifts the score.',
-                      tone: 'good',
-                    })
-                  } else {
-                    insights.push({
-                      headline: 'Single-workshop history',
-                      detail:
-                        'A second verified workshop on this car unlocks the diversity bonus.',
-                      tone: 'neutral',
-                    })
-                  }
-                }
-
-                // Recency from score data
-                if (scoreData?.recency_pts != null) {
-                  if (Number(scoreData.recency_pts) >= 10) {
-                    insights.push({
-                      headline: 'Serviced within the last 6 months',
-                      detail:
-                        'Recency is current. Buyers see this as active care, not storage.',
-                      tone: 'good',
-                    })
-                  } else if (Number(scoreData.recency_pts) >= 5) {
-                    insights.push({
-                      headline: 'Last service was 6–12 months ago',
-                      detail:
-                        'Schedule a routine service in the next month to stay in the green band.',
-                      tone: 'neutral',
-                    })
-                  } else if (Number(scoreData.recency_pts) === 0 && totalRecords > 0) {
-                    insights.push({
-                      headline: 'No service in the last 12 months',
-                      detail:
-                        "Long gaps signal storage or neglect — and they're recoverable in one visit.",
-                      tone: 'bad',
-                    })
-                  }
-                }
-
-                // Compliance — overdue reminders
-                if (
-                  scoreData?.open_overdue != null &&
-                  Number(scoreData.open_overdue) > 0
-                ) {
-                  insights.push({
-                    headline: `${scoreData.open_overdue} reminder${
-                      Number(scoreData.open_overdue) === 1 ? '' : 's'
-                    } overdue`,
-                    detail:
-                      'Each overdue reminder costs up to two compliance points.',
-                    tone: 'bad',
-                  })
-                }
-
-                return insights.map((i, idx) => (
-                  <InsightCard
-                    key={idx}
-                    headline={i.headline}
-                    detail={i.detail}
-                    tone={i.tone}
-                  />
-                ))
-              })()}
-            </div>
-          </section>
-        )}
-
-        {/* TOP WORKSHOP — sits below insights */}
+        {/* TOP WORKSHOP — PF insight-card visual language */}
         {topWorkshopEntry && (
           <section className="mt-10">
             <SectionHeader title="Most-frequent workshop" />
@@ -877,6 +738,10 @@ function ValenceIcon({ tone }: { tone: 'good' | 'bad' | 'neutral' }) {
   )
 }
 
+/**
+ * PropertyFinder insight-card pattern: bold headline left, supporting line
+ * below, mark on the right. No grids, no chrome. Punchy and scannable.
+ */
 function TopWorkshopCard({
   workshopId,
   workshopName,
@@ -906,63 +771,43 @@ function TopWorkshopCard({
     ? new Date(lastVisit).toLocaleDateString('en-GB', {
         day: 'numeric',
         month: 'short',
-        year: 'numeric',
       })
-    : '—'
-
-  const initials =
-    workshopName
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((s) => s.charAt(0).toUpperCase())
-      .join('') || '·'
+    : null
 
   const sharePct =
     totalVerified > 0 ? Math.round((visitCount / totalVerified) * 100) : 0
 
-  return (
-    <div className="card p-5 md:p-6">
-      <div className="flex items-center gap-4">
-        <div className="w-14 h-14 rounded-pill bg-volt/15 text-volt flex items-center justify-center font-mono text-base font-semibold tracking-tighter shrink-0">
-          {initials}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-lg font-semibold text-chalk truncate tracking-tight">
-            {workshopName}
-          </p>
-          <p className="text-xs text-ash mt-0.5">
-            {sharePct}% of this car's verified history
-          </p>
-        </div>
-      </div>
+  const sub = [
+    `${sharePct}% of verified history`,
+    totalSpent > 0 ? `AED ${totalSpent.toLocaleString()} total` : null,
+    lastVisitLabel ? `last visit ${lastVisitLabel}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
-      {/* PropertyFinder-style 3-column stats with vertical dividers */}
-      <div className="grid grid-cols-3 divide-x divide-seam border-y border-seam mt-5">
-        <div className="text-center py-4 px-2">
-          <p className="font-mono text-xl md:text-2xl font-semibold text-chalk tabular-nums tracking-tight leading-none">
-            {visitCount}
-          </p>
-          <p className="text-[10px] tracking-widest uppercase text-ash mt-1.5">
-            {visitCount === 1 ? 'Visit' : 'Visits'}
-          </p>
-        </div>
-        <div className="text-center py-4 px-2">
-          <p className="font-mono text-xl md:text-2xl font-semibold text-chalk tabular-nums tracking-tight leading-none">
-            {totalSpent > 0 ? `${(totalSpent / 1000).toFixed(1)}k` : '—'}
-          </p>
-          <p className="text-[10px] tracking-widest uppercase text-ash mt-1.5">
-            AED total
-          </p>
-        </div>
-        <div className="text-center py-4 px-2">
-          <p className="font-mono text-sm md:text-base font-semibold text-chalk tabular-nums tracking-tight leading-none">
-            {lastVisitLabel}
-          </p>
-          <p className="text-[10px] tracking-widest uppercase text-ash mt-1.5">
-            Last visit
-          </p>
-        </div>
+  return (
+    <div className="card p-5 flex items-start gap-4">
+      <div className="min-w-0 flex-1">
+        <p className="text-base md:text-lg font-semibold text-chalk leading-snug">
+          {workshopName}
+        </p>
+        <p className="text-xs text-ash mt-1.5 leading-relaxed">{sub}</p>
+      </div>
+      <div className="shrink-0">
+        <svg
+          width="40"
+          height="40"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-volt"
+          aria-hidden
+        >
+          <path d="M14.7 6.3a1 1 0 010 1.4l-1.5 1.5a1 1 0 01-1.4 0L9 6.3a1 1 0 010-1.4l1.5-1.5a1 1 0 011.4 0zM6 8l-3 3 6 6 3-3-6-6zm9 9l3-3 3 3-3 3-3-3z" />
+        </svg>
       </div>
     </div>
   )
