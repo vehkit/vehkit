@@ -75,9 +75,6 @@ export const viewport: Viewport = {
 }
 
 // Inline script that runs BEFORE first paint to apply the saved theme.
-// Reading localStorage server-side isn't possible, but the cookie works
-// for the first SSR render. This script then reconciles with localStorage
-// in case the user's preference is newer than the cookie.
 const NO_FLASH_SCRIPT = `
 (function(){
   try {
@@ -94,6 +91,53 @@ const NO_FLASH_SCRIPT = `
 })();
 `
 
+// Global double-click guard for forms. Runs on every form submit (capture
+// phase, before React handlers) and disables all submit buttons inside the
+// form for 10 seconds or until navigation completes — whichever comes first.
+// Prevents duplicate submissions when server actions take time.
+const FORM_GUARD_SCRIPT = `
+(function(){
+  if (typeof window === 'undefined') return;
+  var disabledForms = new WeakMap();
+
+  function disableForm(form) {
+    if (disabledForms.has(form)) return;
+    var buttons = form.querySelectorAll('button[type="submit"], button:not([type]), input[type="submit"]');
+    var originalLabels = [];
+    buttons.forEach(function(b, i) {
+      originalLabels[i] = { el: b, disabled: b.disabled, opacity: b.style.opacity };
+      b.disabled = true;
+      b.style.opacity = '0.6';
+      b.style.cursor = 'wait';
+      b.setAttribute('aria-busy', 'true');
+    });
+    disabledForms.set(form, originalLabels);
+
+    // Safety net: re-enable after 10s in case the action stalls so the user
+    // isn't permanently locked out
+    setTimeout(function() {
+      var saved = disabledForms.get(form);
+      if (!saved) return;
+      saved.forEach(function(rec) {
+        rec.el.disabled = rec.disabled;
+        rec.el.style.opacity = rec.opacity || '';
+        rec.el.style.cursor = '';
+        rec.el.removeAttribute('aria-busy');
+      });
+      disabledForms.delete(form);
+    }, 10000);
+  }
+
+  document.addEventListener('submit', function(e) {
+    var form = e.target;
+    if (!form || form.tagName !== 'FORM') return;
+    // Defer disabling to the next microtask so React's server-action handler
+    // captures the submitter before we lock the buttons.
+    queueMicrotask(function() { disableForm(form); });
+  }, true);
+})();
+`
+
 export default async function RootLayout({
   children,
 }: {
@@ -107,6 +151,7 @@ export default async function RootLayout({
     <html lang="en" className={`${inter.variable} ${theme}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: FORM_GUARD_SCRIPT }} />
       </head>
       <body className="font-sans bg-noir text-chalk pb-16 md:pb-0">
         <AppNav />
