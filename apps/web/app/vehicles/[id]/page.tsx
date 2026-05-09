@@ -10,7 +10,6 @@ import {
   DeleteButton,
 } from '@/components/ServiceRecordActions'
 import { snoozeReminder, completeReminder } from '@/app/actions/reminders'
-import { HeroPhotoUpload } from '@/components/HeroPhotoUpload'
 import { ShareSheet } from '@/components/ShareSheet'
 import { WorkshopCodeSheet } from '@/components/WorkshopCodeSheet'
 import { FamilyShareSheet } from '@/components/FamilyShareSheet'
@@ -19,6 +18,7 @@ import { ReviewForm } from '@/components/ReviewForm'
 import { StarRating } from '@/components/StarRating'
 import { VehicleScoreChip } from '@/components/VehicleScore'
 import { ScrollAwareHeader } from '@/components/ScrollAwareHeader'
+import { VehicleHero } from '@/components/VehicleHero'
 import {
   reminderStatus,
   reminderLabel,
@@ -95,9 +95,68 @@ export default async function VehiclePage({
     .filter(Boolean)
     .join(' · ')
 
+  // Aggregate stats from records — drive the stats row + insights
+  const totalRecords = (records ?? []).length
+  const verifiedRecords = (records ?? []).filter(
+    (r) => r.attestation === 'workshop'
+  ).length
+  const distinctWorkshops = new Set(
+    (records ?? [])
+      .map((r) => r.workshop_id)
+      .filter(Boolean)
+  ).size
+  const totalSpent = (records ?? []).reduce(
+    (sum, r) => sum + (r.cost_aed ? Number(r.cost_aed) : 0),
+    0
+  )
+  const pendingCount = (records ?? []).filter((r) => {
+    const ageMs = Date.now() - new Date(r.created_at).getTime()
+    return (
+      r.attestation === 'workshop' &&
+      !r.confirmed_at &&
+      ageMs < 24 * 60 * 60 * 1000
+    )
+  }).length
+
+  // Top workshop by visit count (for the "Provider" card)
+  const workshopVisits: Record<string, { count: number; name: string }> = {}
+  for (const r of records ?? []) {
+    if (!r.workshop_id) continue
+    const key = r.workshop_id
+    workshopVisits[key] = workshopVisits[key] ?? {
+      count: 0,
+      name: r.workshop_name_freetext ?? 'Workshop',
+    }
+    workshopVisits[key].count += 1
+  }
+  const topWorkshopEntry = Object.entries(workshopVisits).sort(
+    (a, b) => b[1].count - a[1].count
+  )[0]
+
+  // Hero badges
+  const heroBadges: Array<{
+    label: string
+    tone: 'volt' | 'wallet' | 'signal' | 'iron'
+  }> = []
+  if (pendingCount > 0) {
+    heroBadges.push({ label: `${pendingCount} pending`, tone: 'wallet' })
+  }
+  if (verifiedRecords >= 10) {
+    heroBadges.push({ label: 'Well-serviced', tone: 'volt' })
+  } else if (verifiedRecords >= 1) {
+    heroBadges.push({ label: 'Verified', tone: 'volt' })
+  }
+
+  const ownerSinceLabel = vehicle.created_at
+    ? new Date(vehicle.created_at).toLocaleDateString('en-GB', {
+        month: 'short',
+        year: 'numeric',
+      })
+    : null
+
   return (
-    <main className="min-h-[100svh] pb-32">
-      {/* Sticky condensed header — mobile only; desktop already has the top nav */}
+    <main className="min-h-[100svh] pb-32 bg-noir">
+      {/* Sticky condensed header — mobile only */}
       <div className="md:hidden">
         <ScrollAwareHeader
           title={vehicleTitle}
@@ -107,52 +166,88 @@ export default async function VehiclePage({
         />
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 pt-6">
+      {/* Desktop "← My cars" — top of column */}
+      <div className="hidden md:block max-w-3xl mx-auto px-6 pt-6">
         <Link
           href="/mycars"
           className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
         >
           ← My cars
         </Link>
+      </div>
 
-        {/* Hero — column-bound, tall, photo with overlay */}
-        <div className="mt-4">
-          <HeroPhotoUpload
-            vehicleId={id}
-            currentUrl={vehicle.hero_image_url}
-            fullBleed
-          >
-            <div className="absolute inset-x-0 bottom-0 p-5 md:p-7 pointer-events-none">
-              <div className="pointer-events-auto">
-                {(vehicle.year || vehicle.color) && (
-                  <p className="text-[10px] tracking-[0.35em] uppercase text-chalk/70">
-                    {[vehicle.year, vehicle.color].filter(Boolean).join(' · ')}
-                  </p>
-                )}
-                <h1 className="text-3xl md:text-5xl font-semibold tracking-tightest text-chalk mt-2 leading-[0.95] drop-shadow-md">
-                  {vehicleTitle}
-                </h1>
-                <p className="text-sm text-chalk/80 mt-2 truncate">
-                  {vehicleSubline}
-                </p>
-                <div className="mt-4 flex items-center gap-3">
-                  <VehicleScoreChip data={scoreData} />
-                  <span className="font-mono text-sm text-chalk/70 tabular-nums">
-                    {vehicle.current_odometer?.toLocaleString() ?? '—'}{' '}
-                    <span className="text-chalk/50 text-[10px] tracking-widest uppercase">
-                      km
-                    </span>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </HeroPhotoUpload>
-        </div>
+      {/* HERO — edge to edge mobile, column-bound desktop */}
+      <div className="md:max-w-3xl md:mx-auto md:mt-4 md:px-6">
+        <VehicleHero
+          vehicleId={id}
+          currentUrl={vehicle.hero_image_url}
+          badges={heroBadges}
+          isOwner={isOwner}
+          backHref="/mycars"
+          backLabel="My cars"
+        />
+      </div>
 
-        {/* Content — same column, normal flow */}
-        <div className="mt-6">
-          {/* Action strip */}
-          <div className="-mx-6 px-6 overflow-x-auto">
+      {/* Content container — padded on mobile, column-bound on desktop */}
+      <div className="max-w-3xl mx-auto px-5 md:px-6">
+
+        {/* HEADLINE STRIP — score big number + odometer + plate */}
+        <section className="mt-6">
+          <div className="flex items-baseline gap-3 flex-wrap">
+            {scoreData?.score != null ? (
+              <p className="font-mono text-5xl md:text-6xl font-semibold text-volt tabular-nums tracking-tightest leading-none">
+                {scoreData.score}
+                <span className="text-ash text-lg font-normal ml-1">/100</span>
+              </p>
+            ) : (
+              <p className="font-mono text-5xl md:text-6xl font-semibold text-ash tabular-nums tracking-tightest leading-none">
+                —<span className="text-ash text-lg font-normal ml-1">/100</span>
+              </p>
+            )}
+            <p className="text-[10px] tracking-[0.3em] uppercase text-ash">
+              Vehkit score
+            </p>
+          </div>
+
+          <div className="mt-4">
+            <p className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter leading-tight">
+              {vehicleTitle}
+            </p>
+            <p className="text-sm text-ash mt-1">
+              {[
+                vehicle.year && String(vehicle.year),
+                vehicle.color,
+                `${vehicle.make} ${vehicle.model}`,
+                vehicle.plate_emirate && vehicle.plate_number
+                  ? `${vehicle.plate_emirate} · ${vehicle.plate_number}`
+                  : vehicle.plate_number,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          </div>
+        </section>
+
+        {/* QUICK STATS ROW — PropertyFinder-style separator-divided */}
+        <section className="mt-6 grid grid-cols-4 divide-x divide-seam border-y border-seam">
+          <QuickStat
+            value={vehicle.current_odometer?.toLocaleString() ?? '—'}
+            label="km"
+          />
+          <QuickStat value={String(verifiedRecords)} label="Verified" />
+          <QuickStat
+            value={String(distinctWorkshops)}
+            label={distinctWorkshops === 1 ? 'Workshop' : 'Workshops'}
+          />
+          <QuickStat
+            value={totalSpent > 0 ? `${(totalSpent / 1000).toFixed(1)}k` : '—'}
+            label="AED logged"
+          />
+        </section>
+
+        {/* ACTION ROW */}
+        {isOwner && (
+          <section className="mt-6 -mx-5 md:-mx-6 px-5 md:px-6 overflow-x-auto">
             <div className="flex gap-2 min-w-max">
               <ShareSheet vehicleId={id} baseUrl={baseUrl} />
               <WorkshopCodeSheet vehicleId={id} />
@@ -164,18 +259,96 @@ export default async function VehiclePage({
                 Edit
               </Link>
             </div>
-          </div>
+          </section>
+        )}
 
-          {vehicle.vin && (
-            <p className="text-[10px] tracking-widest uppercase text-ash/60 mt-3 font-mono">
-              VIN <span className="text-ash">{vehicle.vin}</span>
-            </p>
-          )}
+        {/* META — VIN + owner since */}
+        {(vehicle.vin || ownerSinceLabel) && (
+          <section className="mt-5 flex items-center gap-4 text-[11px] text-ash/70 flex-wrap">
+            {vehicle.vin && (
+              <span className="font-mono">
+                VIN <span className="text-ash">{vehicle.vin}</span>
+              </span>
+            )}
+            {ownerSinceLabel && (
+              <span className="tracking-widest uppercase">
+                On Vehkit since {ownerSinceLabel}
+              </span>
+            )}
+          </section>
+        )}
 
-          {errorMsg && (
-            <div className="mt-4 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">
+        {errorMsg && (
+          <div className="mt-4 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">
             {decodeURIComponent(errorMsg)}
           </div>
+        )}
+
+        {/* SCORE BREAKDOWN — only when there's a score */}
+        {scoreData?.score != null && (
+          <section className="mt-10">
+            <SectionHeader
+              title="Score breakdown"
+              hint="What the number is made of"
+            />
+            <div className="card p-5 space-y-3">
+              <ScoreLine
+                label="Verification"
+                value={Number(scoreData.verification_pts) ?? 0}
+                max={40}
+              />
+              <ScoreLine
+                label="Compliance"
+                value={Number(scoreData.compliance_pts) ?? 0}
+                max={30}
+              />
+              <ScoreLine
+                label="Consistency"
+                value={Number(scoreData.consistency_pts) ?? 0}
+                max={20}
+              />
+              <ScoreLine
+                label="Recency"
+                value={Number(scoreData.recency_pts) ?? 0}
+                max={10}
+              />
+              <p className="text-[11px] text-ash/70 leading-relaxed pt-3 border-t border-seam">
+                Higher score = stronger passport at resale. Verified entries by
+                multiple workshops, on-time reminder compliance, and recent
+                service all contribute.
+              </p>
+            </div>
+          </section>
+        )}
+
+        {/* TOP WORKSHOP — provider card */}
+        {topWorkshopEntry && (
+          <section className="mt-10">
+            <SectionHeader
+              title="Most-frequent workshop"
+              hint={`${topWorkshopEntry[1].count} of ${verifiedRecords} verified entries`}
+            />
+            <div className="card p-5 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-pill bg-volt/15 text-volt flex items-center justify-center font-mono text-sm font-semibold tracking-tighter shrink-0">
+                {topWorkshopEntry[1].name
+                  .split(/\s+/)
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((s) => s.charAt(0).toUpperCase())
+                  .join('')}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-base font-semibold text-chalk truncate">
+                  {topWorkshopEntry[1].name}
+                </p>
+                <p className="text-xs text-ash mt-0.5">
+                  {topWorkshopEntry[1].count} verified{' '}
+                  {topWorkshopEntry[1].count === 1 ? 'entry' : 'entries'} on this
+                  car
+                </p>
+              </div>
+            </div>
+          </section>
         )}
 
         {/* Reminders banner */}
@@ -249,16 +422,16 @@ export default async function VehiclePage({
           </section>
         )}
 
-        {/* Feed */}
-        <section className="mt-8">
-          {/* Tab-bar divider — Instagram profile section style */}
-          <div className="border-t border-seam">
-            <div className="flex justify-center">
-              <div className="px-4 py-3 -mt-px border-t-2 border-chalk text-xs tracking-widest uppercase text-chalk font-medium">
-                Service feed{records && records.length > 0 && ` · ${records.length}`}
-              </div>
-            </div>
-          </div>
+        {/* SERVICE HISTORY */}
+        <section className="mt-10">
+          <SectionHeader
+            title="Service history"
+            hint={
+              records && records.length > 0
+                ? `${records.length} ${records.length === 1 ? 'entry' : 'entries'}`
+                : 'Empty'
+            }
+          />
 
           {records && records.length > 0 ? (
             <ol className="space-y-5">
@@ -467,7 +640,6 @@ export default async function VehiclePage({
             </button>
           </form>
         </section>
-        </div>
       </div>
 
       {/* Sticky bottom action */}
@@ -489,6 +661,64 @@ export default async function VehiclePage({
 
 function humanize(s: string): string {
   return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function SectionHeader({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 mb-3">
+      <h2 className="text-base font-semibold text-chalk tracking-tight">
+        {title}
+      </h2>
+      {hint && (
+        <p className="text-[10px] tracking-widest uppercase text-ash">{hint}</p>
+      )}
+    </div>
+  )
+}
+
+function QuickStat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="text-center py-4 px-2">
+      <p className="font-mono text-xl md:text-2xl font-semibold text-chalk tabular-nums tracking-tight leading-none">
+        {value}
+      </p>
+      <p className="text-[10px] tracking-widest uppercase text-ash mt-1.5 truncate">
+        {label}
+      </p>
+    </div>
+  )
+}
+
+function ScoreLine({
+  label,
+  value,
+  max,
+}: {
+  label: string
+  value: number
+  max: number
+}) {
+  const pct = Math.min(100, (value / max) * 100)
+  const color =
+    value >= max * 0.66
+      ? 'bg-volt'
+      : value >= max * 0.33
+        ? 'bg-wallet'
+        : 'bg-signal/70'
+  return (
+    <div>
+      <div className="flex items-center justify-between text-[11px]">
+        <span className="text-ash tracking-wide">{label}</span>
+        <span className="font-mono tabular-nums text-chalk">
+          {value}
+          <span className="text-ash"> / {max}</span>
+        </span>
+      </div>
+      <div className="h-1 bg-iron rounded-full mt-1 overflow-hidden">
+        <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  )
 }
 
 function relativeDate(dateStr: string): string {
