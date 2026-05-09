@@ -217,7 +217,7 @@ export default async function VehiclePage({
           </div>
 
           {records && records.length > 0 ? (
-            <ol className="space-y-4">
+            <ol className="space-y-5">
               {records.map((r) => {
                 const photos = (r.service_files ?? [])
                   .map((f: { storage_path: string }) => f.storage_path)
@@ -229,34 +229,50 @@ export default async function VehiclePage({
                   ? Math.max(1, Math.ceil((24 * 60 * 60 * 1000 - ageMs) / (60 * 60 * 1000)))
                   : 0
                 const review = r.workshop_reviews?.[0]
+                const workshopName = r.workshop_name_freetext || 'Owner-logged'
+                const initials = workshopName
+                  .split(/\s+/)
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((w: string) => w.charAt(0).toUpperCase())
+                  .join('') || '·'
                 return (
-                  <li
-                    key={r.id}
-                    className={`card overflow-hidden ${
-                      r.attestation === 'workshop'
-                        ? isPending
-                          ? 'border-l-4 border-l-wallet'
-                          : 'border-l-4 border-l-volt'
-                        : ''
-                    }`}
-                  >
-                    {/* Post header — date + badge */}
-                    <div className="px-5 pt-4 pb-2 flex items-center justify-between gap-2 flex-wrap">
-                      <p className="text-xs tracking-widest uppercase text-ash">
-                        {relativeDate(r.service_date)}
-                      </p>
+                  <li key={r.id} className="card overflow-hidden">
+                    {/* Post header — workshop avatar + name + status */}
+                    <div className="px-4 pt-3 pb-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div
+                          className={`w-10 h-10 rounded-pill flex items-center justify-center shrink-0 font-mono text-xs font-semibold ${
+                            r.attestation === 'workshop'
+                              ? isPending
+                                ? 'bg-wallet/20 text-wallet'
+                                : 'bg-volt/20 text-volt'
+                              : 'bg-iron text-ash'
+                          }`}
+                        >
+                          {initials}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-chalk truncate">
+                            {workshopName}
+                          </p>
+                          <p className="text-xs text-ash">
+                            {relativeDate(r.service_date)}
+                          </p>
+                        </div>
+                      </div>
                       {r.attestation === 'workshop' && isPending && (
-                        <span className="text-[10px] tracking-wider uppercase bg-wallet/15 text-wallet px-2 py-0.5 rounded-pill font-medium">
+                        <span className="text-[10px] tracking-wider uppercase bg-wallet/15 text-wallet px-2 py-1 rounded-pill font-medium shrink-0">
                           Pending · {hoursLeft}h
                         </span>
                       )}
                       {r.attestation === 'workshop' && !isPending && (
-                        <span className="text-[10px] tracking-wider uppercase bg-volt/15 text-volt px-2 py-0.5 rounded-pill font-medium">
+                        <span className="text-[10px] tracking-wider uppercase bg-volt/15 text-volt px-2 py-1 rounded-pill font-medium shrink-0">
                           ✓ Verified
                         </span>
                       )}
                       {r.attestation === 'receipt' && (
-                        <span className="text-[10px] tracking-wider uppercase bg-iron text-ash px-2 py-0.5 rounded-pill font-medium">
+                        <span className="text-[10px] tracking-wider uppercase bg-iron text-ash px-2 py-1 rounded-pill font-medium shrink-0">
                           Receipt
                         </span>
                       )}
@@ -265,44 +281,29 @@ export default async function VehiclePage({
                     {/* Photos full-bleed (Instagram style) */}
                     {photos.length > 0 && <PhotoLightbox photos={photos} />}
 
-                    {/* Body */}
-                    <div className="px-5 pt-3 pb-4 space-y-3">
+                    {/* Caption body */}
+                    <div className="px-4 pt-3 pb-4 space-y-3">
                       <div>
-                        <h3 className="text-xl font-semibold text-chalk tracking-tighter">
-                          {humanize(r.service_type)}
-                        </h3>
-                        {r.workshop_name_freetext && (
-                          <p className="text-sm text-ash mt-0.5">
-                            at {r.workshop_name_freetext}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Stats inline */}
-                      {(r.odometer != null || r.cost_aed != null) && (
-                        <div className="flex flex-wrap gap-6">
-                          {r.odometer != null && (
-                            <div>
-                              <p className="text-[10px] tracking-widest uppercase text-ash">
-                                Odometer
-                              </p>
-                              <p className="font-mono text-base text-chalk tabular-nums">
-                                {r.odometer.toLocaleString()} km
-                              </p>
-                            </div>
-                          )}
+                        <p className="text-base text-chalk leading-snug">
+                          <span className="font-semibold">{humanize(r.service_type)}</span>
                           {r.cost_aed != null && (
-                            <div>
-                              <p className="text-[10px] tracking-widest uppercase text-ash">
-                                Cost
-                              </p>
-                              <p className="font-mono text-base text-chalk tabular-nums">
+                            <>
+                              {' · '}
+                              <span className="font-mono tabular-nums">
                                 AED {Number(r.cost_aed).toLocaleString()}
-                              </p>
-                            </div>
+                              </span>
+                            </>
                           )}
-                        </div>
-                      )}
+                          {r.odometer != null && (
+                            <>
+                              {' · '}
+                              <span className="font-mono tabular-nums text-ash">
+                                {r.odometer.toLocaleString()} km
+                              </span>
+                            </>
+                          )}
+                        </p>
+                      </div>
 
                       {/* Notes */}
                       {r.notes && (

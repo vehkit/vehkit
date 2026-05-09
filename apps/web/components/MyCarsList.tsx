@@ -90,74 +90,107 @@ export function MyCarsList({
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-5">
         {filtered.map((v) => {
           const isShared = v.owner_id !== currentUserId
           const pendingForThis = pendingByVehicle[v.id] ?? 0
           const heroPhoto = v.hero_image_url
+          const title = v.nickname ?? `${v.make} ${v.model}`
           return (
             <Link
               key={v.id}
               href={`/vehicles/${v.id}`}
-              className={`card block overflow-hidden hover:border-volt/30 transition-colors group relative ${
-                pendingForThis > 0 ? 'border-l-4 border-l-wallet' : ''
-              } ${heroPhoto ? 'h-40 md:h-44' : ''}`}
+              className={`card block overflow-hidden hover:border-volt/30 transition-colors group ${
+                pendingForThis > 0 ? 'ring-1 ring-wallet/40' : ''
+              }`}
             >
-              {heroPhoto && (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={heroPhoto}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-noir via-noir/40 to-transparent" />
-                </>
-              )}
-
-              <div
-                className={
-                  heroPhoto
-                    ? 'absolute inset-x-0 bottom-0 p-5 flex items-end justify-between gap-4'
-                    : 'p-5 flex items-start justify-between gap-4'
-                }
-              >
+              {/* Header strip: title + meta */}
+              <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {(v.year || v.color) && (
-                      <p className="nav-pill text-[10px]">
-                        {[v.year, v.color].filter(Boolean).join(' · ')}
-                      </p>
-                    )}
-                    {isShared && (
-                      <span className="text-[10px] tracking-wider uppercase bg-iron/80 text-ash px-2 py-0.5 rounded-pill font-medium">
-                        Shared
-                      </span>
-                    )}
-                    {pendingForThis > 0 && (
-                      <span className="text-[10px] tracking-wider uppercase bg-wallet/20 text-wallet px-2 py-0.5 rounded-pill font-medium">
-                        {pendingForThis} pending
-                      </span>
-                    )}
-                  </div>
-                  <h2 className="text-xl md:text-2xl font-semibold text-chalk mt-1 truncate tracking-tighter">
-                    {v.nickname ?? `${v.make} ${v.model}`}
+                  <h2 className="text-base font-semibold text-chalk truncate tracking-tight">
+                    {title}
                   </h2>
-                  <p className="text-sm text-ash mt-0.5 truncate">
-                    {v.make} {v.model}
-                    {v.plate_number && (
-                      <>
-                        {' · '}
-                        <span className="font-mono">{v.plate_number}</span>
-                      </>
+                  <p className="text-xs text-ash truncate mt-0.5">
+                    {v.plate_emirate && `${v.plate_emirate} · `}
+                    {v.plate_number ? (
+                      <span className="font-mono">{v.plate_number}</span>
+                    ) : (
+                      `${v.make} ${v.model}`
                     )}
                   </p>
                 </div>
+                {isShared && (
+                  <span className="text-[10px] tracking-widest uppercase bg-iron/80 text-ash px-2 py-1 rounded-pill font-medium shrink-0">
+                    Shared
+                  </span>
+                )}
+                {pendingForThis > 0 && (
+                  <span className="text-[10px] tracking-widest uppercase bg-wallet/20 text-wallet px-2 py-1 rounded-pill font-medium shrink-0">
+                    {pendingForThis} pending
+                  </span>
+                )}
+              </div>
+
+              {/* Hero photo — full-width, square aspect */}
+              <div className="relative bg-iron aspect-[4/3] overflow-hidden">
+                {heroPhoto ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={heroPhoto}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                    />
+                  </>
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-16 h-16 mx-auto rounded-pill bg-seam flex items-center justify-center">
+                        <svg
+                          width="28"
+                          height="28"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          className="text-ash"
+                          aria-hidden
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M3 13l1.66-4.97A2 2 0 016.55 6.5h10.9a2 2 0 011.89 1.53L21 13M5 13h14M7 17h.01M17 17h.01M5 13v4a1 1 0 001 1h12a1 1 0 001-1v-4"
+                          />
+                        </svg>
+                      </div>
+                      <p className="text-xs text-ash mt-3 tracking-widest uppercase">
+                        No photo yet
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Caption strip: stats */}
+              <div className="px-4 py-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  {v.year && (
+                    <span className="text-xs text-ash">{v.year}</span>
+                  )}
+                  {v.color && (
+                    <>
+                      {v.year && <span className="text-seam">·</span>}
+                      <span className="text-xs text-ash truncate">{v.color}</span>
+                    </>
+                  )}
+                </div>
                 <div className="text-right shrink-0">
-                  <p className="font-mono text-2xl md:text-3xl font-semibold text-chalk tabular-nums">
+                  <span className="font-mono text-base font-semibold text-chalk tabular-nums">
                     {v.current_odometer?.toLocaleString() ?? '—'}
-                  </p>
-                  <p className="text-[10px] tracking-widest uppercase text-ash mt-0.5">km</p>
+                  </span>
+                  <span className="text-[10px] tracking-widest uppercase text-ash ml-1">
+                    km
+                  </span>
                 </div>
               </div>
             </Link>

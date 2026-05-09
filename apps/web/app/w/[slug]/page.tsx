@@ -82,9 +82,17 @@ export default async function WorkshopPublicPage({
     year: 'numeric',
   })
 
+  // Workshop initials for avatar
+  const initials = w.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s.charAt(0).toUpperCase())
+    .join('')
+
   return (
     <main className="min-h-[100svh] pb-24">
-      <div className="max-w-3xl mx-auto px-6 pt-10">
+      <div className="max-w-3xl mx-auto px-6 pt-6">
         <Link
           href="/workshops"
           className="nav-pill hover:text-chalk transition-colors"
@@ -92,137 +100,162 @@ export default async function WorkshopPublicPage({
           ← Directory
         </Link>
 
-        {/* Hero card */}
-        <header className="card p-6 md:p-8 mt-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <p className={`nav-pill text-[10px] ${tierColor}`}>{tierLabel}</p>
-              <h1 className="text-3xl md:text-5xl font-semibold text-chalk tracking-tightest mt-2">
+        {/* Profile header — Instagram-style: avatar + stats inline */}
+        <header className="mt-6">
+          <div className="flex items-center gap-5 md:gap-8">
+            <div
+              className={`w-20 h-20 md:w-28 md:h-28 rounded-pill flex items-center justify-center shrink-0 font-mono text-xl md:text-3xl font-semibold tracking-tighter ${
+                w.verification_tier === 'gold'
+                  ? 'bg-wallet/15 text-wallet ring-2 ring-wallet'
+                  : w.verification_tier === 'silver'
+                    ? 'bg-volt/15 text-volt ring-2 ring-volt'
+                    : 'bg-iron text-ash'
+              }`}
+            >
+              {initials || '·'}
+            </div>
+
+            {/* Inline stats — Instagram profile style */}
+            <div className="flex-1 grid grid-cols-3 gap-2 md:gap-6 text-center">
+              <InlineStat
+                value={w.total_entries.toLocaleString()}
+                label="entries"
+              />
+              <InlineStat
+                value={w.unique_vehicles.toLocaleString()}
+                label="cars"
+              />
+              <InlineStat
+                value={
+                  w.review_count > 0 ? Number(w.avg_rating).toFixed(1) : '—'
+                }
+                label={w.review_count > 0 ? `${w.review_count} reviews` : 'no reviews'}
+              />
+            </div>
+          </div>
+
+          {/* Bio */}
+          <div className="mt-5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base font-semibold text-chalk tracking-tight">
                 {w.name}
               </h1>
-              {w.emirate && <p className="text-ash mt-1">{w.emirate}</p>}
-              <p className="text-xs text-ash/70 mt-3">Member since {memberSince}</p>
+              {w.verification_tier !== 'unverified' && (
+                <span
+                  className={`text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-pill font-medium ${
+                    w.verification_tier === 'gold'
+                      ? 'bg-wallet/20 text-wallet'
+                      : 'bg-volt/20 text-volt'
+                  }`}
+                >
+                  ✓ {tierLabel}
+                </span>
+              )}
+              {w.verification_tier === 'unverified' && (
+                <span className={`text-[10px] tracking-widest uppercase ${tierColor}`}>
+                  {tierLabel}
+                </span>
+              )}
             </div>
-            {w.verification_tier !== 'unverified' && (
-              <div className="w-14 h-14 rounded-pill bg-volt/15 border border-volt flex items-center justify-center shrink-0">
-                <span className="text-volt text-2xl">✓</span>
-              </div>
+            {w.emirate && (
+              <p className="text-sm text-ash mt-1">{w.emirate}</p>
             )}
+            <p className="text-xs text-ash/70 mt-1">Member since {memberSince}</p>
           </div>
-        </header>
 
-        {/* Stats */}
-        <section className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6">
-          <Stat label="Verified entries" value={w.total_entries.toLocaleString()} />
-          <Stat label="Cars served" value={w.unique_vehicles.toLocaleString()} />
-          {w.review_count > 0 ? (
-            <div className="card p-5 text-center">
-              <p className="text-[10px] tracking-widest uppercase text-ash">Rating</p>
-              <p className="font-mono text-3xl font-semibold text-chalk tabular-nums tracking-tighter mt-1">
-                {Number(w.avg_rating).toFixed(1)}
-              </p>
-              <div className="mt-1 flex justify-center">
-                <StarRating rating={Number(w.avg_rating)} size="sm" />
-              </div>
-              <p className="text-[10px] text-ash mt-1">
-                {w.review_count} {w.review_count === 1 ? 'review' : 'reviews'}
-              </p>
-            </div>
-          ) : (
-            <div className="card p-5 text-center opacity-60">
-              <p className="text-[10px] tracking-widest uppercase text-ash">Rating</p>
-              <p className="text-sm text-ash mt-2">No reviews yet</p>
-            </div>
-          )}
-        </section>
-
-        {/* Contact */}
-        {(w.phone || w.email) && (
-          <section className="card p-5 mt-6">
-            <p className="nav-pill text-[10px] mb-3">Contact</p>
-            <div className="space-y-2">
+          {/* Contact pills */}
+          {(w.phone || w.email) && (
+            <div className="flex flex-wrap gap-2 mt-4">
               {w.phone && (
                 <a
                   href={`tel:${w.phone}`}
-                  className="flex items-center gap-3 text-sm text-chalk hover:text-volt transition-colors"
+                  className="pill-outline text-xs flex items-center gap-2"
                 >
-                  <span className="text-ash">Phone</span>
+                  <span className="text-ash">📞</span>
                   <span className="font-mono">{w.phone}</span>
                 </a>
               )}
               {w.email && (
                 <a
                   href={`mailto:${w.email}`}
-                  className="flex items-center gap-3 text-sm text-chalk hover:text-volt transition-colors"
+                  className="pill-outline text-xs flex items-center gap-2"
                 >
-                  <span className="text-ash">Email</span>
+                  <span className="text-ash">✉</span>
                   <span className="font-mono">{w.email}</span>
                 </a>
               )}
             </div>
-          </section>
+          )}
+        </header>
+
+        {/* Tabs (decorative — only Reviews tab populated for now) */}
+        <div className="mt-8 border-t border-seam">
+          <div className="flex justify-center gap-12">
+            <div className="px-4 py-3 -mt-px border-t-2 border-chalk text-xs tracking-widest uppercase text-chalk font-medium">
+              Reviews · {reviews.length}
+            </div>
+          </div>
+        </div>
+
+        {/* Reviews grid — Instagram explore style: 2 cols mobile, 3 cols desktop */}
+        {reviews.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-1 md:gap-2 mt-2">
+            {reviews.map((r, i) => (
+              <article
+                key={i}
+                className="card p-4 aspect-square flex flex-col justify-between hover:border-volt/30 transition-colors"
+              >
+                <div>
+                  <StarRating rating={r.rating} size="sm" />
+                  {r.comment && (
+                    <p className="text-xs text-chalk/90 mt-3 leading-relaxed line-clamp-5 italic">
+                      "{r.comment}"
+                    </p>
+                  )}
+                </div>
+                <p className="text-[10px] text-ash mt-3 tracking-widest uppercase">
+                  {new Date(r.created_at).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </p>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="card p-10 text-center mt-2">
+            <p className="text-sm text-chalk font-medium">No reviews yet</p>
+            <p className="text-xs text-ash mt-2 leading-relaxed">
+              Reviews appear here once owners rate verified entries.
+            </p>
+          </div>
         )}
 
-        {/* About verification */}
-        <section className="card p-5 mt-6">
-          <p className="nav-pill text-[10px] mb-2">What "verified" means</p>
-          <p className="text-sm text-ash leading-relaxed">
-            Every entry this workshop has logged on Vehkit was confirmed by the customer at the
-            time of service via a one-time code. Workshops with 10+ verified entries can apply
-            for the <span className="text-volt">Silver</span> tier (trade license verified). Gold
-            tier requires{' '}
-            <span className="text-wallet">100+ verified entries and a 4.5+ rating</span>.
+        {/* About verification — quieter, at bottom */}
+        <section className="mt-10 pt-6 border-t border-seam">
+          <p className="text-[10px] tracking-widest uppercase text-ash mb-2">
+            About verification
           </p>
-        </section>
-
-        {/* Reviews */}
-        <section className="mt-10">
-          <h2 className="nav-pill mb-4">
-            Reviews{' '}
-            {reviews.length > 0 && (
-              <span className="text-[10px] text-ash">· {reviews.length}</span>
-            )}
-          </h2>
-          {reviews.length > 0 ? (
-            <div className="space-y-3">
-              {reviews.map((r, i) => (
-                <article key={i} className="card p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <StarRating rating={r.rating} size="sm" />
-                    <p className="text-xs text-ash">
-                      {new Date(r.created_at).toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </p>
-                  </div>
-                  {r.comment && (
-                    <p className="text-sm text-chalk/90 mt-2 leading-relaxed">{r.comment}</p>
-                  )}
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="card p-6 text-center">
-              <p className="text-sm text-ash">
-                No reviews yet. Reviews appear here once owners rate verified entries.
-              </p>
-            </div>
-          )}
+          <p className="text-xs text-ash/80 leading-relaxed">
+            Every entry on this profile was confirmed by the customer at time of service via a
+            one-time code. <span className="text-volt">Silver</span> tier requires 10+ verified
+            entries + trade license. <span className="text-wallet">Gold</span> requires 100+
+            entries + 4.5★ rating.
+          </p>
         </section>
       </div>
     </main>
   )
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function InlineStat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="card p-5 text-center">
-      <p className="text-[10px] tracking-widest uppercase text-ash">{label}</p>
-      <p className="font-mono text-3xl font-semibold text-chalk tabular-nums tracking-tighter mt-1">
+    <div>
+      <p className="font-mono text-xl md:text-2xl font-semibold text-chalk tabular-nums tracking-tighter">
         {value}
       </p>
+      <p className="text-[10px] md:text-xs text-ash mt-0.5 tracking-wide">{label}</p>
     </div>
   )
 }
