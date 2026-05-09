@@ -176,16 +176,13 @@ export default async function WorkshopDashboardPage() {
   return (
     <main className="max-w-5xl mx-auto px-6 pt-6 pb-12">
       <header className="pb-6">
-        <p className="text-[10px] tracking-widest uppercase text-ash">Workshop · Dashboard</p>
+        <p className="text-[10px] tracking-widest uppercase text-ash">Vehkit · Workshop</p>
         <div className="flex items-end justify-between gap-3 flex-wrap mt-1">
           <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter">
-            {workshop.name}
+            Dashboard
           </h1>
           <p className="text-xs flex items-center gap-2 flex-wrap">
-            <span className={`uppercase tracking-wider font-medium ${tierTone}`}>
-              {tierLabel}
-            </span>
-            {workshop.emirate && <span className="text-ash">· {workshop.emirate}</span>}
+            {workshop.emirate && <span className="text-ash">{workshop.emirate}</span>}
             {stats?.directory_rank && stats.directory_total && (
               <span className="text-ash">
                 · #{stats.directory_rank}/{stats.directory_total} in {workshop.emirate}
