@@ -162,7 +162,12 @@ export default async function ShopLogPage({
           </div>
         </div>
 
-        <form action={logServiceViaCode} className="mt-4 space-y-4" id="shop-form">
+        <form
+          action={logServiceViaCode}
+          encType="multipart/form-data"
+          className="mt-4 space-y-4"
+          id="shop-form"
+        >
           <input type="hidden" name="code" value={code} />
           {memberWorkshop && (
             <input type="hidden" name="workshop_id" value={memberWorkshop.id} />
@@ -256,6 +261,29 @@ export default async function ShopLogPage({
               placeholder="Mobil 1 5W-30, oil filter changed too"
               className="field resize-none"
             />
+          </div>
+
+          {/* Photos — optional, multiple. Best-effort upload on the server.
+              Anonymous (non-member) submissions can't persist photos due to
+              RLS on service_files; the form still accepts them so the UX
+              stays consistent. */}
+          <div>
+            <label htmlFor="photos" className="label">
+              Photos <span className="text-ash/70">(optional)</span>
+            </label>
+            <input
+              id="photos"
+              name="photos"
+              type="file"
+              accept="image/*"
+              multiple
+              className="field file:mr-3 file:py-1.5 file:px-3 file:rounded-pill file:border-0 file:bg-iron file:text-chalk file:text-xs file:tracking-widest file:uppercase file:font-medium hover:file:bg-iron/70 file:cursor-pointer"
+            />
+            <p className="text-[11px] text-ash/70 mt-1.5 leading-relaxed">
+              {memberWorkshop
+                ? 'Receipts, before/after, parts replaced — anything that makes the entry richer.'
+                : 'Sign in as a workshop member to attach photos.'}
+            </p>
           </div>
 
           <p className="text-[11px] text-ash/80 leading-relaxed pt-1">

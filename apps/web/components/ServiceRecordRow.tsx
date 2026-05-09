@@ -90,10 +90,14 @@ export function ServiceRecordRow({
       .join('') || '·'
 
   const hasExtras = photos.length > 0 || !!record.notes || !!review
-  // ReviewForm opens for any workshop entry the owner has decided on —
-  // confirmed OR rejected. Both close the trust loop with the same prompt.
+  // ReviewForm CTA only renders when the owner has decided on a workshop entry
+  // (confirmed OR rejected) AND hasn't already submitted a review. Once they
+  // rate, the CTA disappears — the inline star rating shown above is final.
   const showReview =
-    isOwner && record.attestation === 'workshop' && !isPending
+    isOwner &&
+    record.attestation === 'workshop' &&
+    !isPending &&
+    !review
   const showAuxiliary = hasExtras || showReview || (!isOwner && isPending)
   // Owner can still hard-delete owner-logged records even after rejection
   // is irrelevant (rejection is a workshop concept). Pending workshop entries

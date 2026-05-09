@@ -139,6 +139,63 @@ export async function logServiceViaCode(formData: FormData) {
     }
   }
 
+  // Best-effort photo upload. Authenticated workshop members can attach
+  // images at submission time; anonymous shop-code redeemers don't have
+  // a session and skip this entirely. The service_files row goes through
+  // a SECURITY DEFINER RPC because workshop members lack the
+  // `vehicle_access` grant the standard insert policy requires.
+  try {
+    const photos = formData
+      .getAll('photos')
+      .filter((f): f is File => f instanceof File && f.size > 0)
+    if (photos.length > 0) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (user) {
+        const { data: rec } = await supabase
+          .from('service_records')
+          .select('vehicle_id')
+          .eq('id', recordId)
+          .maybeSingle()
+        const vid = rec?.vehicle_id
+        if (vid) {
+          for (const [i, photo] of photos.entries()) {
+            const ext = photo.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+            const path = `vehicles/${vid}/services/${recordId}/${Date.now()}-${i}.${ext}`
+            const { error: upErr } = await supabase.storage
+              .from('service-files')
+              .upload(path, photo, { contentType: photo.type })
+            if (upErr) {
+              console.error('[shop] storage upload failed:', upErr.message)
+              continue
+            }
+            const {
+              data: { publicUrl },
+            } = supabase.storage.from('service-files').getPublicUrl(path)
+            const { error: rpcErr } = await supabase.rpc(
+              'add_service_record_photo',
+              {
+                p_record_id: recordId,
+                p_storage_path: publicUrl,
+                p_file_type: photo.type,
+                p_file_size_bytes: photo.size,
+              },
+            )
+            if (rpcErr) {
+              console.error(
+                '[shop] add_service_record_photo failed:',
+                rpcErr.message,
+              )
+            }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[shop] photo upload errored, continuing:', err)
+  }
+
   // Mark this IP's attempt as successful → doesn't count toward rate limit
   const h = await headers()
   const xff = h.get('x-forwarded-for')
