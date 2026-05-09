@@ -67,8 +67,8 @@ export default async function VehiclePage({
   return (
     <main className="min-h-[100svh] pb-32">
       <div className="max-w-3xl mx-auto px-6 pt-10">
-        <Link href="/garage" className="nav-pill hover:text-chalk transition-colors">
-          ← Garage
+        <Link href="/mycars" className="nav-pill hover:text-chalk transition-colors">
+          ← My Cars
         </Link>
 
         {/* Hero photo */}
@@ -76,55 +76,57 @@ export default async function VehiclePage({
           <HeroPhotoUpload vehicleId={id} currentUrl={vehicle.hero_image_url} />
         </div>
 
-        {/* Hero card */}
-        <header className="card p-6 md:p-8 mt-4">
+        {/* Vehicle header — match /mycars typography */}
+        <header className="card p-5 mt-4">
           {(vehicle.year || vehicle.color) && (
-            <p className="nav-pill text-[10px]">
+            <p className="text-[10px] tracking-widest uppercase text-ash">
               {[vehicle.year, vehicle.color].filter(Boolean).join(' · ')}
             </p>
           )}
-          <h1 className="text-3xl md:text-5xl font-semibold text-chalk tracking-tightest mt-2">
+          <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter mt-1">
             {vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`}
           </h1>
-          <p className="text-ash mt-1">
+          <p className="text-sm text-ash mt-0.5">
             {vehicle.make} {vehicle.model}
           </p>
 
           {(vehicle.plate_emirate || vehicle.plate_number) && (
-            <div className="mt-4 inline-flex items-center gap-2 bg-iron border border-seam rounded-DEFAULT px-3 py-1.5">
+            <div className="mt-3 inline-flex items-center gap-2 bg-iron border border-seam rounded-DEFAULT px-2.5 py-1">
               {vehicle.plate_emirate && (
                 <>
-                  <span className="text-xs text-ash uppercase tracking-wider">
+                  <span className="text-[10px] text-ash uppercase tracking-wider">
                     {vehicle.plate_emirate}
                   </span>
-                  {vehicle.plate_number && <span className="text-seam">·</span>}
+                  {vehicle.plate_number && <span className="text-seam text-xs">·</span>}
                 </>
               )}
               {vehicle.plate_number && (
-                <span className="font-mono text-sm text-chalk">{vehicle.plate_number}</span>
+                <span className="font-mono text-xs text-chalk">{vehicle.plate_number}</span>
               )}
             </div>
           )}
 
-          <div className="mt-6 pt-6 border-t border-seam flex items-end justify-between gap-4">
+          <div className="mt-4 pt-4 border-t border-seam flex items-end justify-between gap-4">
             <div>
-              <p className="nav-pill text-[10px]">Odometer</p>
-              <p className="font-mono text-4xl md:text-5xl font-semibold text-chalk tabular-nums tracking-tighter mt-1">
+              <p className="text-[10px] tracking-widest uppercase text-ash">Odometer</p>
+              <p className="font-mono text-xl md:text-2xl font-semibold text-chalk tabular-nums tracking-tight mt-0.5">
                 {vehicle.current_odometer?.toLocaleString() ?? '—'}
-                <span className="text-ash text-lg ml-1">km</span>
+                <span className="text-ash text-xs ml-1 font-normal tracking-widest uppercase">
+                  km
+                </span>
               </p>
             </div>
             {vehicle.vin && (
               <div className="text-right">
-                <p className="nav-pill text-[10px]">VIN</p>
-                <p className="text-xs text-ash mt-1 font-mono break-all max-w-[180px]">
+                <p className="text-[10px] tracking-widest uppercase text-ash">VIN</p>
+                <p className="text-[11px] text-ash mt-0.5 font-mono break-all max-w-[160px]">
                   {vehicle.vin}
                 </p>
               </div>
             )}
           </div>
 
-          <div className="mt-6 pt-6 border-t border-seam flex flex-wrap gap-2">
+          <div className="mt-4 pt-4 border-t border-seam flex flex-wrap gap-2">
             <ShareSheet vehicleId={id} baseUrl={baseUrl} />
             <WorkshopCodeSheet vehicleId={id} />
             <FamilyShareSheet vehicleId={id} baseUrl={baseUrl} />
