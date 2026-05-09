@@ -78,40 +78,43 @@ export default async function MyCarsPage() {
         <p className="nav-pill">vehkit</p>
       </header>
 
-      {/* Editorial header — PF rhythm: bold title + supporting stat strip */}
-      <div className="px-6 pt-2 md:pt-8 pb-4 max-w-3xl mx-auto">
-        <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter">
-          Your garage
-        </h1>
-        {totalVehicles > 0 && (
-          <div className="mt-3 flex items-stretch gap-4 text-xs">
-            <Stat
-              value={totalVehicles.toString()}
-              label={totalVehicles === 1 ? 'vehicle' : 'vehicles'}
-            />
-            <span className="w-px bg-seam shrink-0" aria-hidden />
-            <Stat
-              value={totalKmTracked.toLocaleString()}
-              label="km tracked"
-              mono
-            />
-            <span className="w-px bg-seam shrink-0" aria-hidden />
-            <Stat
-              value={totalServices.toString()}
-              label={totalServices === 1 ? 'service' : 'services'}
-            />
-            {totalPending > 0 && (
-              <>
-                <span className="w-px bg-seam shrink-0" aria-hidden />
-                <Stat
-                  value={totalPending.toString()}
-                  label="pending"
-                  tone="wallet"
-                />
-              </>
-            )}
-          </div>
-        )}
+      {/* Editorial header — PF rhythm: title + supporting stat strip.
+          Compact: title and stats share a row on desktop, stack on mobile. */}
+      <div className="px-6 pt-2 md:pt-5 pb-3 max-w-3xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+          <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none">
+            Your garage
+          </h1>
+          {totalVehicles > 0 && (
+            <div className="flex items-stretch gap-3">
+              <Stat
+                value={totalVehicles.toString()}
+                label={totalVehicles === 1 ? 'vehicle' : 'vehicles'}
+              />
+              <span className="w-px bg-seam shrink-0" aria-hidden />
+              <Stat
+                value={totalKmTracked.toLocaleString()}
+                label="km tracked"
+                mono
+              />
+              <span className="w-px bg-seam shrink-0" aria-hidden />
+              <Stat
+                value={totalServices.toString()}
+                label={totalServices === 1 ? 'service' : 'services'}
+              />
+              {totalPending > 0 && (
+                <>
+                  <span className="w-px bg-seam shrink-0" aria-hidden />
+                  <Stat
+                    value={totalPending.toString()}
+                    label="pending"
+                    tone="wallet"
+                  />
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <section className="px-6 max-w-3xl mx-auto">
@@ -219,13 +222,13 @@ function Stat({
   return (
     <div className="min-w-0">
       <p
-        className={`text-base md:text-lg font-semibold ${valueColor} ${
+        className={`text-sm md:text-base font-semibold ${valueColor} ${
           mono ? 'font-mono tabular-nums tracking-tight' : 'tracking-tight'
         } leading-none`}
       >
         {value}
       </p>
-      <p className="text-[10px] tracking-widest uppercase text-ash mt-1.5">
+      <p className="text-[9px] md:text-[10px] tracking-widest uppercase text-ash mt-1">
         {label}
       </p>
     </div>

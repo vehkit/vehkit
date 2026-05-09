@@ -132,7 +132,7 @@ export function MyCarsList({
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {filtered.map((v) => {
           const isShared = v.owner_id !== currentUserId
           const pendingForThis = pendingByVehicle[v.id] ?? 0
@@ -161,7 +161,7 @@ export function MyCarsList({
             >
               <div className="flex items-stretch">
                 {/* Photo thumb — left */}
-                <div className="relative w-28 sm:w-36 md:w-44 shrink-0 bg-iron overflow-hidden">
+                <div className="relative w-32 sm:w-40 md:w-52 shrink-0 bg-iron overflow-hidden">
                   {heroPhoto ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -192,13 +192,15 @@ export function MyCarsList({
                 </div>
 
                 {/* Content — right side, PF list-card rhythm */}
-                <div className="flex-1 min-w-0 p-4 md:p-5 flex flex-col">
+                <div className="flex-1 min-w-0 p-5 md:p-6 flex flex-col">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <h2 className="text-base md:text-lg font-semibold text-chalk truncate leading-snug">
+                      <h2 className="text-lg md:text-xl font-semibold text-chalk truncate leading-snug">
                         {title}
                       </h2>
-                      <p className="text-xs text-ash mt-1 truncate">{subline}</p>
+                      <p className="text-xs md:text-sm text-ash mt-1 truncate">
+                        {subline}
+                      </p>
                     </div>
                     {pendingForThis > 0 && (
                       <span className="text-[10px] tracking-widest uppercase bg-wallet/15 text-wallet px-2 py-0.5 rounded-pill font-semibold shrink-0">
