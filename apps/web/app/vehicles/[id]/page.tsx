@@ -107,50 +107,50 @@ export default async function VehiclePage({
         />
       </div>
 
-      {/* Floating back chip — mobile only, on top of hero before sticky kicks in */}
-      <Link
-        href="/mycars"
-        className="md:hidden fixed top-4 left-4 z-20 inline-flex items-center gap-1.5 text-xs tracking-widest uppercase text-chalk bg-noir/60 backdrop-blur px-3 py-1.5 rounded-pill hover:bg-noir/80 transition-colors"
-      >
-        ← My cars
-      </Link>
+      <div className="max-w-3xl mx-auto px-6 pt-6">
+        <Link
+          href="/mycars"
+          className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
+        >
+          ← My cars
+        </Link>
 
-      {/* Hero — full-bleed, tall, photo background with vehicle name overlaid */}
-      <HeroPhotoUpload
-        vehicleId={id}
-        currentUrl={vehicle.hero_image_url}
-        fullBleed
-      >
-        <div className="absolute inset-x-0 bottom-0 px-6 md:px-10 pb-10 md:pb-12 pointer-events-none">
-          <div className="max-w-3xl mx-auto pointer-events-auto">
-            {(vehicle.year || vehicle.color) && (
-              <p className="text-[10px] tracking-[0.35em] uppercase text-chalk/70">
-                {[vehicle.year, vehicle.color].filter(Boolean).join(' · ')}
-              </p>
-            )}
-            <h1 className="text-4xl md:text-6xl font-semibold tracking-tightest text-chalk mt-2 leading-[0.95] drop-shadow-md">
-              {vehicleTitle}
-            </h1>
-            <p className="text-sm text-chalk/80 mt-2 truncate">{vehicleSubline}</p>
-            <div className="mt-4 flex items-center gap-3">
-              <VehicleScoreChip data={scoreData} />
-              <span className="font-mono text-sm text-chalk/70 tabular-nums">
-                {vehicle.current_odometer?.toLocaleString() ?? '—'}{' '}
-                <span className="text-chalk/50 text-[10px] tracking-widest uppercase">
-                  km
-                </span>
-              </span>
+        {/* Hero — column-bound, tall, photo with overlay */}
+        <div className="mt-4">
+          <HeroPhotoUpload
+            vehicleId={id}
+            currentUrl={vehicle.hero_image_url}
+            fullBleed
+          >
+            <div className="absolute inset-x-0 bottom-0 p-5 md:p-7 pointer-events-none">
+              <div className="pointer-events-auto">
+                {(vehicle.year || vehicle.color) && (
+                  <p className="text-[10px] tracking-[0.35em] uppercase text-chalk/70">
+                    {[vehicle.year, vehicle.color].filter(Boolean).join(' · ')}
+                  </p>
+                )}
+                <h1 className="text-3xl md:text-5xl font-semibold tracking-tightest text-chalk mt-2 leading-[0.95] drop-shadow-md">
+                  {vehicleTitle}
+                </h1>
+                <p className="text-sm text-chalk/80 mt-2 truncate">
+                  {vehicleSubline}
+                </p>
+                <div className="mt-4 flex items-center gap-3">
+                  <VehicleScoreChip data={scoreData} />
+                  <span className="font-mono text-sm text-chalk/70 tabular-nums">
+                    {vehicle.current_odometer?.toLocaleString() ?? '—'}{' '}
+                    <span className="text-chalk/50 text-[10px] tracking-widest uppercase">
+                      km
+                    </span>
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
+          </HeroPhotoUpload>
         </div>
-      </HeroPhotoUpload>
 
-      {/* Content sheet — pulls up over the hero with rounded top */}
-      <div className="relative -mt-8 md:-mt-10 bg-noir rounded-t-3xl z-10">
-        <div className="max-w-3xl mx-auto px-6 md:px-10 pt-8 md:pt-10">
-          {/* Pull-handle indicator (subtle) */}
-          <div className="w-10 h-1 bg-seam rounded-pill mx-auto -mt-3 mb-6 md:hidden" />
-
+        {/* Content — same column, normal flow */}
+        <div className="mt-6">
           {/* Action strip */}
           <div className="-mx-6 px-6 overflow-x-auto">
             <div className="flex gap-2 min-w-max">

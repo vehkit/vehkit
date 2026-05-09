@@ -54,7 +54,7 @@ export function HeroPhotoUpload({
   }
 
   const containerClass = fullBleed
-    ? 'relative w-full h-[60vh] md:h-[68vh] overflow-hidden bg-iron group'
+    ? 'relative w-full h-[55vh] md:h-[460px] overflow-hidden rounded-DEFAULT border border-seam bg-iron group'
     : 'relative w-full h-72 md:h-80 overflow-hidden rounded-DEFAULT border border-seam group'
 
   if (preview) {
@@ -113,7 +113,7 @@ export function HeroPhotoUpload({
     <label
       className={
         fullBleed
-          ? 'block w-full h-[60vh] md:h-[68vh] bg-carbon/40 cursor-pointer hover:bg-carbon/60 transition-colors relative'
+          ? 'block w-full h-[55vh] md:h-[460px] rounded-DEFAULT border border-dashed border-seam bg-carbon/40 cursor-pointer hover:border-volt/40 transition-colors relative'
           : 'block w-full h-72 md:h-80 rounded-DEFAULT border border-dashed border-seam bg-carbon/40 cursor-pointer hover:border-volt/40 transition-colors relative'
       }
     >
