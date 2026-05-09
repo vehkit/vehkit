@@ -13,14 +13,16 @@ type Tab = {
 const TABS: Tab[] = [
   { href: '/workshop', label: 'Dashboard', shortLabel: 'Home', icon: 'home' },
   { href: '/workshop/customers', label: 'Customers', icon: 'users' },
-  { href: '/shop', label: 'New entry', shortLabel: 'New', icon: 'plus' },
+  { href: '/workshop/log', label: 'New entry', shortLabel: 'New', icon: 'plus' },
   { href: '/workshop/reviews', label: 'Reviews', icon: 'star' },
   { href: '/workshop/settings', label: 'Settings', shortLabel: 'Settings', icon: 'gear' },
 ]
 
 function isActive(pathname: string, href: string): boolean {
   if (href === '/workshop') return pathname === '/workshop'
-  if (href === '/shop') return pathname.startsWith('/shop')
+  if (href === '/workshop/log') {
+    return pathname === '/workshop/log' || pathname.startsWith('/shop')
+  }
   return pathname.startsWith(href)
 }
 

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,6 +10,27 @@ export default async function ShopDonePage({
   params: Promise<{ code: string }>
 }) {
   const { code } = await params
+
+  // Detect if a signed-in workshop member is logging this — if so, route them
+  // back into the workshop portal instead of the public marketing flow.
+  let isWorkshopMember = false
+  try {
+    const sb = await createClient()
+    const {
+      data: { user },
+    } = await sb.auth.getUser()
+    if (user) {
+      const { data: m } = await sb
+        .from('workshop_members')
+        .select('workshop_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle()
+      isWorkshopMember = !!m
+    }
+  } catch {
+    isWorkshopMember = false
+  }
 
   // Try to fetch the workshop name from the just-used code so we can pre-fill claim
   let workshopName: string | null = null
@@ -44,12 +66,25 @@ export default async function ShopDonePage({
         </p>
 
         <div className="mt-10 space-y-2">
-          <Link href="/shop" className="pill-primary block text-center">
-            Log another vehicle
-          </Link>
-          <Link href="/" className="pill-ghost block text-center text-sm">
-            Done
-          </Link>
+          {isWorkshopMember ? (
+            <>
+              <Link href="/workshop/log" className="pill-primary block text-center">
+                Log another entry
+              </Link>
+              <Link href="/workshop" className="pill-ghost block text-center text-sm">
+                Back to dashboard
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/shop" className="pill-primary block text-center">
+                Log another vehicle
+              </Link>
+              <Link href="/" className="pill-ghost block text-center text-sm">
+                Done
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Claim CTA */}
