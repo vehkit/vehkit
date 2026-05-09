@@ -2,42 +2,87 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------------------
+   Theme tokens — names stay semantic across light + dark.
+   "noir" = page background, "chalk" = primary text, etc.
+   Values are RGB triplets so Tailwind's <alpha-value> works (bg-noir/50).
+--------------------------------------------------------------------------- */
+
+@layer base {
+  :root,
+  .dark {
+    --noir: 10 11 15;
+    --carbon: 22 24 29;
+    --iron: 31 33 39;
+    --seam: 42 45 51;
+    --chalk: 244 244 242;
+    --ash: 139 142 150;
+    --volt: 25 230 140;
+    --wallet: 229 193 88;
+    --signal: 255 90 95;
+    --selection-bg: 25 230 140 / 0.25;
+    --shadow-card: 0 1px 0 0 rgb(255 255 255 / 0.04) inset,
+      0 8px 24px -8px rgb(0 0 0 / 0.5);
+    color-scheme: dark;
+  }
+
+  .light {
+    --noir: 250 250 248; /* warm off-white page bg */
+    --carbon: 255 255 255; /* card surface */
+    --iron: 240 240 236; /* elevated surface */
+    --seam: 224 222 215; /* light borders */
+    --chalk: 14 16 22; /* near-black primary text */
+    --ash: 102 106 114; /* mid-grey muted text */
+    --volt: 7 156 88; /* deeper green for white bg readability */
+    --wallet: 161 122 18; /* darker gold for white bg */
+    --signal: 200 38 41; /* darker red for white bg */
+    --selection-bg: 7 156 88 / 0.18;
+    --shadow-card: 0 1px 0 0 rgb(0 0 0 / 0.02) inset,
+      0 1px 2px 0 rgb(0 0 0 / 0.05),
+      0 8px 24px -12px rgb(0 0 0 / 0.08);
+    color-scheme: light;
+  }
+}
+
 @layer base {
   html,
   body {
-    background: #0a0b0f;
-    color: #f4f4f2;
+    background: rgb(var(--noir));
+    color: rgb(var(--chalk));
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
-    /* `auto` (default) keeps native pull-to-refresh on mobile.
-       Use `contain` only on inner scroll containers if needed. */
     overscroll-behavior-y: auto;
   }
 
-  /* Selection */
   ::selection {
-    background: rgb(25 230 140 / 0.25);
-    color: #f4f4f2;
+    background: rgb(var(--selection-bg));
+    color: rgb(var(--chalk));
   }
 
-  /* Inputs respect dark surface */
   input[type='date'],
   input[type='number'],
   input[type='text'],
   input[type='email'],
+  input[type='tel'],
+  input[type='search'],
+  input[type='password'],
   textarea,
   select {
-    color: #f4f4f2;
-    background-color: #16181d;
+    color: rgb(var(--chalk));
+    background-color: rgb(var(--carbon));
   }
 
-  /* Color the date picker icon for dark mode */
-  input[type='date']::-webkit-calendar-picker-indicator {
+  /* Date picker icon — inverted on dark, normal on light */
+  .dark input[type='date']::-webkit-calendar-picker-indicator,
+  :root:not(.light) input[type='date']::-webkit-calendar-picker-indicator {
     filter: invert(1) opacity(0.5);
     cursor: pointer;
   }
+  .light input[type='date']::-webkit-calendar-picker-indicator {
+    filter: opacity(0.6);
+    cursor: pointer;
+  }
 
-  /* Mobile-friendly tap targets */
   button,
   a {
     -webkit-tap-highlight-color: transparent;
@@ -75,7 +120,8 @@
     @apply block text-sm font-medium text-chalk mb-1.5;
   }
   .card {
-    @apply bg-carbon border border-seam rounded-DEFAULT shadow-card;
+    @apply bg-carbon border border-seam rounded-DEFAULT;
+    box-shadow: var(--shadow-card);
   }
   .nav-pill {
     @apply text-xs tracking-widest uppercase text-ash;

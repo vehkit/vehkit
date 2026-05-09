@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { updateProfile } from '@/app/actions/profile'
 import { AvatarUpload } from '@/components/AvatarUpload'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { getInitials } from '@/lib/initials'
 
 export const dynamic = 'force-dynamic'
@@ -21,6 +23,11 @@ export default async function ProfilePage({
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/profile')
+
+  // Read theme cookie for the toggle's initial state
+  const cookieStore = await cookies()
+  const theme: 'light' | 'dark' =
+    cookieStore.get('vehkit-theme')?.value === 'light' ? 'light' : 'dark'
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -117,8 +124,22 @@ export default async function ProfilePage({
           </div>
         </form>
 
+        {/* Appearance */}
+        <section className="mt-10 pt-6 border-t border-seam">
+          <h2 className="text-xs tracking-widest uppercase text-ash mb-3">Appearance</h2>
+          <div className="card p-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-chalk font-medium">Theme</p>
+              <p className="text-xs text-ash mt-0.5">
+                Choose how Vehkit looks. Saved across devices.
+              </p>
+            </div>
+            <ThemeToggle initialTheme={theme} />
+          </div>
+        </section>
+
         {/* Sign out */}
-        <section className="mt-16 pt-6 border-t border-seam">
+        <section className="mt-10 pt-6 border-t border-seam">
           <form action="/auth/signout" method="post">
             <button className="text-xs tracking-widest uppercase text-signal hover:underline">
               Sign out

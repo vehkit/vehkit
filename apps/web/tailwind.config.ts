@@ -5,20 +5,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Dark-first palette — premium Gen Z mobile
-        noir: '#0A0B0F', // page background
-        carbon: '#16181D', // card / surface
-        iron: '#1F2127', // elevated surface
-        seam: '#2A2D33', // borders
-        chalk: '#F4F4F2', // primary text
-        ash: '#8B8E96', // muted text
-        volt: '#19E68C', // primary accent / verified
-        wallet: '#E5C158', // premium accent
-        signal: '#FF5A5F', // alert / overdue
+        // Semantic tokens — values come from CSS variables in globals.css.
+        // These keep the same name in light/dark; only the literal RGB shifts.
+        noir: 'rgb(var(--noir) / <alpha-value>)', // page background
+        carbon: 'rgb(var(--carbon) / <alpha-value>)', // card surface
+        iron: 'rgb(var(--iron) / <alpha-value>)', // elevated surface
+        seam: 'rgb(var(--seam) / <alpha-value>)', // borders
+        chalk: 'rgb(var(--chalk) / <alpha-value>)', // primary text
+        ash: 'rgb(var(--ash) / <alpha-value>)', // muted text
+        volt: 'rgb(var(--volt) / <alpha-value>)', // primary accent
+        wallet: 'rgb(var(--wallet) / <alpha-value>)', // premium accent
+        signal: 'rgb(var(--signal) / <alpha-value>)', // alert / overdue
 
-        // Legacy tokens — still referenced; left in place
+        // Legacy tokens — kept stable across themes (only used in a couple places)
         ink: '#0E1726',
-        verified: '#19E68C',
+        verified: 'rgb(var(--volt) / <alpha-value>)',
         cream: '#FAF7F2',
         mist: '#E8EAEE',
         steel: '#5B6573',
@@ -41,7 +42,7 @@ const config: Config = {
         pill: '999px',
       },
       boxShadow: {
-        card: '0 1px 0 0 rgb(255 255 255 / 0.04) inset, 0 8px 24px -8px rgb(0 0 0 / 0.5)',
+        card: 'var(--shadow-card)',
       },
     },
   },
