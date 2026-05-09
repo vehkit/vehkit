@@ -3,7 +3,12 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { deleteVehicle } from '@/app/actions/vehicles'
-import { deleteServiceRecord, confirmServiceRecord } from '@/app/actions/services'
+import { deleteServiceRecord } from '@/app/actions/services'
+import {
+  ConfirmButton,
+  RetractButton,
+  DeleteButton,
+} from '@/components/ServiceRecordActions'
 import { snoozeReminder, completeReminder } from '@/app/actions/reminders'
 import { HeroPhotoUpload } from '@/components/HeroPhotoUpload'
 import { ShareSheet } from '@/components/ShareSheet'
@@ -44,7 +49,9 @@ export default async function VehiclePage({
       .from('service_records')
       .select('*, service_files(storage_path), workshop_reviews(id, rating, comment, created_by, quality_rating, value_rating, timeliness_rating)')
       .eq('vehicle_id', id)
-      .order('service_date', { ascending: false }),
+      .order('service_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false }),
     supabase
       .from('reminders')
       .select('*')
@@ -338,28 +345,8 @@ export default async function VehiclePage({
                       <div className="pt-3 border-t border-seam flex gap-2 flex-wrap items-center">
                         {isPending && (
                           <>
-                            <form action={confirmServiceRecord}>
-                              <input type="hidden" name="id" value={r.id} />
-                              <input type="hidden" name="vehicle_id" value={id} />
-                              <button
-                                type="submit"
-                                className="inline-flex items-center gap-1.5 text-xs tracking-widest uppercase font-semibold text-noir bg-volt hover:bg-volt/90 px-4 py-2 rounded-pill transition-colors"
-                                formNoValidate
-                              >
-                                Confirm
-                              </button>
-                            </form>
-                            <form action={deleteServiceRecord}>
-                              <input type="hidden" name="id" value={r.id} />
-                              <input type="hidden" name="vehicle_id" value={id} />
-                              <button
-                                type="submit"
-                                className="inline-flex items-center text-xs tracking-widest uppercase font-medium text-wallet bg-wallet/10 hover:bg-wallet/20 border border-wallet/30 px-3.5 py-2 rounded-pill transition-colors"
-                                formNoValidate
-                              >
-                                Retract
-                              </button>
-                            </form>
+                            <ConfirmButton recordId={r.id} vehicleId={id} />
+                            <RetractButton recordId={r.id} vehicleId={id} />
                           </>
                         )}
                         {r.attestation !== 'workshop' && (
@@ -370,17 +357,7 @@ export default async function VehiclePage({
                             >
                               Edit
                             </Link>
-                            <form action={deleteServiceRecord}>
-                              <input type="hidden" name="id" value={r.id} />
-                              <input type="hidden" name="vehicle_id" value={id} />
-                              <button
-                                type="submit"
-                                className="inline-flex items-center text-xs tracking-widest uppercase text-ash hover:text-signal hover:bg-signal/10 border border-seam hover:border-signal/30 px-3.5 py-2 rounded-pill transition-colors"
-                                formNoValidate
-                              >
-                                Delete
-                              </button>
-                            </form>
+                            <DeleteButton recordId={r.id} vehicleId={id} />
                           </>
                         )}
                         {r.attestation === 'workshop' && !isPending && (
