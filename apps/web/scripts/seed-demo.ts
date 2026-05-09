@@ -675,6 +675,272 @@ async function setTiers(workshops: { id: string; targetTier: string }[]) {
 }
 
 // ---------------------------------------------------------------------------
+// ASM Showpiece — turn ASM German Auto Garage into the demo hero workshop.
+// Premium positioning: high ticket, deep history, repeat customers, glowing
+// reviews with multi-axis, busy CRM (pending + upcoming).
+// ---------------------------------------------------------------------------
+
+const ASM_PREMIUM_COMMENTS = [
+  "Best workshop in Dubai for German cars. Hans and the team caught a coolant leak before it became a head gasket issue. Honest pricing.",
+  "Switched from the dealer two years ago — saved AED 4000 on my last major service and quality is identical. Highly recommend.",
+  "They recorded the service on Vehkit which I thought was a nice touch — gives me a paper trail when I sell.",
+  "Took my X5 in for brakes. Showed me the worn pads, explained the wear pattern, fitted OEM Brembo. Job done in 3 hours.",
+  "Genuinely the most transparent workshop I've used in 12 years in the UAE. They invoice every line item.",
+  "Quick turnaround on the AC compressor. Cool air the same day. Pricier than back-alley shops but you get what you pay for.",
+  "My G-Wagen needed a 60k service. Hans called me twice during the day with photos and updates. Came in under quote.",
+  "Went in for a second opinion on a brake job another shop quoted 6,500 AED. ASM did it for 3,200 with OEM parts. Lifetime customer.",
+  "Took longer than estimated by a day but the work was perfect. They lent me a courtesy car which was unexpected.",
+  "Polite team, clean facility, smells like a real workshop should. They actually understand BMWs.",
+  null,
+  "Replaced my timing chain on the 5 Series. Job was bid against three workshops. ASM won on quality not price.",
+  "Smooth experience start to finish. Booked online, dropped off at 9am, picked up at 5pm. No surprises on the bill.",
+  "I refer all my friends here. Even my dealer service advisor recommends them quietly.",
+  null,
+  "Slight delay on parts (not their fault, supplier issue) but they called me within an hour to update. Most shops just leave you wondering.",
+  "Comprehensive diagnosis report — they emailed me a PDF with photos and torque specs. That's professional.",
+  "Two minor issues with the alignment after — they redid it for free. Standing behind the work matters.",
+  null,
+  "My dad used to be a mechanic in Munich. He approves of these guys. That's the highest praise I can offer.",
+]
+
+async function boostASM(workshops: { id: string; name: string; targetTier: string }[], vehicles: any[], workshopOwners: { id: string }[]) {
+  console.log('→ boosting ASM German as showpiece…')
+
+  const asm = workshops.find((w) => w.name === 'ASM German Auto Garage')
+  if (!asm) {
+    console.warn('  ! ASM workshop not found, skipping boost')
+    return
+  }
+  const asmOwnerId = workshopOwners[0]?.id // First workshop owner = Hans Müller = ASM
+  if (!asmOwnerId) {
+    console.warn('  ! ASM owner not found')
+    return
+  }
+
+  // --- Pick the premium vehicle subset (German + premium + repeat customers) ---
+  const premiumPicks = vehicles.filter((v) =>
+    ['BMW', 'Mercedes-Benz', 'Audi', 'Volkswagen', 'Porsche', 'Lexus'].includes(v.make)
+  )
+  // Ensure we have at least 8 — pad with anything if not
+  const corePool = premiumPicks.length >= 8 ? premiumPicks : vehicles.slice(0, 12)
+
+  // 12 "regular" customers: each gets 4-7 ASM-attested services for repeat rate
+  const regulars = corePool.slice(0, 12)
+  // 6 occasional customers: 1-2 services each
+  const occasionals = vehicles
+    .filter((v) => !regulars.includes(v))
+    .slice(0, 6)
+
+  let totalServices = 0
+  const PREMIUM_SERVICES: { type: string; minCost: number; maxCost: number }[] = [
+    { type: 'major_service', minCost: 2400, maxCost: 4800 },
+    { type: 'oil_change', minCost: 380, maxCost: 650 },
+    { type: 'brake_pads', minCost: 900, maxCost: 1900 },
+    { type: 'spark_plugs', minCost: 600, maxCost: 1200 },
+    { type: 'coolant', minCost: 350, maxCost: 600 },
+    { type: 'ac_filter', minCost: 220, maxCost: 380 },
+    { type: 'wheel_alignment', minCost: 200, maxCost: 350 },
+    { type: 'tyre_rotation', minCost: 150, maxCost: 280 },
+    { type: 'battery', minCost: 750, maxCost: 1400 },
+    { type: 'brake_fluid', minCost: 280, maxCost: 480 },
+  ]
+
+  // Regulars: spread services with growing cadence (recent = more)
+  for (const v of regulars) {
+    const numServices = randInt(4, 7)
+    // Bias newer dates: pull from triangular distribution favoring recent
+    const dates: number[] = []
+    for (let i = 0; i < numServices; i++) {
+      // triangular distribution: more weight to recent (smaller daysAgo)
+      const u = Math.random()
+      const daysBack = Math.floor(u * u * 220) + randInt(0, 7)
+      dates.push(daysBack)
+    }
+    dates.sort((a, b) => b - a) // oldest first
+
+    for (const daysBack of dates) {
+      const svc = pick(PREMIUM_SERVICES)
+      const cost = randInt(svc.minCost, svc.maxCost)
+      const odo = Math.max(
+        500,
+        v.current_odometer - Math.floor((daysBack / 220) * v.current_odometer)
+      )
+      await sb.from('service_records').insert({
+        vehicle_id: v.id,
+        service_type: svc.type,
+        service_date: isoDay(daysAgo(daysBack)),
+        odometer: odo,
+        cost_aed: cost,
+        attestation: 'workshop',
+        workshop_id: asm.id,
+        workshop_name_freetext: asm.name,
+        notes: pick([
+          'OEM parts. Torque-spec checked. Inspection report emailed to customer.',
+          'Customer requested premium synthetic oil — Liqui Moly Top Tec 4200.',
+          'Brake pads and rotors inspected. Pads replaced, rotors within spec.',
+          'Diagnostic showed no fault codes after service. Test driven 8km.',
+          null,
+          'Complimentary visual inspection — undercarriage and engine bay clean.',
+          null,
+          'Pre-purchase condition report attached.',
+        ]),
+        created_by: asmOwnerId,
+        created_at: daysAgo(daysBack).toISOString(),
+      })
+      totalServices++
+    }
+  }
+
+  // Occasionals: 1-2 services each
+  for (const v of occasionals) {
+    const numServices = randInt(1, 2)
+    for (let i = 0; i < numServices; i++) {
+      const daysBack = randInt(10, 200)
+      const svc = pick(PREMIUM_SERVICES)
+      const cost = randInt(svc.minCost, svc.maxCost)
+      const odo = Math.max(
+        500,
+        v.current_odometer - Math.floor((daysBack / 220) * v.current_odometer)
+      )
+      await sb.from('service_records').insert({
+        vehicle_id: v.id,
+        service_type: svc.type,
+        service_date: isoDay(daysAgo(daysBack)),
+        odometer: odo,
+        cost_aed: cost,
+        attestation: 'workshop',
+        workshop_id: asm.id,
+        workshop_name_freetext: asm.name,
+        notes: null,
+        created_by: asmOwnerId,
+        created_at: daysAgo(daysBack).toISOString(),
+      })
+      totalServices++
+    }
+  }
+
+  // --- Pending entries (last 24h) for the dashboard's "Awaiting confirmation" ---
+  for (let i = 0; i < 3; i++) {
+    const v = pick(regulars)
+    const svc = pick(PREMIUM_SERVICES)
+    const hoursBack = randInt(2, 22) // somewhere in the 24h window
+    const created = new Date(Date.now() - hoursBack * 60 * 60 * 1000)
+    await sb.from('service_records').insert({
+      vehicle_id: v.id,
+      service_type: svc.type,
+      service_date: isoDay(new Date()),
+      odometer: v.current_odometer,
+      cost_aed: randInt(svc.minCost, svc.maxCost),
+      attestation: 'workshop',
+      workshop_id: asm.id,
+      workshop_name_freetext: asm.name,
+      notes: 'Just completed — customer awaiting confirmation.',
+      created_by: asmOwnerId,
+      created_at: created.toISOString(),
+    })
+    totalServices++
+  }
+
+  console.log(`  ${totalServices} ASM service records added`)
+
+  // --- Reviews: 25 with curated comments + full multi-axis, avg ~4.8 ---
+  const { data: asmRecords } = await sb
+    .from('service_records')
+    .select('id, vehicle_id, created_at')
+    .eq('workshop_id', asm.id)
+    .eq('attestation', 'workshop')
+    .order('created_at', { ascending: false })
+    .limit(60)
+
+  const eligible = (asmRecords ?? []).filter((r) =>
+    Date.now() - new Date(r.created_at).getTime() > 24 * 60 * 60 * 1000
+  )
+
+  const reviewTargets = pickN(eligible, Math.min(25, eligible.length))
+  let reviewCount = 0
+  for (const rec of reviewTargets) {
+    const v = vehicles.find((x) => x.id === rec.vehicle_id)
+    if (!v) continue
+
+    // Bias to 5-star with occasional 4
+    const overall = Math.random() < 0.78 ? 5 : 4
+    const quality = Math.random() < 0.85 ? 5 : 4
+    const value = Math.random() < 0.55 ? 5 : 4 // value slightly lower (premium pricing)
+    const timeliness = Math.random() < 0.7 ? 5 : 4
+
+    const { error } = await sb.from('workshop_reviews').upsert(
+      {
+        service_record_id: rec.id,
+        workshop_id: asm.id,
+        vehicle_id: rec.vehicle_id,
+        rating: overall,
+        quality_rating: quality,
+        value_rating: value,
+        timeliness_rating: timeliness,
+        comment: pick(ASM_PREMIUM_COMMENTS),
+        created_by: v.owner_id,
+      },
+      { onConflict: 'service_record_id,created_by' }
+    )
+    if (!error) reviewCount++
+  }
+  console.log(`  ${reviewCount} ASM reviews added`)
+
+  // --- Upcoming reminders on ASM customers — for "Upcoming · 30d" section ---
+  let upcomingCount = 0
+  for (const v of regulars.slice(0, 10)) {
+    const inDays = randInt(2, 28)
+    const dueDate = new Date()
+    dueDate.setDate(dueDate.getDate() + inDays)
+    await sb.from('reminders').insert({
+      vehicle_id: v.id,
+      reminder_type: pick([
+        'oil_change',
+        'major_service',
+        'brake_pads',
+        'tyre_rotation',
+      ]),
+      due_date: isoDay(dueDate),
+      due_at_km: v.current_odometer + randInt(800, 4000),
+      status: 'open',
+      notes: null,
+      suggested_by_workshop_id: Math.random() < 0.4 ? asm.id : null,
+    })
+    upcomingCount++
+  }
+
+  // A couple overdue ones to show the red bar
+  for (let i = 0; i < 2; i++) {
+    const v = pick(regulars)
+    const dueDate = new Date()
+    dueDate.setDate(dueDate.getDate() - randInt(3, 18))
+    await sb.from('reminders').insert({
+      vehicle_id: v.id,
+      reminder_type: 'oil_change',
+      due_date: isoDay(dueDate),
+      due_at_km: null,
+      status: 'open',
+      notes: null,
+      suggested_by_workshop_id: asm.id,
+    })
+    upcomingCount++
+  }
+  console.log(`  ${upcomingCount} upcoming reminders for ASM customers`)
+
+  // Make sure ASM trade license is on file (Gold prerequisite)
+  await sb
+    .from('workshops')
+    .update({
+      trade_license_url: 'https://example.com/license-asm-german.pdf',
+      trade_license_uploaded_at: daysAgo(90).toISOString(),
+      verification_tier: 'gold',
+    })
+    .eq('id', asm.id)
+
+  console.log('  ASM showpiece complete: tier=gold, deep history, premium tickets, glowing reviews')
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -691,6 +957,7 @@ async function main() {
   await createReminders(vehicles)
   await createCodes(vehicles)
   await setTiers(workshops)
+  await boostASM(workshops, vehicles, workshopOwners)
   console.log('================================')
   console.log('✓ Demo seed complete.')
   console.log('')
