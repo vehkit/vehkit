@@ -18,6 +18,7 @@ import { PhotoLightbox } from '@/components/PhotoLightbox'
 import { ReviewForm } from '@/components/ReviewForm'
 import { StarRating } from '@/components/StarRating'
 import { VehicleScoreChip } from '@/components/VehicleScore'
+import { ScrollAwareHeader } from '@/components/ScrollAwareHeader'
 import {
   reminderStatus,
   reminderLabel,
@@ -83,70 +84,96 @@ export default async function VehiclePage({
   const proto = h.get('x-forwarded-proto') ?? 'https'
   const baseUrl = `${proto}://${host}`
 
+  const vehicleTitle =
+    vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`
+  const vehicleSubline = [
+    `${vehicle.make} ${vehicle.model}`,
+    vehicle.plate_emirate && vehicle.plate_number
+      ? `${vehicle.plate_emirate} · ${vehicle.plate_number}`
+      : vehicle.plate_number,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
   return (
     <main className="min-h-[100svh] pb-32">
-      <div className="max-w-3xl mx-auto px-6 pt-10">
-        <Link href="/mycars" className="nav-pill hover:text-chalk transition-colors">
-          ← My Cars
-        </Link>
+      {/* Sticky condensed header — mobile only; desktop already has the top nav */}
+      <div className="md:hidden">
+        <ScrollAwareHeader
+          title={vehicleTitle}
+          subtitle={vehicleSubline}
+          backHref="/mycars"
+          backLabel="My cars"
+        />
+      </div>
 
-        {/* Hero card — photo + overlaid title/odometer (matches /mycars language) */}
-        <div className="mt-4">
-          <HeroPhotoUpload vehicleId={id} currentUrl={vehicle.hero_image_url}>
-            <div className="flex items-end justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  {(vehicle.year || vehicle.color) && (
-                    <p className="text-[10px] tracking-widest uppercase text-chalk/70">
-                      {[vehicle.year, vehicle.color].filter(Boolean).join(' · ')}
-                    </p>
-                  )}
-                  <VehicleScoreChip data={scoreData} />
-                </div>
-                <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter truncate drop-shadow-sm">
-                  {vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`}
-                </h1>
-                <p className="text-xs text-chalk/70 mt-1 truncate">
-                  {[
-                    `${vehicle.make} ${vehicle.model}`,
-                    vehicle.plate_emirate && vehicle.plate_number
-                      ? `${vehicle.plate_emirate} · ${vehicle.plate_number}`
-                      : vehicle.plate_number,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </p>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="font-mono text-xl md:text-2xl font-semibold text-chalk tabular-nums tracking-tight drop-shadow-sm">
-                  {vehicle.current_odometer?.toLocaleString() ?? '—'}
-                </p>
-                <p className="text-[10px] tracking-widest uppercase text-chalk/60 mt-0.5">km</p>
-              </div>
+      {/* Floating back chip — mobile only, on top of hero before sticky kicks in */}
+      <Link
+        href="/mycars"
+        className="md:hidden fixed top-4 left-4 z-20 inline-flex items-center gap-1.5 text-xs tracking-widest uppercase text-chalk bg-noir/60 backdrop-blur px-3 py-1.5 rounded-pill hover:bg-noir/80 transition-colors"
+      >
+        ← My cars
+      </Link>
+
+      {/* Hero — full-bleed, tall, photo background with vehicle name overlaid */}
+      <HeroPhotoUpload
+        vehicleId={id}
+        currentUrl={vehicle.hero_image_url}
+        fullBleed
+      >
+        <div className="absolute inset-x-0 bottom-0 px-6 md:px-10 pb-10 md:pb-12 pointer-events-none">
+          <div className="max-w-3xl mx-auto pointer-events-auto">
+            {(vehicle.year || vehicle.color) && (
+              <p className="text-[10px] tracking-[0.35em] uppercase text-chalk/70">
+                {[vehicle.year, vehicle.color].filter(Boolean).join(' · ')}
+              </p>
+            )}
+            <h1 className="text-4xl md:text-6xl font-semibold tracking-tightest text-chalk mt-2 leading-[0.95] drop-shadow-md">
+              {vehicleTitle}
+            </h1>
+            <p className="text-sm text-chalk/80 mt-2 truncate">{vehicleSubline}</p>
+            <div className="mt-4 flex items-center gap-3">
+              <VehicleScoreChip data={scoreData} />
+              <span className="font-mono text-sm text-chalk/70 tabular-nums">
+                {vehicle.current_odometer?.toLocaleString() ?? '—'}{' '}
+                <span className="text-chalk/50 text-[10px] tracking-widest uppercase">
+                  km
+                </span>
+              </span>
             </div>
-          </HeroPhotoUpload>
-        </div>
-
-        {/* Action strip — compact horizontal row, single line, scrollable on mobile */}
-        <div className="mt-4 -mx-6 px-6 overflow-x-auto">
-          <div className="flex gap-2 min-w-max">
-            <ShareSheet vehicleId={id} baseUrl={baseUrl} />
-            <WorkshopCodeSheet vehicleId={id} />
-            <FamilyShareSheet vehicleId={id} baseUrl={baseUrl} />
-            <Link href={`/vehicles/${id}/edit`} className="pill-outline text-sm whitespace-nowrap">
-              Edit
-            </Link>
           </div>
         </div>
+      </HeroPhotoUpload>
 
-        {vehicle.vin && (
-          <p className="text-[10px] tracking-widest uppercase text-ash/60 mt-3 font-mono">
-            VIN <span className="text-ash">{vehicle.vin}</span>
-          </p>
-        )}
+      {/* Content sheet — pulls up over the hero with rounded top */}
+      <div className="relative -mt-8 md:-mt-10 bg-noir rounded-t-3xl z-10">
+        <div className="max-w-3xl mx-auto px-6 md:px-10 pt-8 md:pt-10">
+          {/* Pull-handle indicator (subtle) */}
+          <div className="w-10 h-1 bg-seam rounded-pill mx-auto -mt-3 mb-6 md:hidden" />
 
-        {errorMsg && (
-          <div className="mt-4 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">
+          {/* Action strip */}
+          <div className="-mx-6 px-6 overflow-x-auto">
+            <div className="flex gap-2 min-w-max">
+              <ShareSheet vehicleId={id} baseUrl={baseUrl} />
+              <WorkshopCodeSheet vehicleId={id} />
+              <FamilyShareSheet vehicleId={id} baseUrl={baseUrl} />
+              <Link
+                href={`/vehicles/${id}/edit`}
+                className="pill-outline text-sm whitespace-nowrap"
+              >
+                Edit
+              </Link>
+            </div>
+          </div>
+
+          {vehicle.vin && (
+            <p className="text-[10px] tracking-widest uppercase text-ash/60 mt-3 font-mono">
+              VIN <span className="text-ash">{vehicle.vin}</span>
+            </p>
+          )}
+
+          {errorMsg && (
+            <div className="mt-4 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">
             {decodeURIComponent(errorMsg)}
           </div>
         )}
@@ -440,6 +467,7 @@ export default async function VehiclePage({
             </button>
           </form>
         </section>
+        </div>
       </div>
 
       {/* Sticky bottom action */}

@@ -8,10 +8,12 @@ export function HeroPhotoUpload({
   vehicleId,
   currentUrl,
   children,
+  fullBleed = false,
 }: {
   vehicleId: string
   currentUrl?: string | null
   children?: React.ReactNode
+  fullBleed?: boolean
 }) {
   const [preview, setPreview] = useState<string | null>(currentUrl ?? null)
   const [uploading, setUploading] = useState(false)
@@ -51,15 +53,21 @@ export function HeroPhotoUpload({
     setUploading(false)
   }
 
+  const containerClass = fullBleed
+    ? 'relative w-full h-[60vh] md:h-[68vh] overflow-hidden bg-iron group'
+    : 'relative w-full h-72 md:h-80 overflow-hidden rounded-DEFAULT border border-seam group'
+
   if (preview) {
     return (
-      <div className="relative w-full h-72 md:h-80 overflow-hidden rounded-DEFAULT border border-seam group">
+      <div className={containerClass}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={preview} alt="" className="absolute inset-0 w-full h-full object-cover" />
 
         {/* Bottom gradient for overlay legibility */}
         {children && (
-          <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-noir via-noir/80 to-transparent pointer-events-none" />
+          <div
+            className={`absolute inset-x-0 bottom-0 ${fullBleed ? 'h-3/4' : 'h-2/3'} bg-gradient-to-t from-noir via-noir/85 to-transparent pointer-events-none`}
+          />
         )}
 
         {/* Camera icon top-right for re-upload */}
@@ -102,7 +110,13 @@ export function HeroPhotoUpload({
   }
 
   return (
-    <label className="block w-full h-72 md:h-80 rounded-DEFAULT border border-dashed border-seam bg-carbon/40 cursor-pointer hover:border-volt/40 transition-colors relative">
+    <label
+      className={
+        fullBleed
+          ? 'block w-full h-[60vh] md:h-[68vh] bg-carbon/40 cursor-pointer hover:bg-carbon/60 transition-colors relative'
+          : 'block w-full h-72 md:h-80 rounded-DEFAULT border border-dashed border-seam bg-carbon/40 cursor-pointer hover:border-volt/40 transition-colors relative'
+      }
+    >
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center">
           <p className="text-sm text-ash">{uploading ? 'Uploading…' : '+ Add hero photo'}</p>
