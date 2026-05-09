@@ -25,11 +25,12 @@ export default async function VehiclePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ review?: string }>
+  searchParams: Promise<{ review?: string; error?: string }>
 }) {
   const { id } = await params
   const sp = await searchParams
   const autoReviewRecordId = sp.review ?? null
+  const errorMsg = sp.error
   const supabase = await createClient()
   const {
     data: { user },
@@ -131,6 +132,12 @@ export default async function VehiclePage({
           <p className="text-[10px] tracking-widest uppercase text-ash/60 mt-3 font-mono">
             VIN <span className="text-ash">{vehicle.vin}</span>
           </p>
+        )}
+
+        {errorMsg && (
+          <div className="mt-4 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">
+            {decodeURIComponent(errorMsg)}
+          </div>
         )}
 
         {/* Reminders banner */}
@@ -328,44 +335,53 @@ export default async function VehiclePage({
                       )}
 
                       {/* Action footer */}
-                      <div className="pt-3 border-t border-seam flex gap-4 flex-wrap">
-                        {r.attestation !== 'workshop' && (
-                          <Link
-                            href={`/vehicles/${id}/service/${r.id}/edit`}
-                            className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
-                          >
-                            Edit
-                          </Link>
-                        )}
+                      <div className="pt-3 border-t border-seam flex gap-2 flex-wrap items-center">
                         {isPending && (
-                          <form action={confirmServiceRecord}>
-                            <input type="hidden" name="id" value={r.id} />
-                            <input type="hidden" name="vehicle_id" value={id} />
-                            <button
-                              type="submit"
-                              className="text-xs tracking-widest uppercase font-medium text-volt hover:text-volt/80 transition-colors"
-                              formNoValidate
-                            >
-                              ✓ Confirm
-                            </button>
-                          </form>
+                          <>
+                            <form action={confirmServiceRecord}>
+                              <input type="hidden" name="id" value={r.id} />
+                              <input type="hidden" name="vehicle_id" value={id} />
+                              <button
+                                type="submit"
+                                className="inline-flex items-center gap-1.5 text-xs tracking-widest uppercase font-semibold text-noir bg-volt hover:bg-volt/90 px-4 py-2 rounded-pill transition-colors"
+                                formNoValidate
+                              >
+                                ✓ Confirm + rate
+                              </button>
+                            </form>
+                            <form action={deleteServiceRecord}>
+                              <input type="hidden" name="id" value={r.id} />
+                              <input type="hidden" name="vehicle_id" value={id} />
+                              <button
+                                type="submit"
+                                className="inline-flex items-center text-xs tracking-widest uppercase font-medium text-wallet bg-wallet/10 hover:bg-wallet/20 border border-wallet/30 px-3.5 py-2 rounded-pill transition-colors"
+                                formNoValidate
+                              >
+                                Retract
+                              </button>
+                            </form>
+                          </>
                         )}
-                        {(r.attestation !== 'workshop' || isPending) && (
-                          <form action={deleteServiceRecord}>
-                            <input type="hidden" name="id" value={r.id} />
-                            <input type="hidden" name="vehicle_id" value={id} />
-                            <button
-                              type="submit"
-                              className={`text-xs tracking-widest uppercase transition-colors ${
-                                isPending
-                                  ? 'text-wallet hover:text-wallet/80'
-                                  : 'text-ash hover:text-signal'
-                              }`}
-                              formNoValidate
+                        {r.attestation !== 'workshop' && (
+                          <>
+                            <Link
+                              href={`/vehicles/${id}/service/${r.id}/edit`}
+                              className="inline-flex items-center text-xs tracking-widest uppercase text-ash bg-iron hover:bg-iron/70 px-3.5 py-2 rounded-pill transition-colors"
                             >
-                              {isPending ? 'Retract' : 'Delete'}
-                            </button>
-                          </form>
+                              Edit
+                            </Link>
+                            <form action={deleteServiceRecord}>
+                              <input type="hidden" name="id" value={r.id} />
+                              <input type="hidden" name="vehicle_id" value={id} />
+                              <button
+                                type="submit"
+                                className="inline-flex items-center text-xs tracking-widest uppercase text-ash hover:text-signal hover:bg-signal/10 border border-seam hover:border-signal/30 px-3.5 py-2 rounded-pill transition-colors"
+                                formNoValidate
+                              >
+                                Delete
+                              </button>
+                            </form>
+                          </>
                         )}
                         {r.attestation === 'workshop' && !isPending && (
                           <ReviewForm

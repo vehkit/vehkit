@@ -214,11 +214,17 @@ export async function confirmServiceRecord(formData: FormData) {
     redirect(`/vehicles/${vehicleId}?error=Not+allowed`)
   }
 
-  await supabase
+  const { error } = await supabase
     .from('service_records')
     .update({ confirmed_at: new Date().toISOString() })
     .eq('id', id)
     .eq('vehicle_id', vehicleId)
+
+  if (error) {
+    redirect(
+      `/vehicles/${vehicleId}?error=${encodeURIComponent(`Confirm failed: ${error.message}`)}`
+    )
+  }
 
   revalidatePath(`/vehicles/${vehicleId}`)
   revalidatePath('/notifications')
