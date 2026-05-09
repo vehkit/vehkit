@@ -32,17 +32,21 @@ export default async function NewServicePage({
 
   return (
     <main className="min-h-[100svh] pb-32">
-      <div className="max-w-xl mx-auto px-6 pt-10">
+      <div className="max-w-xl mx-auto px-6 pt-8 md:pt-10">
         <Link
           href={`/vehicles/${id}`}
-          className="nav-pill hover:text-chalk transition-colors"
+          className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
         >
           ← {vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`}
         </Link>
-        <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-4">
-          Log service
+        <p className="nav-pill mt-3">vehkit · service log</p>
+        <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none mt-3">
+          What was done?
         </h1>
-        <p className="text-ash mt-1">What was done?</p>
+        <p className="text-sm text-ash mt-2 leading-relaxed">
+          Log it yourself or hand the customer code to the workshop. Either way
+          it lives forever on this car's passport.
+        </p>
 
         {errorMsg && (
           <div className="mt-6 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">

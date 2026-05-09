@@ -31,14 +31,21 @@ export default async function EditVehiclePage({
 
   return (
     <main className="min-h-[100svh] pb-32">
-      <div className="max-w-xl mx-auto px-6 pt-10">
-        <Link href={`/vehicles/${id}`} className="nav-pill hover:text-chalk transition-colors">
+      <div className="max-w-xl mx-auto px-6 pt-8 md:pt-10">
+        <Link
+          href={`/vehicles/${id}`}
+          className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
+        >
           ← {vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`}
         </Link>
-        <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-4">
-          Edit vehicle
+        <p className="nav-pill mt-3">vehkit · vehicle</p>
+        <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none mt-3">
+          Edit details
         </h1>
-        <p className="text-ash mt-1">Fix what's wrong.</p>
+        <p className="text-sm text-ash mt-2 leading-relaxed">
+          Fix anything that's wrong. Service history, photos, and shares stay
+          attached.
+        </p>
 
         {errorMsg && (
           <div className="mt-6 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">

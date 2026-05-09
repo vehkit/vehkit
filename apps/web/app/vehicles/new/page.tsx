@@ -20,14 +20,15 @@ export default async function NewVehiclePage({
 
   return (
     <main className="min-h-[100svh] pb-32">
-      <div className="max-w-xl mx-auto px-6 pt-10">
-        <Link href="/garage" className="nav-pill hover:text-chalk transition-colors">
-          ← Garage
-        </Link>
-        <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-4">
+      <div className="max-w-xl mx-auto px-6 pt-8 md:pt-10">
+        <p className="nav-pill">vehkit · garage</p>
+        <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none mt-3">
           Add a vehicle
         </h1>
-        <p className="text-ash mt-1">Start its passport.</p>
+        <p className="text-sm text-ash mt-2 leading-relaxed">
+          Start its passport. Make, model, plate — under a minute. Service
+          history, documents, and broker shares all stack on top of this.
+        </p>
 
         {errorMsg && (
           <div className="mt-6 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">
@@ -72,7 +73,7 @@ export default async function NewVehiclePage({
       {/* Sticky bottom action bar */}
       <div className="fixed bottom-16 md:bottom-0 inset-x-0 px-6 pb-6 pt-4 bg-gradient-to-t from-noir via-noir/95 to-noir/0 z-20">
         <div className="max-w-xl mx-auto flex gap-3">
-          <Link href="/garage" className="pill-ghost flex-1 text-center">
+          <Link href="/mycars" className="pill-ghost flex-1 text-center">
             Cancel
           </Link>
           <button type="submit" form="vehicle-form" className="pill-primary flex-[2] text-center">

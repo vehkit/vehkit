@@ -78,13 +78,14 @@ export default async function AgentGrantPage({
         </Link>
 
         <div className="mt-4">
-          <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter">
+          <p className="nav-pill">vehkit · agent</p>
+          <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none mt-3">
             {vehicleData
               ? `${vehicleData.make} ${vehicleData.model}`
               : 'Customer vehicle'}
           </h1>
           {vehicleData && (
-            <p className="text-xs text-ash mt-1.5">
+            <p className="text-xs text-ash mt-2">
               {[
                 vehicleData.year,
                 vehicleData.color,

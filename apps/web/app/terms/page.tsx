@@ -23,13 +23,17 @@ export default function TermsPage() {
         </div>
       </header>
 
-      <article className="max-w-3xl mx-auto px-6 pt-10">
-        <p className="text-[10px] tracking-[0.3em] uppercase text-volt">Vehkit · Legal</p>
-        <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-3">
+      <article className="max-w-3xl mx-auto px-6 pt-8 md:pt-10">
+        <p className="nav-pill">vehkit · legal</p>
+        <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none mt-3">
           Terms of service
         </h1>
-        <p className="text-ash mt-2 text-sm">
-          Last updated: <span className="font-mono">{new Date().getFullYear()}-05-09</span>
+        <p className="text-sm text-ash mt-2 leading-relaxed">
+          The rules of the road for using Vehkit — what you can do, what we
+          can do, and what happens if either of us crosses a line.
+        </p>
+        <p className="text-[10px] tracking-widest uppercase text-ash mt-4 font-mono">
+          Last updated · {new Date().getFullYear()}-05-09
         </p>
 
         <div className="mt-8 space-y-6 text-chalk/90 leading-relaxed">

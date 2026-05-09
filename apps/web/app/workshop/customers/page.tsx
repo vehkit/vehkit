@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { SuggestReminderButton } from '@/components/SuggestReminderButton'
+import { humanize, relativeDate } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,21 +23,6 @@ type CustomerVehicle = {
   pending_count: number
   has_due_reminder: boolean
   allow_outreach: boolean
-}
-
-function relativeDate(iso: string): string {
-  const d = new Date(iso)
-  const days = Math.floor((Date.now() - d.getTime()) / (24 * 60 * 60 * 1000))
-  if (days < 1) return 'Today'
-  if (days === 1) return 'Yesterday'
-  if (days < 7) return `${days} days ago`
-  if (days < 30) return `${Math.floor(days / 7)} week${Math.floor(days / 7) === 1 ? '' : 's'} ago`
-  if (days < 365) return `${Math.floor(days / 30)} month${Math.floor(days / 30) === 1 ? '' : 's'} ago`
-  return `${Math.floor(days / 365)} year${Math.floor(days / 365) === 1 ? '' : 's'} ago`
-}
-
-function humanize(s: string): string {
-  return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 export default async function WorkshopCustomersPage() {
@@ -61,25 +47,52 @@ export default async function WorkshopCustomersPage() {
 
   const customers = (data ?? []) as CustomerVehicle[]
 
+  // Aggregate top-strip stats
+  const totalVisits = customers.reduce((s, c) => s + c.total_visits, 0)
+  const totalSpend = customers.reduce(
+    (s, c) => s + Number(c.total_spent_aed ?? 0),
+    0,
+  )
+  const repeatCount = customers.filter((c) => c.total_visits > 1).length
+
   return (
     <main className="min-h-[100svh] pb-24">
-      <div className="max-w-3xl mx-auto px-6 pt-6">
-        <Link href="/workshop" className="nav-pill hover:text-chalk transition-colors">
-          ← Workshop
-        </Link>
-
-        <header className="mt-4 flex items-end justify-between gap-3">
+      <div className="max-w-3xl mx-auto px-6 pt-6 md:pt-8">
+        {/* Editorial header */}
+        <p className="nav-pill">vehkit · workshop</p>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mt-3">
           <div>
-            <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter">
+            <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none">
               Customers
             </h1>
-            <p className="text-sm text-ash mt-0.5">
-              {customers.length === 0
-                ? 'No vehicles serviced yet.'
-                : `${customers.length} ${customers.length === 1 ? 'vehicle' : 'vehicles'}`}
+            <p className="text-sm text-ash mt-2 leading-relaxed max-w-md">
+              Every car you've serviced — last visit, lifetime spend, and who's
+              due for outreach. Owner identity stays private until they share.
             </p>
           </div>
-        </header>
+          {customers.length > 0 && (
+            <div className="flex items-stretch gap-3">
+              <Stat
+                value={customers.length.toString()}
+                label={customers.length === 1 ? 'vehicle' : 'vehicles'}
+              />
+              <span className="w-px bg-seam shrink-0" aria-hidden />
+              <Stat value={totalVisits.toString()} label="visits" mono />
+              <span className="w-px bg-seam shrink-0" aria-hidden />
+              <Stat value={repeatCount.toString()} label="repeat" />
+              {totalSpend > 0 && (
+                <>
+                  <span className="w-px bg-seam shrink-0" aria-hidden />
+                  <Stat
+                    value={`AED ${totalSpend.toLocaleString()}`}
+                    label="lifetime"
+                    mono
+                  />
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
         {error && (
           <div className="mt-4 bg-signal/10 border border-signal/30 text-signal text-xs px-4 py-3 rounded-DEFAULT font-mono">
@@ -88,25 +101,19 @@ export default async function WorkshopCustomersPage() {
         )}
 
         {customers.length === 0 ? (
-          <div className="py-16 text-center">
-            <div className="w-14 h-14 mx-auto rounded-pill border border-seam flex items-center justify-center">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="text-ash"
-                aria-hidden
-              >
-                <path d="M3 13l1.66-4.97A2 2 0 016.55 6.5h10.9a2 2 0 011.89 1.53L21 13M5 13h14M7 17h.01M17 17h.01M5 13v4a1 1 0 001 1h12a1 1 0 001-1v-4" />
-              </svg>
-            </div>
-            <h3 className="text-base font-semibold text-chalk mt-4">No customers yet</h3>
-            <p className="text-sm text-ash mt-1 leading-relaxed">
-              When you log a service via a code, the vehicle appears here.
+          <div className="card p-10 text-center mt-8">
+            <p className="text-chalk font-medium">No customers yet</p>
+            <p className="text-sm text-ash mt-2 leading-relaxed">
+              When a customer hands you a 6-character code and you log a
+              service, their vehicle lands here — with last-visit date, total
+              spend, and renewal-due signals.
             </p>
+            <Link
+              href="/shop"
+              className="text-xs tracking-widest uppercase text-volt mt-4 inline-block hover:underline"
+            >
+              Log your first service →
+            </Link>
           </div>
         ) : (
           <ul className="card divide-y divide-seam mt-4">
@@ -197,5 +204,30 @@ export default async function WorkshopCustomersPage() {
         </p>
       </div>
     </main>
+  )
+}
+
+function Stat({
+  value,
+  label,
+  mono,
+}: {
+  value: string
+  label: string
+  mono?: boolean
+}) {
+  return (
+    <div className="min-w-0">
+      <p
+        className={`text-sm md:text-base font-semibold text-chalk tracking-tight leading-none ${
+          mono ? 'font-mono tabular-nums' : ''
+        }`}
+      >
+        {value}
+      </p>
+      <p className="text-[10px] tracking-widest uppercase text-ash mt-1">
+        {label}
+      </p>
+    </div>
   )
 }

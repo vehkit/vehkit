@@ -32,16 +32,15 @@ export default async function AgentStartPage({
 
   return (
     <main className="min-h-[100svh] pb-24">
-      <div className="max-w-md mx-auto px-6 pt-12">
+      <div className="max-w-md mx-auto px-6 pt-10 md:pt-12">
         <p className="nav-pill">vehkit · agent</p>
-        <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter mt-4">
+        <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none mt-3">
           Set up your agent desk
         </h1>
-        <p className="text-sm text-ash mt-3 leading-relaxed">
-          Create your insurance, fleet, or leasing organisation on Vehkit.
-          Customers will share their car documents with your desk via a
-          one-time code — full access for 60 minutes, then renewal-track
-          metadata for 30 days.
+        <p className="text-sm text-ash mt-2 leading-relaxed">
+          Insurance brokers, fleet desks, leasing operators — your customers
+          share car documents with you via one-time codes. Full access for 60
+          minutes, then renewal-track metadata for 30 days.
         </p>
 
         {sp.error && (

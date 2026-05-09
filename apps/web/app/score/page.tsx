@@ -226,9 +226,9 @@ function Component({
 
 function Defense({ title, body }: { title: string; body: string }) {
   return (
-    <div className="grid md:grid-cols-12 gap-4 md:gap-12">
+    <div className="card p-6 md:p-7 grid md:grid-cols-12 gap-4 md:gap-8">
       <div className="md:col-span-4">
-        <h3 className="text-lg font-semibold text-chalk tracking-tight">
+        <h3 className="text-lg font-semibold text-chalk tracking-tight leading-snug">
           {title}
         </h3>
       </div>

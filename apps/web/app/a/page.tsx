@@ -38,14 +38,14 @@ export default async function AgentRedeemPage({
   if (orgs.length === 0) {
     return (
       <main className="min-h-[100svh] pb-24">
-        <div className="max-w-md mx-auto px-6 pt-12">
+        <div className="max-w-md mx-auto px-6 pt-10 md:pt-12">
           <p className="nav-pill">vehkit · agent</p>
-          <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter mt-4">
-            Set up your agent profile
+          <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none mt-3">
+            Set up your agent desk first
           </h1>
-          <p className="text-sm text-ash mt-3 leading-relaxed">
-            You need to be part of an agent organisation to redeem a customer
-            share code. It only takes a minute.
+          <p className="text-sm text-ash mt-2 leading-relaxed">
+            Customer share codes only redeem against an agent organisation
+            (insurance, fleet, leasing). One-time, takes a minute.
           </p>
           <Link
             href="/agent/start"
@@ -60,14 +60,14 @@ export default async function AgentRedeemPage({
 
   return (
     <main className="min-h-[100svh] pb-24">
-      <div className="max-w-md mx-auto px-6 pt-10">
+      <div className="max-w-md mx-auto px-6 pt-8 md:pt-10">
         <p className="nav-pill">vehkit · agent</p>
-        <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter mt-4">
+        <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none mt-3">
           Redeem customer code
         </h1>
         <p className="text-sm text-ash mt-2 leading-relaxed">
-          Your customer shared a 6-character code with you. Enter it below to
-          unlock their documents for 60 minutes.
+          Your customer shared a 6-character code. Unlocks full document access
+          for 60 minutes, then 30 days of renewal-track metadata.
         </p>
 
         {sp.error && (

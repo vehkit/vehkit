@@ -24,13 +24,17 @@ export default function PrivacyPage() {
         </div>
       </header>
 
-      <article className="max-w-3xl mx-auto px-6 pt-10">
-        <p className="text-[10px] tracking-[0.3em] uppercase text-volt">Vehkit · Legal</p>
-        <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-3">
+      <article className="max-w-3xl mx-auto px-6 pt-8 md:pt-10">
+        <p className="nav-pill">vehkit · legal</p>
+        <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none mt-3">
           Privacy
         </h1>
-        <p className="text-ash mt-2 text-sm">
-          Last updated: <span className="font-mono">{new Date().getFullYear()}-05-09</span>
+        <p className="text-sm text-ash mt-2 leading-relaxed">
+          How Vehkit handles personal data, vehicle records, and workshop
+          information. Aligned with UAE PDPL.
+        </p>
+        <p className="text-[10px] tracking-widest uppercase text-ash mt-4 font-mono">
+          Last updated · {new Date().getFullYear()}-05-09
         </p>
 
         <div className="mt-8 space-y-6 text-chalk/90 leading-relaxed">

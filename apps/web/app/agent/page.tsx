@@ -75,16 +75,20 @@ export default async function AgentDashboardPage() {
   return (
     <main className="min-h-[100svh] pb-24 md:pb-12">
       <div className="max-w-5xl mx-auto px-6 pt-6 md:pt-8">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+        {/* Editorial header */}
+        <p className="nav-pill">vehkit · agent</p>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mt-3">
           <div>
             <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none">
               {m.agents?.name ?? 'Agent'}
             </h1>
-            <p className="text-xs text-ash mt-2 capitalize">
-              {m.agents?.category ?? 'agent'} desk
+            <p className="text-sm text-ash mt-2 leading-relaxed max-w-md capitalize-first">
+              <span className="capitalize">{m.agents?.category ?? 'agent'}</span>{' '}
+              desk — every customer who shares a code lands here for 60 minutes
+              of full access, then 30 days of renewal-track metadata.
             </p>
           </div>
-          <div className="flex items-stretch gap-3 text-xs">
+          <div className="flex items-stretch gap-3">
             <Stat value={list.length.toString()} label="active grants" />
             <span className="w-px bg-seam shrink-0" aria-hidden />
             <Stat
@@ -93,30 +97,34 @@ export default async function AgentDashboardPage() {
               tone={fullWindowOpen.length > 0 ? 'volt' : undefined}
             />
             <span className="w-px bg-seam shrink-0" aria-hidden />
-            <Stat
-              value={metaOnly.length.toString()}
-              label="renewal track"
-            />
+            <Stat value={metaOnly.length.toString()} label="renewal track" />
           </div>
         </div>
 
         {/* FULL WINDOW — actively share-able */}
-        <section className="mt-8">
-          <h2 className="text-xs tracking-widest uppercase text-ash mb-3">
-            Full document access ({fullWindowOpen.length})
-          </h2>
+        <section className="mt-10">
+          <div className="flex items-baseline justify-between mb-3">
+            <h2 className="text-[10px] tracking-widest uppercase text-ash">
+              Full document access
+            </h2>
+            <span className="text-[10px] tracking-widest uppercase text-ash font-mono tabular-nums">
+              {fullWindowOpen.length}
+            </span>
+          </div>
           {fullWindowOpen.length === 0 ? (
-            <div className="card p-6 text-center">
-              <p className="text-sm text-chalk font-medium">
-                No active sessions
+            <div className="card p-10 text-center">
+              <p className="text-chalk font-medium">No customer sessions open</p>
+              <p className="text-sm text-ash mt-2 leading-relaxed">
+                Ask the customer for a 6-character share code from their car
+                profile, then redeem it to unlock 60 minutes of full document
+                access.
               </p>
-              <p className="text-xs text-ash mt-2">
-                Ask your customer for a 6-character share code, then{' '}
-                <Link href="/a" className="text-volt hover:underline">
-                  redeem it here
-                </Link>
-                .
-              </p>
+              <Link
+                href="/a"
+                className="text-xs tracking-widest uppercase text-volt mt-4 inline-block hover:underline"
+              >
+                Redeem a code →
+              </Link>
             </div>
           ) : (
             <ul className="space-y-3">
@@ -130,12 +138,17 @@ export default async function AgentDashboardPage() {
         {/* METADATA-ONLY — renewal pipeline */}
         {metaOnly.length > 0 && (
           <section className="mt-10">
-            <h2 className="text-xs tracking-widest uppercase text-ash mb-3">
-              Renewal track ({metaOnly.length})
-            </h2>
-            <p className="text-[11px] text-ash/70 mb-3">
-              Customers whose 60-minute window has closed. You can see expiry
-              dates + contact details to plan renewals — not full documents.
+            <div className="flex items-baseline justify-between mb-3">
+              <h2 className="text-[10px] tracking-widest uppercase text-ash">
+                Renewal track
+              </h2>
+              <span className="text-[10px] tracking-widest uppercase text-ash font-mono tabular-nums">
+                {metaOnly.length}
+              </span>
+            </div>
+            <p className="text-xs text-ash/80 mb-3 leading-relaxed">
+              60-minute window closed. Expiry dates and contact details remain
+              visible for renewal outreach — full documents do not.
             </p>
             <ul className="space-y-3">
               {metaOnly.map((g) => (
@@ -162,9 +175,27 @@ function GrantRow({ g }: { g: GrantRow }) {
         ? 'bg-wallet/15 text-wallet'
         : 'bg-volt/10 text-volt'
 
+  // Avatar: vehicle initials, tone-coded by window state
+  const initials =
+    `${g.vehicle_make} ${g.vehicle_model}`
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w.charAt(0).toUpperCase())
+      .join('') || '·'
+  const avatarTone = g.is_full_window
+    ? 'bg-volt/20 text-volt'
+    : 'bg-iron text-ash'
+
   return (
     <li className="card p-4">
       <div className="flex items-center gap-3">
+        <div
+          className={`w-10 h-10 rounded-pill flex items-center justify-center shrink-0 font-mono text-xs font-semibold tracking-tighter ${avatarTone}`}
+          aria-hidden
+        >
+          {initials}
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="text-sm md:text-base font-semibold text-chalk truncate leading-snug">

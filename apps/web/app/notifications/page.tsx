@@ -196,29 +196,80 @@ export default async function NotificationsPage() {
     return b.ts - a.ts
   })
 
+  // Compute split counts for stat strip
+  const overdueCount = feed.filter(
+    (i) => i.kind === 'reminder' && i.tone === 'signal',
+  ).length
+  const pendingCount = feed.filter((i) => i.kind === 'workshop_entry').length
+  const reviewCount = feed.filter((i) => i.kind === 'review').length
+
   return (
     <main className="min-h-[100svh] pb-24">
-      <div className="max-w-3xl mx-auto px-6">
-        <header className="pt-10 pb-6">
-          <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter">
-            Activity
-          </h1>
-          <p className="text-ash mt-1 text-sm">
-            {feed.length === 0
-              ? 'All caught up.'
-              : `${feed.length} ${feed.length === 1 ? 'item' : 'items'}`}
-          </p>
-        </header>
-
-        {feed.length === 0 ? (
-          <div className="card p-10 text-center">
-            <p className="text-chalk font-medium">All clear.</p>
+      <div className="max-w-3xl mx-auto px-6 pt-6 md:pt-8">
+        {/* Editorial header */}
+        <p className="nav-pill">vehkit · inbox</p>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mt-3">
+          <div>
+            <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none">
+              Activity
+            </h1>
             <p className="text-sm text-ash mt-2 leading-relaxed">
-              No pending entries, no overdue reminders, no new reviews.
+              Workshop entries waiting on you, reminders that are due, and
+              reviews on shops you run — in one place.
             </p>
           </div>
+          {feed.length > 0 && (
+            <div className="flex items-stretch gap-3">
+              <Stat
+                value={feed.length.toString()}
+                label={feed.length === 1 ? 'item' : 'items'}
+              />
+              {overdueCount > 0 && (
+                <>
+                  <span className="w-px bg-seam shrink-0" aria-hidden />
+                  <Stat
+                    value={overdueCount.toString()}
+                    label="overdue"
+                    tone="signal"
+                  />
+                </>
+              )}
+              {pendingCount > 0 && (
+                <>
+                  <span className="w-px bg-seam shrink-0" aria-hidden />
+                  <Stat
+                    value={pendingCount.toString()}
+                    label="pending"
+                    tone="wallet"
+                  />
+                </>
+              )}
+              {reviewCount > 0 && (
+                <>
+                  <span className="w-px bg-seam shrink-0" aria-hidden />
+                  <Stat value={reviewCount.toString()} label="reviews" />
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {feed.length === 0 ? (
+          <div className="card p-10 text-center mt-8">
+            <p className="text-chalk font-medium">You're all caught up</p>
+            <p className="text-sm text-ash mt-2 leading-relaxed">
+              No pending workshop entries, no overdue reminders, no new reviews.
+              Check back when something needs your eyes.
+            </p>
+            <Link
+              href="/mycars"
+              className="text-xs tracking-widest uppercase text-volt mt-4 inline-block hover:underline"
+            >
+              Open your garage →
+            </Link>
+          </div>
         ) : (
-          <ul className="card divide-y divide-seam">
+          <ul className="mt-6 card divide-y divide-seam">
             {feed.map((item) => (
               <li key={`${item.kind}-${item.id}`}>
                 <FeedRow item={item} />
@@ -228,6 +279,35 @@ export default async function NotificationsPage() {
         )}
       </div>
     </main>
+  )
+}
+
+function Stat({
+  value,
+  label,
+  tone,
+}: {
+  value: string
+  label: string
+  tone?: 'signal' | 'wallet'
+}) {
+  const valueColor =
+    tone === 'signal'
+      ? 'text-signal'
+      : tone === 'wallet'
+        ? 'text-wallet'
+        : 'text-chalk'
+  return (
+    <div className="min-w-0">
+      <p
+        className={`text-sm md:text-base font-semibold ${valueColor} font-mono tabular-nums tracking-tight leading-none`}
+      >
+        {value}
+      </p>
+      <p className="text-[10px] tracking-widest uppercase text-ash mt-1">
+        {label}
+      </p>
+    </div>
   )
 }
 

@@ -52,13 +52,30 @@ export default async function ProfilePage({
 
   return (
     <main className="min-h-[100svh] pb-32">
-      <div className="max-w-xl mx-auto px-6 pt-10">
-        <Link href="/garage" className="nav-pill hover:text-chalk transition-colors">
-          ← Garage
-        </Link>
-        <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-4">
-          Profile
+      <div className="max-w-xl mx-auto px-6 pt-8 md:pt-10">
+        {/* Editorial header */}
+        <p className="nav-pill">vehkit · profile</p>
+        <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none mt-3">
+          Your details
         </h1>
+        <p className="text-sm text-ash mt-2 leading-relaxed">
+          Name and contact info travel with the vehicles you own. Workshops and
+          insurance brokers use this to reach you when you share a code.
+        </p>
+
+        {/* Garage stat strip */}
+        <div className="mt-4 flex items-stretch gap-3">
+          <Stat
+            value={ownedCount.toString()}
+            label={ownedCount === 1 ? 'vehicle' : 'vehicles'}
+          />
+          {memberSince && (
+            <>
+              <span className="w-px bg-seam shrink-0" aria-hidden />
+              <Stat value={memberSince} label="member since" />
+            </>
+          )}
+        </div>
 
         {errorMsg && (
           <div className="mt-6 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">
@@ -67,12 +84,12 @@ export default async function ProfilePage({
         )}
         {savedMsg && (
           <div className="mt-6 bg-volt/10 border border-volt/30 text-volt text-sm px-4 py-3 rounded-DEFAULT">
-            ✓ Saved
+            Saved
           </div>
         )}
 
-        {/* Avatar + identity */}
-        <section className="mt-8 flex items-start gap-5">
+        {/* Identity card */}
+        <section className="mt-8 card p-5 flex items-start gap-5">
           <AvatarUpload
             userId={user.id}
             currentUrl={profile?.avatar_url}
@@ -85,81 +102,123 @@ export default async function ProfilePage({
             <p className="text-sm text-ash truncate font-mono">
               {profile?.email ?? user.email}
             </p>
-            <p className="text-xs text-ash mt-2">
-              {ownedCount} {ownedCount === 1 ? 'vehicle' : 'vehicles'}
-              {memberSince && <> · Member since {memberSince}</>}
+            <p className="text-[11px] tracking-widest uppercase text-ash mt-3">
+              Tap the photo to change
             </p>
           </div>
         </section>
 
         {/* Edit form */}
-        <form action={updateProfile} className="mt-10 space-y-4" id="profile-form">
-          <Field
-            label="Full name"
-            name="full_name"
-            defaultValue={profile?.full_name ?? ''}
-            placeholder="Ameen Ahsan"
-          />
-          <Field
-            label="Phone"
-            name="phone"
-            type="tel"
-            inputMode="tel"
-            defaultValue={profile?.phone ?? ''}
-            placeholder="+971 50 123 4567"
-          />
-          <div>
-            <label htmlFor="preferred_language" className="label">
-              Preferred language
-            </label>
-            <select
-              id="preferred_language"
-              name="preferred_language"
-              defaultValue={profile?.preferred_language ?? 'en'}
-              className="field"
-            >
-              <option value="en">English</option>
-              <option value="ar">العربية</option>
-            </select>
-          </div>
-        </form>
+        <section className="mt-8">
+          <h2 className="text-[10px] tracking-widest uppercase text-ash mb-3">
+            Personal
+          </h2>
+          <form action={updateProfile} className="space-y-4" id="profile-form">
+            <Field
+              label="Full name"
+              name="full_name"
+              defaultValue={profile?.full_name ?? ''}
+              placeholder="Ameen Ahsan"
+            />
+            <Field
+              label="Phone"
+              name="phone"
+              type="tel"
+              inputMode="tel"
+              defaultValue={profile?.phone ?? ''}
+              placeholder="+971 50 123 4567"
+            />
+            <div>
+              <label htmlFor="preferred_language" className="label">
+                Preferred language
+              </label>
+              <select
+                id="preferred_language"
+                name="preferred_language"
+                defaultValue={profile?.preferred_language ?? 'en'}
+                className="field"
+              >
+                <option value="en">English</option>
+                <option value="ar">العربية</option>
+              </select>
+            </div>
+          </form>
+        </section>
 
         {/* Appearance */}
-        <section className="mt-10 pt-6 border-t border-seam">
-          <h2 className="text-xs tracking-widest uppercase text-ash mb-3">Appearance</h2>
-          <div className="card p-4 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm text-chalk font-medium">Theme</p>
-              <p className="text-xs text-ash mt-0.5">
-                Choose how Vehkit looks. Saved across devices.
+        <section className="mt-10">
+          <h2 className="text-[10px] tracking-widest uppercase text-ash mb-3">
+            Appearance
+          </h2>
+          <div className="card p-5 flex items-center justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm md:text-base font-semibold text-chalk leading-snug">
+                Theme
+              </p>
+              <p className="text-xs text-ash mt-1 leading-relaxed">
+                Vehkit follows your light/dark choice across every device on this
+                account.
               </p>
             </div>
             <ThemeToggle initialTheme={theme} />
           </div>
         </section>
 
-        {/* Sign out */}
-        <section className="mt-10 pt-6 border-t border-seam">
-          <form action="/auth/signout" method="post">
-            <button className="text-xs tracking-widest uppercase text-signal hover:underline">
-              Sign out
-            </button>
-          </form>
+        {/* Account actions */}
+        <section className="mt-10">
+          <h2 className="text-[10px] tracking-widest uppercase text-ash mb-3">
+            Account
+          </h2>
+          <div className="card p-5 flex items-center justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm md:text-base font-semibold text-chalk leading-snug">
+                Sign out
+              </p>
+              <p className="text-xs text-ash mt-1 leading-relaxed">
+                You'll need a fresh magic link to come back in.
+              </p>
+            </div>
+            <form action="/auth/signout" method="post">
+              <button
+                type="submit"
+                className="text-xs tracking-widest uppercase text-signal hover:underline shrink-0"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
         </section>
       </div>
 
       {/* Sticky save button */}
       <div className="fixed bottom-16 md:bottom-0 inset-x-0 px-6 pb-6 pt-4 bg-gradient-to-t from-noir via-noir/95 to-noir/0 z-20">
         <div className="max-w-xl mx-auto flex gap-3">
-          <Link href="/garage" className="pill-ghost flex-1 text-center">
+          <Link href="/mycars" className="pill-ghost flex-1 text-center">
             Cancel
           </Link>
-          <button type="submit" form="profile-form" className="pill-primary flex-[2] text-center">
+          <button
+            type="submit"
+            form="profile-form"
+            className="pill-primary flex-[2] text-center"
+          >
             Save changes
           </button>
         </div>
       </div>
     </main>
+  )
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-sm md:text-base font-semibold text-chalk tracking-tight leading-none">
+        {value}
+      </p>
+      <p className="text-[10px] tracking-widest uppercase text-ash mt-1">
+        {label}
+      </p>
+    </div>
   )
 }
 

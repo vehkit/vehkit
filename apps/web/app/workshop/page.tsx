@@ -174,21 +174,43 @@ export default async function WorkshopDashboardPage() {
         : 'text-ash'
 
   return (
-    <main className="max-w-5xl mx-auto px-6 pt-6 pb-12">
+    <main className="max-w-5xl mx-auto px-6 pt-6 md:pt-8 pb-12">
+      {/* Editorial header — kicker + tight title + supporting line +
+          desktop stat strip with vertical dividers */}
       <header className="pb-6">
-        <p className="text-[10px] tracking-widest uppercase text-ash">Vehkit · Workshop</p>
-        <div className="flex items-end justify-between gap-3 flex-wrap mt-1">
-          <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter">
-            Dashboard
-          </h1>
-          <p className="text-xs flex items-center gap-2 flex-wrap">
-            {workshop.emirate && <span className="text-ash">{workshop.emirate}</span>}
-            {stats?.directory_rank && stats.directory_total && (
-              <span className="text-ash">
-                · #{stats.directory_rank}/{stats.directory_total} in {workshop.emirate}
-              </span>
+        <p className="nav-pill">vehkit · workshop</p>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mt-3">
+          <div>
+            <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none">
+              {workshop.name}
+            </h1>
+            <p className="text-sm text-ash mt-2 leading-relaxed max-w-md">
+              Pending entries, this week's revenue, your repeat-customer pipeline —
+              one glance, every morning.
+            </p>
+          </div>
+          <div className="flex items-stretch gap-3 flex-wrap">
+            <HeaderStat
+              value={tierLabel}
+              label="tier"
+              tone={tierTone === 'text-wallet' ? 'wallet' : tierTone === 'text-volt' ? 'volt' : undefined}
+            />
+            {workshop.emirate && (
+              <>
+                <span className="w-px bg-seam shrink-0" aria-hidden />
+                <HeaderStat value={workshop.emirate} label="emirate" />
+              </>
             )}
-          </p>
+            {stats?.directory_rank && stats.directory_total && (
+              <>
+                <span className="w-px bg-seam shrink-0" aria-hidden />
+                <HeaderStat
+                  value={`#${stats.directory_rank}/${stats.directory_total}`}
+                  label="directory rank"
+                />
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -341,7 +363,13 @@ export default async function WorkshopDashboardPage() {
                 })}
               </ul>
             ) : (
-              <div className="card p-6 text-center text-sm text-ash">No services yet</div>
+              <div className="card p-6 text-center">
+                <p className="text-sm text-chalk font-medium">No services logged yet</p>
+                <p className="text-xs text-ash mt-2 leading-relaxed">
+                  Once you log entries via shop codes, your service mix and
+                  revenue split show up here.
+                </p>
+              </div>
             )}
           </div>
 
@@ -372,7 +400,13 @@ export default async function WorkshopDashboardPage() {
                 })}
               </ul>
             ) : (
-              <div className="card p-6 text-center text-sm text-ash">No customers yet</div>
+              <div className="card p-6 text-center">
+                <p className="text-sm text-chalk font-medium">No repeat customers yet</p>
+                <p className="text-xs text-ash mt-2 leading-relaxed">
+                  Cars that come back twice or more rank here, with lifetime
+                  spend and last-visit dates.
+                </p>
+              </div>
             )}
           </div>
         </section>
@@ -520,6 +554,31 @@ export default async function WorkshopDashboardPage() {
 // ===========================================================================
 // Subcomponents
 // ===========================================================================
+
+function HeaderStat({
+  value,
+  label,
+  tone,
+}: {
+  value: string
+  label: string
+  tone?: 'volt' | 'wallet'
+}) {
+  const valueColor =
+    tone === 'wallet' ? 'text-wallet' : tone === 'volt' ? 'text-volt' : 'text-chalk'
+  return (
+    <div className="min-w-0">
+      <p
+        className={`text-sm md:text-base font-semibold ${valueColor} tracking-tight leading-none`}
+      >
+        {value}
+      </p>
+      <p className="text-[10px] tracking-widest uppercase text-ash mt-1">
+        {label}
+      </p>
+    </div>
+  )
+}
 
 function Stat({
   label,

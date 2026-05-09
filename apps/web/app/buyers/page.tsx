@@ -75,20 +75,24 @@ export default async function BuyersPage() {
               <br />
               in one link.
             </h2>
-            <ul className="mt-10 space-y-5">
+            <ul className="mt-10 grid gap-3">
               <Bullet
+                n="01"
                 title="Every verified service"
                 body="Date, kilometers, type, cost, the workshop that performed it. No edits, no deletions — what's there is what was."
               />
               <Bullet
+                n="02"
                 title="The Vehkit Score"
                 body="A zero-to-a-hundred summary. Verification, compliance, consistency, recency. A number you can compare across cars."
               />
               <Bullet
+                n="03"
                 title="Workshop tier"
                 body="Each entry's workshop carries its own tier — Member, Silver, Gold. A car serviced exclusively by Gold-tier shops reads differently than one serviced by anyone."
               />
               <Bullet
+                n="04"
                 title="The gaps"
                 body="A passport with a two-year gap is honest about it. You see the gap. You ask about the gap. You price the gap."
               />
@@ -185,12 +189,22 @@ export default async function BuyersPage() {
   )
 }
 
-function Bullet({ title, body }: { title: string; body: string }) {
+function Bullet({
+  n,
+  title,
+  body,
+}: {
+  n: string
+  title: string
+  body: string
+}) {
   return (
-    <li className="flex gap-4">
-      <span className="font-mono text-xs text-volt mt-1.5 shrink-0">·</span>
-      <div>
-        <p className="text-base font-semibold text-chalk tracking-tight">
+    <li className="card p-5 flex gap-4">
+      <span className="font-mono text-xs text-volt tracking-widest shrink-0 mt-0.5">
+        {n}
+      </span>
+      <div className="min-w-0">
+        <p className="text-base font-semibold text-chalk tracking-tight leading-snug">
           {title}
         </p>
         <p className="text-sm text-ash mt-1.5 leading-relaxed">{body}</p>

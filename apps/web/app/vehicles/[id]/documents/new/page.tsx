@@ -41,7 +41,7 @@ export default async function NewDocumentPage({
 
   return (
     <main className="min-h-[100svh] pb-24">
-      <div className="max-w-3xl mx-auto px-6 pt-6">
+      <div className="max-w-3xl mx-auto px-6 pt-6 md:pt-8">
         <Link
           href={`/vehicles/${id}#documents`}
           className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
@@ -49,7 +49,8 @@ export default async function NewDocumentPage({
           ← {vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`}
         </Link>
 
-        <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter mt-4">
+        <p className="nav-pill mt-3">vehkit · documents</p>
+        <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none mt-3">
           Add a document
         </h1>
         <p className="text-sm text-ash mt-2 leading-relaxed">
