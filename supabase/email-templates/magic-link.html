@@ -1,0 +1,259 @@
+<!--
+  Vehkit · Magic Link Email
+  Paste this entire HTML into:
+    Supabase Dashboard → Authentication → Email Templates → Magic Link → Source
+
+  Subject (set in the same panel):
+    Sign in to Vehkit
+
+  Available variables (Supabase Auth):
+    {{ .ConfirmationURL }}  — the magic link URL
+    {{ .Email }}            — the recipient's email
+    {{ .SiteURL }}          — your site URL (vehkit.com)
+    {{ .Token }}            — raw OTP token (we don't use it here)
+-->
+<!doctype html>
+<html lang="en" style="background:#0A0B0F;">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Sign in to Vehkit</title>
+    <style>
+      @media (prefers-color-scheme: dark) {
+        body { background: #0A0B0F !important; color: #F4F4F2 !important; }
+      }
+    </style>
+  </head>
+  <body
+    style="margin:0;padding:0;background:#0A0B0F;color:#F4F4F2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;"
+  >
+    <!-- Hidden preheader -->
+    <div
+      style="display:none;max-height:0;overflow:hidden;color:transparent;"
+    >
+      One tap and you're in. Link expires in 5 minutes — same device only.
+    </div>
+
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      style="background:#0A0B0F;padding:40px 20px;"
+    >
+      <tr>
+        <td align="center">
+          <table
+            role="presentation"
+            width="540"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="max-width:540px;width:100%;"
+          >
+            <!-- Brand -->
+            <tr>
+              <td
+                style="padding-bottom:32px;font-size:11px;letter-spacing:0.25em;text-transform:uppercase;color:#8B8E96;"
+              >
+                vehkit
+              </td>
+            </tr>
+
+            <!-- Headline -->
+            <tr>
+              <td
+                style="font-size:28px;font-weight:600;letter-spacing:-0.02em;color:#F4F4F2;padding-bottom:12px;"
+              >
+                Your sign-in link is ready.
+              </td>
+            </tr>
+
+            <!-- Subhead -->
+            <tr>
+              <td style="color:#8B8E96;padding-bottom:28px;line-height:1.6;">
+                Tap the button to sign in to your Vehkit account. The link works once,
+                expires in 5 minutes, and only on the device you opened it from.
+              </td>
+            </tr>
+
+            <!-- CTA -->
+            <tr>
+              <td style="padding-bottom:8px;">
+                <a
+                  href="{{ .ConfirmationURL }}"
+                  style="display:inline-block;background:#19E68C;color:#0A0B0F;padding:14px 32px;border-radius:999px;text-decoration:none;font-weight:600;font-size:15px;letter-spacing:-0.01em;"
+                >
+                  Sign in to Vehkit
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td
+                style="font-size:12px;color:#8B8E96;padding-top:8px;padding-bottom:32px;line-height:1.5;"
+              >
+                Or paste this link into the same browser:<br />
+                <a
+                  href="{{ .ConfirmationURL }}"
+                  style="color:#19E68C;text-decoration:underline;word-break:break-all;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;"
+                  >{{ .ConfirmationURL }}</a
+                >
+              </td>
+            </tr>
+
+            <!-- Divider -->
+            <tr>
+              <td
+                style="border-top:1px solid #2A2D33;padding-top:32px;padding-bottom:0;"
+              ></td>
+            </tr>
+
+            <!-- Why Vehkit (soft viral / brand reinforcement) -->
+            <tr>
+              <td
+                style="padding-bottom:16px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#8B8E96;"
+              >
+                Why this email feels different
+              </td>
+            </tr>
+            <tr>
+              <td
+                style="background:#16181D;border:1px solid #2A2D33;border-radius:12px;padding:20px;color:#F4F4F2;line-height:1.6;font-size:14px;"
+              >
+                Vehkit is a verified record for every car you own. Your workshop logs the
+                service. You confirm. The record locks. When it's time to sell — or your
+                next mechanic asks <em>what's been done</em> — you have the truth, in one
+                place, owned by you.
+                <br /><br />
+                <span style="color:#8B8E96;font-size:13px;"
+                  >Free for owners. Free for workshops. No ads, ever.</span
+                >
+              </td>
+            </tr>
+
+            <!-- Three pillars -->
+            <tr>
+              <td style="padding-top:24px;">
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  border="0"
+                >
+                  <tr>
+                    <td
+                      style="width:33%;vertical-align:top;padding-right:8px;"
+                    >
+                      <div
+                        style="font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#19E68C;font-weight:600;"
+                      >
+                        Owner-controlled
+                      </div>
+                      <div
+                        style="font-size:13px;color:#8B8E96;margin-top:4px;line-height:1.5;"
+                      >
+                        Your record, your codes, your share links.
+                      </div>
+                    </td>
+                    <td
+                      style="width:33%;vertical-align:top;padding:0 8px;"
+                    >
+                      <div
+                        style="font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#E5C158;font-weight:600;"
+                      >
+                        Immutable
+                      </div>
+                      <div
+                        style="font-size:13px;color:#8B8E96;margin-top:4px;line-height:1.5;"
+                      >
+                        Workshop entries lock after 24 hours.
+                      </div>
+                    </td>
+                    <td
+                      style="width:33%;vertical-align:top;padding-left:8px;"
+                    >
+                      <div
+                        style="font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#F4F4F2;font-weight:600;"
+                      >
+                        Verifiable
+                      </div>
+                      <div
+                        style="font-size:13px;color:#8B8E96;margin-top:4px;line-height:1.5;"
+                      >
+                        Buyers see the truth, not your photos.
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Soft viral hook -->
+            <tr>
+              <td
+                style="padding-top:32px;padding-bottom:24px;font-size:13px;color:#8B8E96;line-height:1.6;"
+              >
+                <strong style="color:#F4F4F2;">Have a friend with a car?</strong>
+                Forward this email or share <a href="{{ .SiteURL }}" style="color:#19E68C;text-decoration:none;">vehkit.com</a>.
+                Every passport on the platform makes the next car easier to verify.
+                And if you run a workshop:
+                <a
+                  href="{{ .SiteURL }}/workshop/start"
+                  style="color:#19E68C;text-decoration:none;"
+                  >sign your shop up</a
+                >
+                — verified workshops climb the directory and get found.
+              </td>
+            </tr>
+
+            <!-- Security note -->
+            <tr>
+              <td
+                style="padding-top:24px;border-top:1px solid #2A2D33;font-size:12px;color:#5B6573;line-height:1.6;"
+              >
+                Didn't request this? Ignore the email — no one can sign in without
+                clicking the link, and the link expires in 5 minutes.
+                <br /><br />
+                Sent to <span style="color:#8B8E96;">{{ .Email }}</span>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                style="padding-top:32px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#5B6573;"
+              >
+                Every car deserves a passport.
+              </td>
+            </tr>
+            <tr>
+              <td
+                style="padding-top:8px;padding-bottom:32px;font-size:11px;color:#5B6573;"
+              >
+                <a
+                  href="{{ .SiteURL }}"
+                  style="color:#5B6573;text-decoration:none;"
+                  >vehkit.com</a
+                >
+                · Made in Dubai ·
+                <a
+                  href="{{ .SiteURL }}/privacy"
+                  style="color:#5B6573;text-decoration:none;"
+                  >Privacy</a
+                >
+                ·
+                <a
+                  href="{{ .SiteURL }}/terms"
+                  style="color:#5B6573;text-decoration:none;"
+                  >Terms</a
+                >
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
