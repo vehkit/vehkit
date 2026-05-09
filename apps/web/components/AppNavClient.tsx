@@ -61,6 +61,16 @@ export function AppNavClient({
   if (pathname === '/workshop' || pathname.startsWith('/workshop/')) {
     return null
   }
+  // Agent portal — own nav. Both /agent/* (dashboard) and /a (redeem code
+  // entry) live in agent territory.
+  if (
+    pathname === '/agent' ||
+    pathname.startsWith('/agent/') ||
+    pathname === '/a' ||
+    pathname.startsWith('/a/')
+  ) {
+    return null
+  }
   // Admin portal also has its own nav.
   if (pathname.startsWith('/admin')) {
     return null

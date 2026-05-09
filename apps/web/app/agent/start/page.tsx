@@ -1,0 +1,139 @@
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { createAgentOrg } from '@/app/actions/agent-onboarding'
+
+export const metadata = {
+  title: 'Vehkit · Agent · Start',
+}
+
+export default async function AgentStartPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; next?: string }>
+}) {
+  const sp = await searchParams
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect(`/login?next=/agent/start`)
+
+  // Already a member? Skip onboarding.
+  const { data: existing } = await supabase
+    .from('agent_members')
+    .select('agent_id')
+    .eq('user_id', user.id)
+    .limit(1)
+    .maybeSingle()
+  if (existing) {
+    redirect(sp.next ?? '/agent')
+  }
+
+  return (
+    <main className="min-h-[100svh] pb-24">
+      <div className="max-w-md mx-auto px-6 pt-12">
+        <p className="nav-pill">vehkit · agent</p>
+        <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter mt-4">
+          Set up your agent desk
+        </h1>
+        <p className="text-sm text-ash mt-3 leading-relaxed">
+          Create your insurance, fleet, or leasing organisation on Vehkit.
+          Customers will share their car documents with your desk via a
+          one-time code — full access for 60 minutes, then renewal-track
+          metadata for 30 days.
+        </p>
+
+        {sp.error && (
+          <div className="mt-4 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">
+            {decodeURIComponent(sp.error)}
+          </div>
+        )}
+
+        <form action={createAgentOrg} className="mt-6 space-y-4">
+          {sp.next && <input type="hidden" name="next" value={sp.next} />}
+
+          <div>
+            <label htmlFor="name" className="label">
+              Organisation name <span className="text-signal">*</span>
+            </label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              required
+              maxLength={120}
+              placeholder="Al Wathba Insurance Brokers"
+              className="field"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="category" className="label">
+              Category
+            </label>
+            <select
+              id="category"
+              name="category"
+              defaultValue="insurance"
+              className="field"
+            >
+              <option value="insurance">Insurance broker</option>
+              <option value="fleet">Fleet manager</option>
+              <option value="leasing">Leasing / rental</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="emirate" className="label">
+                Emirate
+              </label>
+              <select
+                id="emirate"
+                name="emirate"
+                defaultValue=""
+                className="field"
+              >
+                <option value="">Pick…</option>
+                <option value="Dubai">Dubai</option>
+                <option value="Abu Dhabi">Abu Dhabi</option>
+                <option value="Sharjah">Sharjah</option>
+                <option value="Ajman">Ajman</option>
+                <option value="Fujairah">Fujairah</option>
+                <option value="Ras Al Khaimah">Ras Al Khaimah</option>
+                <option value="Umm Al Quwain">Umm Al Quwain</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="phone" className="label">
+                Phone
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                placeholder="+971 50 …"
+                className="field"
+              />
+            </div>
+          </div>
+
+          <button type="submit" className="pill-primary block w-full text-center">
+            Create agent desk
+          </button>
+        </form>
+
+        <p className="text-[11px] text-ash/70 leading-relaxed mt-6">
+          Trade-license verification is required before customers see your
+          desk in directory listings. We'll guide you to{' '}
+          <Link href="/agent/settings" className="underline">
+            upload it
+          </Link>{' '}
+          after setup.
+        </p>
+      </div>
+    </main>
+  )
+}

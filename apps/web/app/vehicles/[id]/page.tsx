@@ -11,6 +11,8 @@ import { VehicleScoreChip } from '@/components/VehicleScore'
 import { ScrollAwareHeader } from '@/components/ScrollAwareHeader'
 import { VehicleHero } from '@/components/VehicleHero'
 import { ServiceRecordRow } from '@/components/ServiceRecordRow'
+import { VehicleDocumentsList } from '@/components/VehicleDocumentsList'
+import { AgentCodeSheet } from '@/components/AgentCodeSheet'
 import {
   reminderStatus,
   reminderLabel,
@@ -35,24 +37,35 @@ export default async function VehiclePage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Parallelize all three reads — saves 2 round trips
-  const [vehicleRes, recordsRes, remindersRes, scoreRes] = await Promise.all([
-    supabase.from('vehicles').select('*').eq('id', id).single(),
-    supabase
-      .from('service_records')
-      .select('*, service_files(storage_path), workshop_reviews(id, rating, comment, created_by, quality_rating, value_rating, timeliness_rating)')
-      .eq('vehicle_id', id)
-      .order('service_date', { ascending: false })
-      .order('created_at', { ascending: false })
-      .order('id', { ascending: false }),
-    supabase
-      .from('reminders')
-      .select('*')
-      .eq('vehicle_id', id)
-      .eq('status', 'open')
-      .order('due_date', { ascending: true, nullsFirst: false }),
-    supabase.rpc('compute_vehicle_score', { p_vehicle_id: id }),
-  ])
+  // Parallelize all reads — saves round trips
+  const [vehicleRes, recordsRes, remindersRes, scoreRes, documentsRes] =
+    await Promise.all([
+      supabase.from('vehicles').select('*').eq('id', id).single(),
+      supabase
+        .from('service_records')
+        .select(
+          '*, service_files(storage_path), workshop_reviews(id, rating, comment, created_by, quality_rating, value_rating, timeliness_rating)',
+        )
+        .eq('vehicle_id', id)
+        .order('service_date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false }),
+      supabase
+        .from('reminders')
+        .select('*')
+        .eq('vehicle_id', id)
+        .eq('status', 'open')
+        .order('due_date', { ascending: true, nullsFirst: false }),
+      supabase.rpc('compute_vehicle_score', { p_vehicle_id: id }),
+      supabase
+        .from('vehicle_documents')
+        .select(
+          'id, doc_type, label, storage_path, file_type, file_size_bytes, issued_date, expires_at, created_at',
+        )
+        .eq('vehicle_id', id)
+        .is('archived_at', null)
+        .order('expires_at', { ascending: true, nullsFirst: false }),
+    ])
 
   const vehicle = vehicleRes.data
   if (vehicleRes.error || !vehicle) notFound()
@@ -60,6 +73,7 @@ export default async function VehiclePage({
 
   const records = recordsRes.data
   const reminders = remindersRes.data
+  const documents = documentsRes.data ?? []
 
   // Only the actual vehicle owner can confirm/retract entries.
   // Workshop members viewing serviced cars get read-only access.
@@ -398,6 +412,50 @@ export default async function VehiclePage({
             </div>
           </section>
         )}
+
+        {/* DOCUMENTS — mulkiya, insurance, NOC, etc. + agent share */}
+        <section id="documents" className="mt-10 scroll-mt-20">
+          <SectionHeader
+            title="Documents"
+            hint={
+              documents.length > 0
+                ? `${documents.length} ${documents.length === 1 ? 'file' : 'files'}`
+                : 'Empty'
+            }
+          />
+
+          <VehicleDocumentsList
+            vehicleId={id}
+            documents={documents}
+            isOwner={isOwner}
+          />
+
+          {isOwner && documents.length > 0 && (
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <Link
+                href={`/vehicles/${id}/documents/new`}
+                className="text-xs tracking-widest uppercase text-volt hover:underline"
+              >
+                + Add document
+              </Link>
+              <AgentCodeSheet
+                vehicleId={id}
+                vehicleTitle={vehicleTitle}
+                baseUrl={baseUrl}
+              />
+            </div>
+          )}
+          {isOwner && documents.length === 0 && (
+            <div className="mt-3 flex items-center justify-end">
+              <AgentCodeSheet
+                vehicleId={id}
+                vehicleTitle={vehicleTitle}
+                baseUrl={baseUrl}
+                disabled
+              />
+            </div>
+          )}
+        </section>
 
         {/* SERVICE HISTORY */}
         <section className="mt-10">
