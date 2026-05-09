@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { PrintButton } from '@/components/PrintButton'
+import { VehicleScorePanel } from '@/components/VehicleScore'
 
 export const dynamic = 'force-dynamic'
 
@@ -74,6 +75,12 @@ export default async function ResaleReportPage({
     .eq('vehicle_id', share.vehicle_id)
     .order('service_date', { ascending: false })
 
+  // Vehicle score (key value-prop element on the resale passport)
+  const { data: scoreRaw } = await supabase.rpc('compute_vehicle_score', {
+    p_vehicle_id: share.vehicle_id,
+  })
+  const scoreData = scoreRaw as Parameters<typeof VehicleScorePanel>[0]['data']
+
   const totalEntries = records?.length ?? 0
   const verifiedEntries = records?.filter((r) => r.attestation === 'workshop').length ?? 0
   const totalSpent = (records ?? []).reduce(
@@ -132,8 +139,13 @@ export default async function ResaleReportPage({
           />
         )}
 
+        {/* Vehkit score — the headline value of the passport */}
+        <section className="mt-8 print:mt-6">
+          <VehicleScorePanel data={scoreData} />
+        </section>
+
         {/* Headline stats */}
-        <section className="mt-8 grid grid-cols-3 gap-3 print:gap-2">
+        <section className="mt-6 grid grid-cols-3 gap-3 print:gap-2">
           <Stat label="Odometer" value={vehicle.current_odometer?.toLocaleString() ?? '—'} suffix="km" />
           <Stat label="Records" value={totalEntries.toString()} />
           <Stat label="Verified" value={verifiedEntries.toString()} />

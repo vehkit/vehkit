@@ -20,6 +20,9 @@ type WorkshopProfile = {
   unique_vehicles: number
   avg_rating: number
   review_count: number
+  quality_avg: number | null
+  value_avg: number | null
+  timeliness_avg: number | null
 }
 
 type Review = {
@@ -188,6 +191,15 @@ export default async function WorkshopPublicPage({
           )}
         </header>
 
+        {/* Multi-axis rating breakdown (only shown when at least one axis has data) */}
+        {(w.quality_avg != null || w.value_avg != null || w.timeliness_avg != null) && (
+          <section className="mt-6 grid grid-cols-3 gap-2">
+            <AxisStat label="Quality" value={w.quality_avg} />
+            <AxisStat label="Value" value={w.value_avg} />
+            <AxisStat label="Timeliness" value={w.timeliness_avg} />
+          </section>
+        )}
+
         {/* Tabs (decorative — only Reviews tab populated for now) */}
         <div className="mt-8 border-t border-seam">
           <div className="flex justify-center gap-12">
@@ -256,6 +268,37 @@ function InlineStat({ value, label }: { value: string; label: string }) {
         {value}
       </p>
       <p className="text-[10px] md:text-xs text-ash mt-0.5 tracking-wide">{label}</p>
+    </div>
+  )
+}
+
+function AxisStat({ label, value }: { label: string; value: number | null }) {
+  if (value == null) {
+    return (
+      <div className="card p-3 text-center opacity-60">
+        <p className="text-[10px] tracking-widest uppercase text-ash">{label}</p>
+        <p className="text-sm text-ash mt-1">—</p>
+      </div>
+    )
+  }
+  const pct = Math.min(100, (Number(value) / 5) * 100)
+  return (
+    <div className="card p-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[10px] tracking-widest uppercase text-ash">{label}</p>
+        <p className="font-mono text-sm font-semibold text-chalk tabular-nums">
+          {Number(value).toFixed(1)}
+          <span className="text-ash text-[10px] ml-0.5">★</span>
+        </p>
+      </div>
+      <div className="h-1 bg-iron rounded-full mt-2 overflow-hidden">
+        <div
+          className={`h-full ${
+            Number(value) >= 4 ? 'bg-volt' : Number(value) >= 3 ? 'bg-wallet' : 'bg-signal/70'
+          }`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
     </div>
   )
 }

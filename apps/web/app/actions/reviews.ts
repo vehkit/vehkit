@@ -16,6 +16,20 @@ export async function submitReview(formData: FormData) {
   const rating = Number(formData.get('rating'))
   const comment = String(formData.get('comment') ?? '').trim() || null
 
+  // Optional axes — empty string from form means not rated
+  function axisOrNull(key: string): number | null {
+    const raw = formData.get(key)
+    if (raw == null) return null
+    const s = String(raw).trim()
+    if (s === '' || s === '0') return null
+    const n = Number(s)
+    if (!Number.isFinite(n) || n < 1 || n > 5) return null
+    return n
+  }
+  const qualityRating = axisOrNull('quality_rating')
+  const valueRating = axisOrNull('value_rating')
+  const timelinessRating = axisOrNull('timeliness_rating')
+
   if (!recordId || !vehicleId || !Number.isFinite(rating) || rating < 1 || rating > 5) {
     redirect(`/vehicles/${vehicleId}?error=Invalid+rating`)
   }
@@ -40,6 +54,9 @@ export async function submitReview(formData: FormData) {
         workshop_id: record.workshop_id,
         vehicle_id: vehicleId,
         rating,
+        quality_rating: qualityRating,
+        value_rating: valueRating,
+        timeliness_rating: timelinessRating,
         comment,
         created_by: user.id,
       },

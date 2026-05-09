@@ -12,6 +12,7 @@ import { FamilyShareSheet } from '@/components/FamilyShareSheet'
 import { PhotoLightbox } from '@/components/PhotoLightbox'
 import { ReviewForm } from '@/components/ReviewForm'
 import { StarRating } from '@/components/StarRating'
+import { VehicleScoreChip } from '@/components/VehicleScore'
 import {
   reminderStatus,
   reminderLabel,
@@ -32,11 +33,11 @@ export default async function VehiclePage({
   if (!user) redirect('/login')
 
   // Parallelize all three reads — saves 2 round trips
-  const [vehicleRes, recordsRes, remindersRes] = await Promise.all([
+  const [vehicleRes, recordsRes, remindersRes, scoreRes] = await Promise.all([
     supabase.from('vehicles').select('*').eq('id', id).single(),
     supabase
       .from('service_records')
-      .select('*, service_files(storage_path), workshop_reviews(id, rating, comment, created_by)')
+      .select('*, service_files(storage_path), workshop_reviews(id, rating, comment, created_by, quality_rating, value_rating, timeliness_rating)')
       .eq('vehicle_id', id)
       .order('service_date', { ascending: false }),
     supabase
@@ -45,10 +46,12 @@ export default async function VehiclePage({
       .eq('vehicle_id', id)
       .eq('status', 'open')
       .order('due_date', { ascending: true, nullsFirst: false }),
+    supabase.rpc('compute_vehicle_score', { p_vehicle_id: id }),
   ])
 
   const vehicle = vehicleRes.data
   if (vehicleRes.error || !vehicle) notFound()
+  const scoreData = scoreRes.data as Parameters<typeof VehicleScoreChip>[0]['data']
 
   const records = recordsRes.data
   const reminders = remindersRes.data
@@ -76,11 +79,14 @@ export default async function VehiclePage({
           <HeroPhotoUpload vehicleId={id} currentUrl={vehicle.hero_image_url}>
             <div className="flex items-end justify-between gap-4">
               <div className="min-w-0 flex-1">
-                {(vehicle.year || vehicle.color) && (
-                  <p className="text-[10px] tracking-widest uppercase text-chalk/70 mb-1">
-                    {[vehicle.year, vehicle.color].filter(Boolean).join(' · ')}
-                  </p>
-                )}
+                <div className="flex items-center gap-2 mb-1">
+                  {(vehicle.year || vehicle.color) && (
+                    <p className="text-[10px] tracking-widest uppercase text-chalk/70">
+                      {[vehicle.year, vehicle.color].filter(Boolean).join(' · ')}
+                    </p>
+                  )}
+                  <VehicleScoreChip data={scoreData} />
+                </div>
                 <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter truncate drop-shadow-sm">
                   {vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`}
                 </h1>
@@ -346,6 +352,9 @@ export default async function VehiclePage({
                             vehicleId={id}
                             existingRating={review?.rating ?? null}
                             existingComment={review?.comment ?? null}
+                            existingQuality={review?.quality_rating ?? null}
+                            existingValue={review?.value_rating ?? null}
+                            existingTimeliness={review?.timeliness_rating ?? null}
                           />
                         )}
                       </div>
