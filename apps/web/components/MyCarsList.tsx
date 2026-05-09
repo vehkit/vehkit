@@ -96,68 +96,95 @@ export function MyCarsList({
           const pendingForThis = pendingByVehicle[v.id] ?? 0
           const heroPhoto = v.hero_image_url
           const title = v.nickname ?? `${v.make} ${v.model}`
+          const subtitle = [
+            v.year && String(v.year),
+            `${v.make} ${v.model}`,
+            v.plate_emirate && v.plate_number
+              ? `${v.plate_emirate} · ${v.plate_number}`
+              : v.plate_number,
+          ]
+            .filter(Boolean)
+            .join(' · ')
+
           return (
             <Link
               key={v.id}
               href={`/vehicles/${v.id}`}
-              className={`card block relative overflow-hidden hover:border-volt/30 transition-colors group h-56 md:h-64 ${
+              className={`card block overflow-hidden hover:border-volt/30 transition-colors group ${
                 pendingForThis > 0 ? 'ring-1 ring-wallet/40' : ''
               }`}
             >
-              {heroPhoto ? (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+              {/* Photo — top, prominent */}
+              <div className="relative aspect-[16/10] md:aspect-[16/9] bg-iron overflow-hidden">
+                {heroPhoto ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={heroPhoto}
                     alt=""
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
                   />
-                  {/* Strong bottom gradient for legibility */}
-                  <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-noir via-noir/85 to-transparent pointer-events-none" />
-                </>
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-iron via-carbon to-noir" />
-              )}
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-iron via-carbon to-noir">
+                    <svg
+                      width="36"
+                      height="36"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      className="text-ash/60"
+                      aria-hidden
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M3 13l1.66-4.97A2 2 0 016.55 6.5h10.9a2 2 0 011.89 1.53L21 13M5 13h14M7 17h.01M17 17h.01M5 13v4a1 1 0 001 1h12a1 1 0 001-1v-4"
+                      />
+                    </svg>
+                  </div>
+                )}
 
-              {/* Top-right pills only when meaningful — kept minimal */}
-              {(isShared || pendingForThis > 0) && (
-                <div className="absolute top-3 right-3 flex gap-2">
-                  {pendingForThis > 0 && (
-                    <span className="text-[10px] tracking-widest uppercase bg-wallet/90 text-noir px-2 py-1 rounded-pill font-semibold backdrop-blur-sm">
-                      {pendingForThis} pending
-                    </span>
-                  )}
-                  {isShared && (
-                    <span className="text-[10px] tracking-widest uppercase bg-noir/70 text-chalk px-2 py-1 rounded-pill font-medium backdrop-blur-sm">
-                      Shared
-                    </span>
-                  )}
-                </div>
-              )}
+                {/* Floating top-right badges — over the photo */}
+                {(isShared || pendingForThis > 0) && (
+                  <div className="absolute top-3 right-3 flex gap-2">
+                    {pendingForThis > 0 && (
+                      <span className="text-[10px] tracking-widest uppercase bg-wallet text-noir px-2.5 py-1 rounded-pill font-semibold">
+                        {pendingForThis} pending
+                      </span>
+                    )}
+                    {isShared && (
+                      <span className="text-[10px] tracking-widest uppercase bg-noir/70 text-chalk px-2.5 py-1 rounded-pill font-medium backdrop-blur-sm">
+                        Shared
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
 
-              {/* Bottom-left composition — title + plate, with odometer in corner */}
-              <div className="absolute inset-x-0 bottom-0 p-5 flex items-end justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter truncate drop-shadow-sm">
+              {/* Content below photo — PropertyFinder pattern */}
+              <div className="p-4 md:p-5">
+                {/* Title + subtitle */}
+                <div className="min-w-0">
+                  <h2 className="text-lg md:text-xl font-semibold text-chalk tracking-tight truncate">
                     {title}
                   </h2>
-                  <p className="text-xs text-chalk/70 mt-1 truncate">
-                    {[
-                      v.year && String(v.year),
-                      `${v.make} ${v.model}`,
-                      v.plate_number,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </p>
+                  <p className="text-xs text-ash mt-0.5 truncate">{subtitle}</p>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="font-mono text-xl md:text-2xl font-semibold text-chalk tabular-nums tracking-tight drop-shadow-sm">
-                    {v.current_odometer?.toLocaleString() ?? '—'}
-                  </p>
-                  <p className="text-[10px] tracking-widest uppercase text-chalk/60 mt-0.5">
-                    km
-                  </p>
+
+                {/* Stats row — vertical dividers, PropertyFinder-style */}
+                <div className="grid grid-cols-3 divide-x divide-seam border-t border-seam mt-4 pt-4">
+                  <Stat
+                    value={v.current_odometer?.toLocaleString() ?? '—'}
+                    label="km"
+                  />
+                  <Stat
+                    value={v.year ? String(v.year) : '—'}
+                    label="Year"
+                  />
+                  <Stat
+                    value={v.color ?? '—'}
+                    label="Color"
+                  />
                 </div>
               </div>
             </Link>
@@ -181,5 +208,18 @@ export function MyCarsList({
         </div>
       )}
     </>
+  )
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="text-center px-2">
+      <p className="font-mono text-base md:text-lg font-semibold text-chalk tabular-nums tracking-tight leading-none truncate">
+        {value}
+      </p>
+      <p className="text-[10px] tracking-widest uppercase text-ash mt-1.5 truncate">
+        {label}
+      </p>
+    </div>
   )
 }

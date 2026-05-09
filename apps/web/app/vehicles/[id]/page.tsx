@@ -321,33 +321,17 @@ export default async function VehiclePage({
           </section>
         )}
 
-        {/* TOP WORKSHOP — provider card */}
+        {/* TOP WORKSHOP — PropertyFinder-style provider card */}
         {topWorkshopEntry && (
           <section className="mt-10">
-            <SectionHeader
-              title="Most-frequent workshop"
-              hint={`${topWorkshopEntry[1].count} of ${verifiedRecords} verified entries`}
+            <SectionHeader title="Most-frequent workshop" />
+            <TopWorkshopCard
+              workshopId={topWorkshopEntry[0]}
+              workshopName={topWorkshopEntry[1].name}
+              visitCount={topWorkshopEntry[1].count}
+              totalVerified={verifiedRecords}
+              records={records ?? []}
             />
-            <div className="card p-5 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-pill bg-volt/15 text-volt flex items-center justify-center font-mono text-sm font-semibold tracking-tighter shrink-0">
-                {topWorkshopEntry[1].name
-                  .split(/\s+/)
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .map((s) => s.charAt(0).toUpperCase())
-                  .join('')}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-base font-semibold text-chalk truncate">
-                  {topWorkshopEntry[1].name}
-                </p>
-                <p className="text-xs text-ash mt-0.5">
-                  {topWorkshopEntry[1].count} verified{' '}
-                  {topWorkshopEntry[1].count === 1 ? 'entry' : 'entries'} on this
-                  car
-                </p>
-              </div>
-            </div>
           </section>
         )}
 
@@ -658,6 +642,97 @@ export default async function VehiclePage({
 
 function humanize(s: string): string {
   return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function TopWorkshopCard({
+  workshopId,
+  workshopName,
+  visitCount,
+  totalVerified,
+  records,
+}: {
+  workshopId: string
+  workshopName: string
+  visitCount: number
+  totalVerified: number
+  records: Array<{
+    workshop_id?: string | null
+    cost_aed: number | null | string
+    service_date: string
+  }>
+}) {
+  const myRecords = records.filter((r) => r.workshop_id === workshopId)
+  const totalSpent = myRecords.reduce(
+    (s, r) => s + (r.cost_aed ? Number(r.cost_aed) : 0),
+    0
+  )
+  const lastVisit = myRecords
+    .map((r) => new Date(r.service_date).getTime())
+    .sort((a, b) => b - a)[0]
+  const lastVisitLabel = lastVisit
+    ? new Date(lastVisit).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : '—'
+
+  const initials =
+    workshopName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((s) => s.charAt(0).toUpperCase())
+      .join('') || '·'
+
+  const sharePct =
+    totalVerified > 0 ? Math.round((visitCount / totalVerified) * 100) : 0
+
+  return (
+    <div className="card p-5 md:p-6">
+      <div className="flex items-center gap-4">
+        <div className="w-14 h-14 rounded-pill bg-volt/15 text-volt flex items-center justify-center font-mono text-base font-semibold tracking-tighter shrink-0">
+          {initials}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-lg font-semibold text-chalk truncate tracking-tight">
+            {workshopName}
+          </p>
+          <p className="text-xs text-ash mt-0.5">
+            {sharePct}% of this car's verified history
+          </p>
+        </div>
+      </div>
+
+      {/* PropertyFinder-style 3-column stats with vertical dividers */}
+      <div className="grid grid-cols-3 divide-x divide-seam border-y border-seam mt-5">
+        <div className="text-center py-4 px-2">
+          <p className="font-mono text-xl md:text-2xl font-semibold text-chalk tabular-nums tracking-tight leading-none">
+            {visitCount}
+          </p>
+          <p className="text-[10px] tracking-widest uppercase text-ash mt-1.5">
+            {visitCount === 1 ? 'Visit' : 'Visits'}
+          </p>
+        </div>
+        <div className="text-center py-4 px-2">
+          <p className="font-mono text-xl md:text-2xl font-semibold text-chalk tabular-nums tracking-tight leading-none">
+            {totalSpent > 0 ? `${(totalSpent / 1000).toFixed(1)}k` : '—'}
+          </p>
+          <p className="text-[10px] tracking-widest uppercase text-ash mt-1.5">
+            AED total
+          </p>
+        </div>
+        <div className="text-center py-4 px-2">
+          <p className="font-mono text-sm md:text-base font-semibold text-chalk tabular-nums tracking-tight leading-none">
+            {lastVisitLabel}
+          </p>
+          <p className="text-[10px] tracking-widest uppercase text-ash mt-1.5">
+            Last visit
+          </p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function SectionHeader({ title, hint }: { title: string; hint?: string }) {
