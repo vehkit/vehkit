@@ -265,15 +265,19 @@ export function ServiceRecordRow({
           )}
 
           {showReview && (
+            // showReview's `&& !review` clause guarantees review is undefined
+            // here, so existing-* fields are always null. TS narrows `review`
+            // to never inside this branch, which is why we pass nulls directly
+            // rather than `review?.x ?? null`.
             <div className="mt-2">
               <ReviewForm
                 recordId={record.id}
                 vehicleId={vehicleId}
-                existingRating={review?.rating ?? null}
-                existingComment={review?.comment ?? null}
-                existingQuality={review?.quality_rating ?? null}
-                existingValue={review?.value_rating ?? null}
-                existingTimeliness={review?.timeliness_rating ?? null}
+                existingRating={null}
+                existingComment={null}
+                existingQuality={null}
+                existingValue={null}
+                existingTimeliness={null}
                 autoOpen={autoOpenReview}
               />
             </div>
