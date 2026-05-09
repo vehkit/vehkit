@@ -90,7 +90,7 @@ export function MyCarsList({
         </div>
       )}
 
-      <div className="space-y-5">
+      <div className="space-y-4">
         {filtered.map((v) => {
           const isShared = v.owner_id !== currentUserId
           const pendingForThis = pendingByVehicle[v.id] ?? 0
@@ -100,97 +100,64 @@ export function MyCarsList({
             <Link
               key={v.id}
               href={`/vehicles/${v.id}`}
-              className={`card block overflow-hidden hover:border-volt/30 transition-colors group ${
+              className={`card block relative overflow-hidden hover:border-volt/30 transition-colors group h-56 md:h-64 ${
                 pendingForThis > 0 ? 'ring-1 ring-wallet/40' : ''
               }`}
             >
-              {/* Header strip: title + meta */}
-              <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3">
+              {heroPhoto ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={heroPhoto}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                  />
+                  {/* Strong bottom gradient for legibility */}
+                  <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-noir via-noir/85 to-transparent pointer-events-none" />
+                </>
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-iron via-carbon to-noir" />
+              )}
+
+              {/* Top-right pills only when meaningful — kept minimal */}
+              {(isShared || pendingForThis > 0) && (
+                <div className="absolute top-3 right-3 flex gap-2">
+                  {pendingForThis > 0 && (
+                    <span className="text-[10px] tracking-widest uppercase bg-wallet/90 text-noir px-2 py-1 rounded-pill font-semibold backdrop-blur-sm">
+                      {pendingForThis} pending
+                    </span>
+                  )}
+                  {isShared && (
+                    <span className="text-[10px] tracking-widest uppercase bg-noir/70 text-chalk px-2 py-1 rounded-pill font-medium backdrop-blur-sm">
+                      Shared
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Bottom-left composition — title + plate, with odometer in corner */}
+              <div className="absolute inset-x-0 bottom-0 p-5 flex items-end justify-between gap-4">
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-base font-semibold text-chalk truncate tracking-tight">
+                  <h2 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter truncate drop-shadow-sm">
                     {title}
                   </h2>
-                  <p className="text-xs text-ash truncate mt-0.5">
-                    {v.plate_emirate && `${v.plate_emirate} · `}
-                    {v.plate_number ? (
-                      <span className="font-mono">{v.plate_number}</span>
-                    ) : (
-                      `${v.make} ${v.model}`
-                    )}
+                  <p className="text-xs text-chalk/70 mt-1 truncate">
+                    {[
+                      v.year && String(v.year),
+                      `${v.make} ${v.model}`,
+                      v.plate_number,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </p>
                 </div>
-                {isShared && (
-                  <span className="text-[10px] tracking-widest uppercase bg-iron/80 text-ash px-2 py-1 rounded-pill font-medium shrink-0">
-                    Shared
-                  </span>
-                )}
-                {pendingForThis > 0 && (
-                  <span className="text-[10px] tracking-widest uppercase bg-wallet/20 text-wallet px-2 py-1 rounded-pill font-medium shrink-0">
-                    {pendingForThis} pending
-                  </span>
-                )}
-              </div>
-
-              {/* Hero photo — full-width, square aspect */}
-              <div className="relative bg-iron aspect-[4/3] overflow-hidden">
-                {heroPhoto ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={heroPhoto}
-                      alt=""
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
-                    />
-                  </>
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="w-16 h-16 mx-auto rounded-pill bg-seam flex items-center justify-center">
-                        <svg
-                          width="28"
-                          height="28"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          className="text-ash"
-                          aria-hidden
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M3 13l1.66-4.97A2 2 0 016.55 6.5h10.9a2 2 0 011.89 1.53L21 13M5 13h14M7 17h.01M17 17h.01M5 13v4a1 1 0 001 1h12a1 1 0 001-1v-4"
-                          />
-                        </svg>
-                      </div>
-                      <p className="text-xs text-ash mt-3 tracking-widest uppercase">
-                        No photo yet
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Caption strip: stats */}
-              <div className="px-4 py-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 flex-wrap min-w-0">
-                  {v.year && (
-                    <span className="text-xs text-ash">{v.year}</span>
-                  )}
-                  {v.color && (
-                    <>
-                      {v.year && <span className="text-seam">·</span>}
-                      <span className="text-xs text-ash truncate">{v.color}</span>
-                    </>
-                  )}
-                </div>
                 <div className="text-right shrink-0">
-                  <span className="font-mono text-base font-semibold text-chalk tabular-nums">
+                  <p className="font-mono text-xl md:text-2xl font-semibold text-chalk tabular-nums tracking-tight drop-shadow-sm">
                     {v.current_odometer?.toLocaleString() ?? '—'}
-                  </span>
-                  <span className="text-[10px] tracking-widest uppercase text-ash ml-1">
+                  </p>
+                  <p className="text-[10px] tracking-widest uppercase text-chalk/60 mt-0.5">
                     km
-                  </span>
+                  </p>
                 </div>
               </div>
             </Link>
