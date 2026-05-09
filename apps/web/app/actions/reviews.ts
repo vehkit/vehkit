@@ -34,14 +34,17 @@ export async function submitReview(formData: FormData) {
     redirect(`/vehicles/${vehicleId}?error=Invalid+rating`)
   }
 
-  // Look up the service record to get workshop_id
+  // Look up the service record. workshop_id may be null when the record
+  // was logged for a freetext workshop (walk-in shop with no Vehkit
+  // org). The review still attaches via service_record_id; it just
+  // doesn't roll up to a specific workshop's aggregate score.
   const { data: record } = await supabase
     .from('service_records')
     .select('id, workshop_id, vehicle_id, attestation')
     .eq('id', recordId)
     .single()
 
-  if (!record || record.attestation !== 'workshop' || !record.workshop_id) {
+  if (!record || record.attestation !== 'workshop') {
     redirect(`/vehicles/${vehicleId}?error=Cannot+review+this+entry`)
   }
 
@@ -51,7 +54,7 @@ export async function submitReview(formData: FormData) {
     .upsert(
       {
         service_record_id: recordId,
-        workshop_id: record.workshop_id,
+        workshop_id: record.workshop_id, // may be null — schema allows it
         vehicle_id: vehicleId,
         rating,
         quality_rating: qualityRating,
