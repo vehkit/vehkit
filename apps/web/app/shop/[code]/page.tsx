@@ -76,58 +76,75 @@ export default async function ShopLogPage({
   const heroName =
     preview.vehicle_nickname ?? `${preview.vehicle_make} ${preview.vehicle_model}`
 
+  // Initials for avatar-style indicator
+  const initials = heroName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s.charAt(0).toUpperCase())
+    .join('') || '·'
+
   return (
     <main className="min-h-[100svh] pb-32">
-      <div className="max-w-xl mx-auto px-6 pt-10">
+      <div className="max-w-xl mx-auto px-6 pt-6">
         <Link href="/shop" className="nav-pill hover:text-chalk transition-colors">
           ← Re-enter code
         </Link>
 
-        <div className="mt-6">
-          <p className="nav-pill">Verified entry</p>
-          <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-2">
-            {heroName}
-          </h1>
-          <p className="text-ash mt-1">
-            {[
-              preview.vehicle_year,
-              preview.vehicle_make,
-              preview.vehicle_model,
-              preview.vehicle_color,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </p>
-          {(preview.vehicle_plate_emirate || preview.vehicle_plate_number) && (
-            <div className="mt-3 inline-flex items-center gap-2 bg-iron border border-seam rounded-DEFAULT px-3 py-1.5">
-              {preview.vehicle_plate_emirate && (
-                <span className="text-xs uppercase tracking-wider text-ash">
-                  {preview.vehicle_plate_emirate}
-                </span>
-              )}
-              {preview.vehicle_plate_emirate && preview.vehicle_plate_number && (
-                <span className="text-seam">·</span>
-              )}
-              {preview.vehicle_plate_number && (
-                <span className="font-mono text-sm text-chalk">
-                  {preview.vehicle_plate_number}
-                </span>
-              )}
+        {/* Vehicle preview card — compact, matches /mycars hero typography */}
+        <div className="card p-4 mt-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-pill bg-volt/15 text-volt flex items-center justify-center shrink-0 font-mono text-sm font-semibold tracking-tighter">
+              {initials}
             </div>
-          )}
-          <p className="text-xs text-ash mt-3">
-            Code expires in <span className="font-mono text-chalk">{expiresMin} min</span> · single
-            use
-          </p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] tracking-widest uppercase text-volt font-medium">
+                  ✓ Verified entry
+                </p>
+              </div>
+              <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter truncate mt-0.5">
+                {heroName}
+              </h1>
+              <p className="text-xs text-ash truncate mt-0.5">
+                {[
+                  preview.vehicle_year && String(preview.vehicle_year),
+                  `${preview.vehicle_make} ${preview.vehicle_model}`,
+                  preview.vehicle_color,
+                  preview.vehicle_plate_emirate && preview.vehicle_plate_number
+                    ? `${preview.vehicle_plate_emirate} · ${preview.vehicle_plate_number}`
+                    : preview.vehicle_plate_number,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-seam flex items-center justify-between text-[11px]">
+            <span className="text-ash">
+              Expires in <span className="font-mono text-chalk">{expiresMin}m</span>
+            </span>
+            <span className="text-ash tracking-widest uppercase">Single use</span>
+          </div>
         </div>
 
         {errorMsg && (
-          <div className="mt-6 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">
+          <div className="mt-4 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">
             {decodeURIComponent(errorMsg)}
           </div>
         )}
 
-        <form action={logServiceViaCode} className="mt-8 space-y-4" id="shop-form">
+        {/* Tab divider — matches /vehicles/[id] and /w/[slug] section pattern */}
+        <div className="mt-6 border-t border-seam">
+          <div className="flex justify-center">
+            <div className="px-4 py-3 -mt-px border-t-2 border-chalk text-xs tracking-widest uppercase text-chalk font-medium">
+              Log service
+            </div>
+          </div>
+        </div>
+
+        <form action={logServiceViaCode} className="mt-4 space-y-4" id="shop-form">
           <input type="hidden" name="code" value={code} />
 
           <Field
@@ -198,10 +215,9 @@ export default async function ShopLogPage({
             />
           </div>
 
-          <p className="text-xs text-ash leading-relaxed pt-2">
-            By submitting, you confirm you performed this service. The entry will be marked as
-            <span className="text-volt"> ✓ Verified by workshop </span>
-            on the customer's record.
+          <p className="text-[11px] text-ash/80 leading-relaxed pt-1">
+            Submitting marks this as <span className="text-volt">✓ Verified by workshop</span> on
+            the customer's record.
           </p>
         </form>
       </div>
