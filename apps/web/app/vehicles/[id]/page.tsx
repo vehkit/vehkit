@@ -105,23 +105,23 @@ export default async function VehiclePage({
           </HeroPhotoUpload>
         </div>
 
-        {/* Action row — compact pills, no card wrapper */}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <ShareSheet vehicleId={id} baseUrl={baseUrl} />
-          <WorkshopCodeSheet vehicleId={id} />
-          <FamilyShareSheet vehicleId={id} baseUrl={baseUrl} />
-          <Link href={`/vehicles/${id}/edit`} className="pill-outline text-sm">
-            Edit
-          </Link>
-          {vehicle.vin && (
-            <span
-              className="pill-outline text-xs font-mono text-ash select-all"
-              title="VIN"
-            >
-              VIN: {vehicle.vin}
-            </span>
-          )}
+        {/* Action strip — compact horizontal row, single line, scrollable on mobile */}
+        <div className="mt-4 -mx-6 px-6 overflow-x-auto">
+          <div className="flex gap-2 min-w-max">
+            <ShareSheet vehicleId={id} baseUrl={baseUrl} />
+            <WorkshopCodeSheet vehicleId={id} />
+            <FamilyShareSheet vehicleId={id} baseUrl={baseUrl} />
+            <Link href={`/vehicles/${id}/edit`} className="pill-outline text-sm whitespace-nowrap">
+              Edit
+            </Link>
+          </div>
         </div>
+
+        {vehicle.vin && (
+          <p className="text-[10px] tracking-widest uppercase text-ash/60 mt-3 font-mono">
+            VIN <span className="text-ash">{vehicle.vin}</span>
+          </p>
+        )}
 
         {/* Reminders banner */}
         {dueReminders.length > 0 && (
@@ -195,14 +195,14 @@ export default async function VehiclePage({
         )}
 
         {/* Feed */}
-        <section className="mt-10">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="nav-pill">Service feed</h2>
-            {records && records.length > 0 && (
-              <p className="nav-pill text-[10px]">
-                {records.length} {records.length === 1 ? 'entry' : 'entries'}
-              </p>
-            )}
+        <section className="mt-8">
+          {/* Tab-bar divider — Instagram profile section style */}
+          <div className="border-t border-seam">
+            <div className="flex justify-center">
+              <div className="px-4 py-3 -mt-px border-t-2 border-chalk text-xs tracking-widest uppercase text-chalk font-medium">
+                Service feed{records && records.length > 0 && ` · ${records.length}`}
+              </div>
+            </div>
           </div>
 
           {records && records.length > 0 ? (
@@ -355,16 +355,33 @@ export default async function VehiclePage({
               })}
             </ol>
           ) : (
-            <div className="card p-10 text-center">
-              <p className="text-chalk font-medium">No service records yet.</p>
-              <p className="text-sm text-ash mt-2 mb-6">
+            <div className="py-16 text-center">
+              <div className="w-14 h-14 mx-auto rounded-pill border border-seam flex items-center justify-center">
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="text-ash"
+                  aria-hidden
+                >
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+              </div>
+              <h3 className="text-base font-semibold text-chalk mt-4">No services yet</h3>
+              <p className="text-sm text-ash mt-1 mb-6">
                 Log your first service to start the timeline.
               </p>
               <Link
                 href={`/vehicles/${id}/service/new`}
-                className="pill-primary inline-flex items-center"
+                className="text-sm tracking-wide text-volt font-medium hover:underline"
               >
-                Add service record
+                Add service record →
               </Link>
             </div>
           )}
