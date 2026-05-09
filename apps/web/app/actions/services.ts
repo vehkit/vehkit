@@ -214,15 +214,23 @@ export async function confirmServiceRecord(formData: FormData) {
     redirect(`/vehicles/${vehicleId}?error=Not+allowed`)
   }
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('service_records')
     .update({ confirmed_at: new Date().toISOString() })
     .eq('id', id)
     .eq('vehicle_id', vehicleId)
+    .select('id')
 
   if (error) {
     redirect(
       `/vehicles/${vehicleId}?error=${encodeURIComponent(`Confirm failed: ${error.message}`)}`
+    )
+  }
+  if (!updated || updated.length === 0) {
+    // RLS rejected the update silently — almost always because the caller
+    // isn't the vehicle owner. Surface it cleanly.
+    redirect(
+      `/vehicles/${vehicleId}?error=${encodeURIComponent('Only the vehicle owner can confirm entries.')}`
     )
   }
 

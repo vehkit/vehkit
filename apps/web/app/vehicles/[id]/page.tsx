@@ -68,6 +68,10 @@ export default async function VehiclePage({
   const records = recordsRes.data
   const reminders = remindersRes.data
 
+  // Only the actual vehicle owner can confirm/retract entries.
+  // Workshop members viewing serviced cars get read-only access.
+  const isOwner = vehicle.owner_id === user.id
+
   const dueReminders = (reminders ?? []).filter((r: ReminderRow) => {
     const s = reminderStatus(r, vehicle.current_odometer)
     return s === 'overdue' || s === 'due_soon'
@@ -341,15 +345,15 @@ export default async function VehiclePage({
                         </div>
                       )}
 
-                      {/* Action footer */}
+                      {/* Action footer — owner-only actions */}
                       <div className="pt-3 border-t border-seam flex gap-2 flex-wrap items-center">
-                        {isPending && (
+                        {isOwner && isPending && (
                           <>
                             <ConfirmButton recordId={r.id} vehicleId={id} />
                             <RetractButton recordId={r.id} vehicleId={id} />
                           </>
                         )}
-                        {r.attestation !== 'workshop' && (
+                        {isOwner && r.attestation !== 'workshop' && (
                           <>
                             <Link
                               href={`/vehicles/${id}/service/${r.id}/edit`}
@@ -360,7 +364,12 @@ export default async function VehiclePage({
                             <DeleteButton recordId={r.id} vehicleId={id} />
                           </>
                         )}
-                        {r.attestation === 'workshop' && !isPending && (
+                        {!isOwner && isPending && (
+                          <p className="text-[10px] tracking-widest uppercase text-ash">
+                            Awaiting owner confirmation
+                          </p>
+                        )}
+                        {isOwner && r.attestation === 'workshop' && !isPending && (
                           <ReviewForm
                             recordId={r.id}
                             vehicleId={id}
