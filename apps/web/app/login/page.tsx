@@ -103,6 +103,13 @@ function contextLabel(next: string): {
       sub: "We'll email you a one-time link. Lands you straight on your dashboard.",
     }
   }
+  if (next === '/agent' || next.startsWith('/agent/') || next === '/a' || next.startsWith('/a?')) {
+    return {
+      eyebrow: 'Agent sign-in',
+      heading: 'Sign in to your agent desk',
+      sub: 'Insurance brokers, fleet desks, leasing operators. One-time link, no password.',
+    }
+  }
   if (next === '/admin' || next.startsWith('/admin/')) {
     return {
       eyebrow: 'Admin',
