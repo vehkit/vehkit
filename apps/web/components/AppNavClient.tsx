@@ -65,6 +65,23 @@ export function AppNavClient({
   if (pathname.startsWith('/admin')) {
     return null
   }
+  // Marketing landing has its own header.
+  if (pathname === '/') {
+    return null
+  }
+  // Public anonymous flows (shop redemption, share/passport, invite accept) have
+  // their own minimal chrome and don't need the consumer tabs.
+  if (
+    pathname === '/shop' ||
+    pathname.startsWith('/shop/') ||
+    pathname.startsWith('/r/') ||
+    pathname.startsWith('/a/') ||
+    pathname.startsWith('/f/') ||
+    pathname === '/privacy' ||
+    pathname === '/terms'
+  ) {
+    return null
+  }
 
   return (
     <>

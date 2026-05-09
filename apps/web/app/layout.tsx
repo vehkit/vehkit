@@ -10,14 +10,48 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Vehkit — Every car deserves a passport.',
+  title: {
+    default: 'Vehkit — Every car deserves a passport.',
+    template: '%s · Vehkit',
+  },
   description:
-    'A permanent, owner-controlled record of every service, repair, and upgrade across every car you own.',
+    'Verified service records for every car you own. Owner-controlled, workshop-attested, immutable. Built for the UAE.',
   metadataBase: new URL('https://vehkit.com'),
+  applicationName: 'Vehkit',
+  authors: [{ name: 'Vehkit', url: 'https://vehkit.com' }],
+  keywords: [
+    'vehicle service history',
+    'car service log',
+    'UAE car records',
+    'workshop verification',
+    'vehicle passport',
+    'resale report',
+    'car maintenance app',
+    'Dubai car app',
+  ],
   openGraph: {
-    title: 'Vehkit',
-    description: 'Every car deserves a passport.',
+    title: 'Vehkit — Every car deserves a passport.',
+    description:
+      'Verified service records for every car you own. Owner-controlled, workshop-attested, immutable.',
     type: 'website',
+    url: 'https://vehkit.com',
+    siteName: 'Vehkit',
+    locale: 'en_AE',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Vehkit — Every car deserves a passport.',
+    description:
+      'Verified service records for every car you own. Owner-controlled, workshop-attested, immutable.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+    },
   },
   appleWebApp: {
     capable: true,
