@@ -452,7 +452,7 @@ async function createVehicles(owners: { id: string; full_name: string }[]) {
         plate_emirate: v.plate_emirate,
         nickname: v.nickname,
         current_odometer: v.current_odometer,
-        fuel_type: v.fuel_type,
+        current_odometer_at: new Date().toISOString(),
         hero_image_url: hero,
         allow_workshop_outreach: Math.random() > 0.6, // ~40% opt in
       })
@@ -460,13 +460,16 @@ async function createVehicles(owners: { id: string; full_name: string }[]) {
       .single()
 
     if (error || !vehicle) {
-      console.error('  ✗ vehicle', v.make, v.model, error)
+      console.error('  ✗ vehicle', v.make, v.model, JSON.stringify(error))
       continue
     }
     created.push(vehicle)
   }
 
-  console.log(`  ${created.length} vehicles`)
+  console.log(`  ${created.length} vehicles created`)
+  if (created.length === 0) {
+    throw new Error('No vehicles were created — aborting before downstream chaos.')
+  }
   return created
 }
 
