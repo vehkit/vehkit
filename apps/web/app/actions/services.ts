@@ -192,6 +192,11 @@ export async function updateServiceRecord(formData: FormData) {
  * Owner confirms a workshop entry early — locks it before the 24h window
  * and immediately routes back to the vehicle page with a query param that
  * auto-opens the review form. Zero-friction trust loop close.
+ *
+ * Calls a SECURITY DEFINER RPC because the standard owner_updates_own_records
+ * RLS policy excludes workshop attestations (by design — owners shouldn't
+ * mutate workshop fields directly). The RPC validates ownership server-side
+ * and writes only confirmed_at.
  */
 export async function confirmServiceRecord(formData: FormData) {
   const id = strOrNull(formData.get('id'))
@@ -204,34 +209,13 @@ export async function confirmServiceRecord(formData: FormData) {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Verify the user owns this vehicle (defense in depth — RLS also blocks)
-  const { data: vehicle } = await supabase
-    .from('vehicles')
-    .select('owner_id')
-    .eq('id', vehicleId)
-    .single()
-  if (!vehicle || vehicle.owner_id !== user.id) {
-    redirect(`/vehicles/${vehicleId}?error=Not+allowed`)
-  }
-
-  const { data: updated, error } = await supabase
-    .from('service_records')
-    .update({ confirmed_at: new Date().toISOString() })
-    .eq('id', id)
-    .eq('vehicle_id', vehicleId)
-    .select('id')
+  const { error } = await supabase.rpc('confirm_service_record', {
+    p_record_id: id,
+  })
 
   if (error) {
-    redirect(
-      `/vehicles/${vehicleId}?error=${encodeURIComponent(`Confirm failed: ${error.message}`)}`
-    )
-  }
-  if (!updated || updated.length === 0) {
-    // RLS rejected the update silently — almost always because the caller
-    // isn't the vehicle owner. Surface it cleanly.
-    redirect(
-      `/vehicles/${vehicleId}?error=${encodeURIComponent('Only the vehicle owner can confirm entries.')}`
-    )
+    const msg = friendlyDecisionError(error.message, 'confirm')
+    redirect(`/vehicles/${vehicleId}?error=${encodeURIComponent(msg)}`)
   }
 
   revalidatePath(`/vehicles/${vehicleId}`)
@@ -258,10 +242,10 @@ export async function deleteServiceRecord(formData: FormData) {
 }
 
 /**
- * Owner retracts a pending workshop entry.
+ * Owner retracts (soft-rejects) a pending workshop entry.
  *
- * Soft-retract: we DON'T delete the row — we set rejected_at. The record
- * stays so:
+ * Soft-retract: we DON'T delete the row — the RPC sets rejected_at. The
+ * record stays so:
  *   1. We preserve the audit trail (workshop attempted to log this)
  *   2. The owner can immediately leave a workshop review explaining why
  *      (workshop_reviews.service_record_id is NOT NULL — needs the row)
@@ -281,36 +265,41 @@ export async function retractServiceRecord(formData: FormData) {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Defense in depth — RLS also enforces this
-  const { data: vehicle } = await supabase
-    .from('vehicles')
-    .select('owner_id')
-    .eq('id', vehicleId)
-    .single()
-  if (!vehicle || vehicle.owner_id !== user.id) {
-    redirect(`/vehicles/${vehicleId}?error=Not+allowed`)
-  }
-
-  const { data: updated, error } = await supabase
-    .from('service_records')
-    .update({ rejected_at: new Date().toISOString() })
-    .eq('id', id)
-    .eq('vehicle_id', vehicleId)
-    .is('confirmed_at', null) // can only retract un-confirmed entries
-    .select('id')
+  const { error } = await supabase.rpc('reject_service_record', {
+    p_record_id: id,
+  })
 
   if (error) {
-    redirect(
-      `/vehicles/${vehicleId}?error=${encodeURIComponent(`Retract failed: ${error.message}`)}`
-    )
-  }
-  if (!updated || updated.length === 0) {
-    redirect(
-      `/vehicles/${vehicleId}?error=${encodeURIComponent('Only the vehicle owner can retract pending entries.')}`
-    )
+    const msg = friendlyDecisionError(error.message, 'reject')
+    redirect(`/vehicles/${vehicleId}?error=${encodeURIComponent(msg)}`)
   }
 
   revalidatePath(`/vehicles/${vehicleId}`)
   revalidatePath('/notifications')
   redirect(`/vehicles/${vehicleId}?review=${id}#review-${id}`)
+}
+
+/**
+ * Translate the structured exception codes from the decision RPCs into
+ * user-friendly copy. The DB raises stable strings like 'not_vehicle_owner'
+ * which we map here so the UI doesn't leak SQL error chatter.
+ */
+function friendlyDecisionError(
+  raw: string,
+  verb: 'confirm' | 'reject',
+): string {
+  if (raw.includes('not_authenticated')) return 'Please sign in again.'
+  if (raw.includes('record_not_found')) return 'That entry no longer exists.'
+  if (raw.includes('not_vehicle_owner')) {
+    return verb === 'confirm'
+      ? 'Only the vehicle owner can confirm entries.'
+      : 'Only the vehicle owner can reject entries.'
+  }
+  if (raw.includes('not_workshop_record')) {
+    return 'This entry is not a workshop submission.'
+  }
+  if (raw.includes('already_confirmed')) {
+    return 'This entry has already been confirmed and can no longer be rejected.'
+  }
+  return `${verb === 'confirm' ? 'Confirm' : 'Reject'} failed: ${raw}`
 }
