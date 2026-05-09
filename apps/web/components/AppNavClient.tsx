@@ -56,6 +56,16 @@ export function AppNavClient({
   const pathname = usePathname() ?? ''
   const initials = getInitials(fullName, email)
 
+  // Workshop portal has its own nav. Hide consumer nav on /workshop/* routes.
+  // Note: /workshops (plural) is the consumer-facing public directory and KEEPS this nav.
+  if (pathname === '/workshop' || pathname.startsWith('/workshop/')) {
+    return null
+  }
+  // Admin portal also has its own nav.
+  if (pathname.startsWith('/admin')) {
+    return null
+  }
+
   return (
     <>
       {/* Desktop top nav */}

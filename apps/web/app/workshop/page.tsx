@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { TradeLicenseUpload } from '@/components/TradeLicenseUpload'
 import { StarRating } from '@/components/StarRating'
 
 export const dynamic = 'force-dynamic'
@@ -175,32 +174,26 @@ export default async function WorkshopDashboardPage() {
         : 'text-ash'
 
   return (
-    <main className="min-h-[100svh] pb-24">
-      <div className="max-w-5xl mx-auto px-6">
-        <header className="pt-8 pb-6 flex items-end justify-between gap-4 flex-wrap">
-          <div className="min-w-0">
-            <p className="text-[10px] tracking-widest uppercase text-ash">Workshop</p>
-            <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter mt-1 truncate">
-              {workshop.name}
-            </h1>
-            <p className="text-sm mt-1 flex items-center gap-2 flex-wrap">
-              <span className={`uppercase tracking-wider text-xs font-medium ${tierTone}`}>
-                {tierLabel}
+    <main className="max-w-5xl mx-auto px-6 pt-6 pb-12">
+      <header className="pb-6">
+        <p className="text-[10px] tracking-widest uppercase text-ash">Workshop · Dashboard</p>
+        <div className="flex items-end justify-between gap-3 flex-wrap mt-1">
+          <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter">
+            {workshop.name}
+          </h1>
+          <p className="text-xs flex items-center gap-2 flex-wrap">
+            <span className={`uppercase tracking-wider font-medium ${tierTone}`}>
+              {tierLabel}
+            </span>
+            {workshop.emirate && <span className="text-ash">· {workshop.emirate}</span>}
+            {stats?.directory_rank && stats.directory_total && (
+              <span className="text-ash">
+                · #{stats.directory_rank}/{stats.directory_total} in {workshop.emirate}
               </span>
-              {workshop.emirate && <span className="text-ash">· {workshop.emirate}</span>}
-              {stats?.directory_rank && stats.directory_total && (
-                <span className="text-ash">
-                  · #{stats.directory_rank}/{stats.directory_total} in {workshop.emirate}
-                </span>
-              )}
-            </p>
-          </div>
-          <form action="/auth/signout" method="post">
-            <button className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors">
-              Sign out
-            </button>
-          </form>
-        </header>
+            )}
+          </p>
+        </div>
+      </header>
 
         {/* Top KPIs — 4 columns */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -257,18 +250,6 @@ export default async function WorkshopDashboardPage() {
                 ? `${stats.overdue_on_serviced} overdue`
                 : 'on serviced cars'
             }
-          />
-        </section>
-
-        {/* Quick links */}
-        <section className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4">
-          <QuickLink href="/workshop/customers" label="Customers" hint={`${stats?.unique_cars ?? 0} vehicles`} />
-          <QuickLink href="/shop" label="Log entry" hint="Enter code" />
-          <QuickLink
-            href={`/w/${workshop.slug}`}
-            label="Public profile"
-            hint={`/w/${workshop.slug}`}
-            mono
           />
         </section>
 
@@ -527,15 +508,14 @@ export default async function WorkshopDashboardPage() {
           </div>
         </section>
 
-        {/* Trade license panel */}
-        <section className="mt-6">
-          <TradeLicenseUpload
-            workshopId={workshop.id}
-            hasLicense={!!workshop.trade_license_url}
-            currentTier={workshop.verification_tier}
-          />
-        </section>
-      </div>
+        {/* Footer hint to settings */}
+        <p className="text-[11px] text-ash text-center mt-8">
+          Update workshop info, license, and contact in{' '}
+          <Link href="/workshop/settings" className="text-volt hover:underline">
+            Settings
+          </Link>
+          .
+        </p>
     </main>
   )
 }
@@ -588,35 +568,6 @@ function Stat({
         </p>
       )}
     </div>
-  )
-}
-
-function QuickLink({
-  href,
-  label,
-  hint,
-  mono,
-}: {
-  href: string
-  label: string
-  hint: string
-  mono?: boolean
-}) {
-  return (
-    <Link
-      href={href}
-      className="card px-4 py-3 hover:border-volt/30 transition-colors flex items-center justify-between"
-    >
-      <div className="min-w-0">
-        <p className="text-[10px] tracking-widest uppercase text-ash">{label}</p>
-        <p
-          className={`text-sm text-chalk font-medium mt-0.5 truncate ${mono ? 'font-mono' : ''}`}
-        >
-          {hint}
-        </p>
-      </div>
-      <span className="text-ash text-xs ml-2">→</span>
-    </Link>
   )
 }
 
