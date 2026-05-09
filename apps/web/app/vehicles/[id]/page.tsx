@@ -458,55 +458,43 @@ export default async function VehiclePage({
                   .map((w: string) => w.charAt(0).toUpperCase())
                   .join('') || '·'
                 return (
-                  <li key={r.id} className="card overflow-hidden">
-                    {/* Post header — workshop avatar + name + status */}
-                    <div className="px-4 pt-3 pb-3 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div
-                          className={`w-10 h-10 rounded-pill flex items-center justify-center shrink-0 font-mono text-xs font-semibold ${
-                            r.attestation === 'workshop'
-                              ? isPending
-                                ? 'bg-wallet/20 text-wallet'
-                                : 'bg-volt/20 text-volt'
-                              : 'bg-iron text-ash'
-                          }`}
-                        >
-                          {initials}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-chalk truncate">
+                  <li key={r.id} className="card p-5">
+                    {/* Compact header — same shape as the Most-frequent workshop card */}
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`w-12 h-12 rounded-pill flex items-center justify-center shrink-0 font-mono text-sm font-semibold tracking-tighter ${
+                          r.attestation === 'workshop'
+                            ? isPending
+                              ? 'bg-wallet/20 text-wallet'
+                              : 'bg-volt/20 text-volt'
+                            : 'bg-iron text-ash'
+                        }`}
+                      >
+                        {initials}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-base font-semibold text-chalk truncate">
                             {workshopName}
                           </p>
-                          <p className="text-xs text-ash">
-                            {relativeDate(r.service_date)}
-                          </p>
+                          {r.attestation === 'workshop' && isPending && (
+                            <span className="text-[10px] tracking-widest uppercase bg-wallet/15 text-wallet px-2 py-0.5 rounded-pill font-medium shrink-0">
+                              Pending · {hoursLeft}h
+                            </span>
+                          )}
+                          {r.attestation === 'workshop' && !isPending && (
+                            <span className="text-[10px] tracking-widest uppercase text-volt shrink-0">
+                              ✓
+                            </span>
+                          )}
+                          {r.attestation === 'receipt' && (
+                            <span className="text-[10px] tracking-widest uppercase text-ash shrink-0">
+                              Receipt
+                            </span>
+                          )}
                         </div>
-                      </div>
-                      {r.attestation === 'workshop' && isPending && (
-                        <span className="text-[10px] tracking-wider uppercase bg-wallet/15 text-wallet px-2 py-1 rounded-pill font-medium shrink-0">
-                          Pending · {hoursLeft}h
-                        </span>
-                      )}
-                      {r.attestation === 'workshop' && !isPending && (
-                        <span className="text-[10px] tracking-wider uppercase bg-volt/15 text-volt px-2 py-1 rounded-pill font-medium shrink-0">
-                          ✓ Verified
-                        </span>
-                      )}
-                      {r.attestation === 'receipt' && (
-                        <span className="text-[10px] tracking-wider uppercase bg-iron text-ash px-2 py-1 rounded-pill font-medium shrink-0">
-                          Receipt
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Photos full-bleed (Instagram style) */}
-                    {photos.length > 0 && <PhotoLightbox photos={photos} />}
-
-                    {/* Caption body */}
-                    <div className="px-4 pt-3 pb-4 space-y-3">
-                      <div>
-                        <p className="text-base text-chalk leading-snug">
-                          <span className="font-semibold">{humanize(r.service_type)}</span>
+                        <p className="text-xs text-ash mt-0.5 truncate">
+                          <span className="text-chalk">{humanize(r.service_type)}</span>
                           {r.cost_aed != null && (
                             <>
                               {' · '}
@@ -518,35 +506,45 @@ export default async function VehiclePage({
                           {r.odometer != null && (
                             <>
                               {' · '}
-                              <span className="font-mono tabular-nums text-ash">
+                              <span className="font-mono tabular-nums">
                                 {r.odometer.toLocaleString()} km
                               </span>
                             </>
                           )}
+                          {' · '}
+                          {relativeDate(r.service_date)}
                         </p>
                       </div>
+                    </div>
 
-                      {/* Notes */}
-                      {r.notes && (
-                        <p className="text-sm text-chalk/85 leading-relaxed whitespace-pre-wrap">
-                          {r.notes}
-                        </p>
-                      )}
+                    {/* Photos thumbnail strip (when present) */}
+                    {photos.length > 0 && (
+                      <div className="mt-3 -mx-1">
+                        <PhotoLightbox photos={photos} />
+                      </div>
+                    )}
 
-                      {/* Existing review */}
-                      {review && (
-                        <div className="pt-3 border-t border-seam flex items-start gap-3 flex-wrap">
-                          <StarRating rating={review.rating} />
-                          {review.comment && (
-                            <span className="text-sm text-ash italic flex-1 min-w-0">
-                              "{review.comment}"
-                            </span>
-                          )}
-                        </div>
-                      )}
+                    {/* Notes — clamped, only when present */}
+                    {r.notes && (
+                      <p className="text-xs text-ash/85 leading-relaxed mt-3 italic line-clamp-2">
+                        "{r.notes}"
+                      </p>
+                    )}
 
-                      {/* Action footer — owner-only actions */}
-                      <div className="pt-3 border-t border-seam flex gap-2 flex-wrap items-center">
+                    {/* Existing review — compact line */}
+                    {review && (
+                      <div className="flex items-center gap-2 mt-3">
+                        <StarRating rating={review.rating} size="sm" />
+                        {review.comment && (
+                          <span className="text-xs text-ash italic truncate">
+                            "{review.comment}"
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Action footer — owner-only actions */}
+                    <div className="flex gap-2 flex-wrap items-center mt-3">
                         {isOwner && isPending && (
                           <>
                             <ConfirmButton recordId={r.id} vehicleId={id} />
@@ -582,7 +580,6 @@ export default async function VehiclePage({
                           />
                         )}
                       </div>
-                    </div>
                   </li>
                 )
               })}
