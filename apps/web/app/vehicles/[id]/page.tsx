@@ -3,22 +3,14 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { deleteVehicle } from '@/app/actions/vehicles'
-import { deleteServiceRecord } from '@/app/actions/services'
-import {
-  ConfirmButton,
-  RetractButton,
-  DeleteButton,
-} from '@/components/ServiceRecordActions'
 import { snoozeReminder, completeReminder } from '@/app/actions/reminders'
 import { ShareSheet } from '@/components/ShareSheet'
 import { WorkshopCodeSheet } from '@/components/WorkshopCodeSheet'
 import { FamilyShareSheet } from '@/components/FamilyShareSheet'
-import { PhotoLightbox } from '@/components/PhotoLightbox'
-import { ReviewForm } from '@/components/ReviewForm'
-import { StarRating } from '@/components/StarRating'
 import { VehicleScoreChip } from '@/components/VehicleScore'
 import { ScrollAwareHeader } from '@/components/ScrollAwareHeader'
 import { VehicleHero } from '@/components/VehicleHero'
+import { ServiceRecordRow } from '@/components/ServiceRecordRow'
 import {
   reminderStatus,
   reminderLabel,
@@ -419,154 +411,15 @@ export default async function VehiclePage({
 
           {records && records.length > 0 ? (
             <ol className="space-y-5">
-              {records.map((r) => {
-                const photos = (r.service_files ?? [])
-                  .map((f: { storage_path: string }) => f.storage_path)
-                  .filter(Boolean)
-                const ageMs = Date.now() - new Date(r.created_at).getTime()
-                const isConfirmed = !!r.confirmed_at
-                const isPending =
-                  r.attestation === 'workshop' &&
-                  !isConfirmed &&
-                  ageMs < 24 * 60 * 60 * 1000
-                const hoursLeft = isPending
-                  ? Math.max(1, Math.ceil((24 * 60 * 60 * 1000 - ageMs) / (60 * 60 * 1000)))
-                  : 0
-                const autoOpenReview = autoReviewRecordId === r.id
-                const review = r.workshop_reviews?.[0]
-                const workshopName = r.workshop_name_freetext || 'Owner-logged'
-                const initials = workshopName
-                  .split(/\s+/)
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .map((w: string) => w.charAt(0).toUpperCase())
-                  .join('') || '·'
-                return (
-                  <li key={r.id} className="card p-5">
-                    {/* Compact header — same shape as the Most-frequent workshop card */}
-                    <div className="flex items-center gap-4">
-                      <div
-                        className={`w-12 h-12 rounded-pill flex items-center justify-center shrink-0 font-mono text-sm font-semibold tracking-tighter ${
-                          r.attestation === 'workshop'
-                            ? isPending
-                              ? 'bg-wallet/20 text-wallet'
-                              : 'bg-volt/20 text-volt'
-                            : 'bg-iron text-ash'
-                        }`}
-                      >
-                        {initials}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-base font-semibold text-chalk truncate">
-                            {workshopName}
-                          </p>
-                          {r.attestation === 'workshop' && isPending && (
-                            <span className="text-[10px] tracking-widest uppercase bg-wallet/15 text-wallet px-2 py-0.5 rounded-pill font-medium shrink-0">
-                              Pending · {hoursLeft}h
-                            </span>
-                          )}
-                          {r.attestation === 'workshop' && !isPending && (
-                            <span className="text-[10px] tracking-widest uppercase text-volt shrink-0">
-                              ✓
-                            </span>
-                          )}
-                          {r.attestation === 'receipt' && (
-                            <span className="text-[10px] tracking-widest uppercase text-ash shrink-0">
-                              Receipt
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-ash mt-0.5 truncate">
-                          <span className="text-chalk">{humanize(r.service_type)}</span>
-                          {r.cost_aed != null && (
-                            <>
-                              {' · '}
-                              <span className="font-mono tabular-nums">
-                                AED {Number(r.cost_aed).toLocaleString()}
-                              </span>
-                            </>
-                          )}
-                          {r.odometer != null && (
-                            <>
-                              {' · '}
-                              <span className="font-mono tabular-nums">
-                                {r.odometer.toLocaleString()} km
-                              </span>
-                            </>
-                          )}
-                          {' · '}
-                          {relativeDate(r.service_date)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Photos thumbnail strip (when present) */}
-                    {photos.length > 0 && (
-                      <div className="mt-3 -mx-1">
-                        <PhotoLightbox photos={photos} />
-                      </div>
-                    )}
-
-                    {/* Notes — clamped, only when present */}
-                    {r.notes && (
-                      <p className="text-xs text-ash/85 leading-relaxed mt-3 italic line-clamp-2">
-                        "{r.notes}"
-                      </p>
-                    )}
-
-                    {/* Existing review — compact line */}
-                    {review && (
-                      <div className="flex items-center gap-2 mt-3">
-                        <StarRating rating={review.rating} size="sm" />
-                        {review.comment && (
-                          <span className="text-xs text-ash italic truncate">
-                            "{review.comment}"
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Action footer — owner-only actions */}
-                    <div className="flex gap-2 flex-wrap items-center mt-3">
-                        {isOwner && isPending && (
-                          <>
-                            <ConfirmButton recordId={r.id} vehicleId={id} />
-                            <RetractButton recordId={r.id} vehicleId={id} />
-                          </>
-                        )}
-                        {isOwner && r.attestation !== 'workshop' && (
-                          <>
-                            <Link
-                              href={`/vehicles/${id}/service/${r.id}/edit`}
-                              className="inline-flex items-center text-xs tracking-widest uppercase text-ash bg-iron hover:bg-iron/70 px-3.5 py-2 rounded-pill transition-colors"
-                            >
-                              Edit
-                            </Link>
-                            <DeleteButton recordId={r.id} vehicleId={id} />
-                          </>
-                        )}
-                        {!isOwner && isPending && (
-                          <p className="text-[10px] tracking-widest uppercase text-ash">
-                            Awaiting owner confirmation
-                          </p>
-                        )}
-                        {isOwner && r.attestation === 'workshop' && !isPending && (
-                          <ReviewForm
-                            recordId={r.id}
-                            vehicleId={id}
-                            existingRating={review?.rating ?? null}
-                            existingComment={review?.comment ?? null}
-                            existingQuality={review?.quality_rating ?? null}
-                            existingValue={review?.value_rating ?? null}
-                            existingTimeliness={review?.timeliness_rating ?? null}
-                            autoOpen={autoOpenReview}
-                          />
-                        )}
-                      </div>
-                  </li>
-                )
-              })}
+              {records.map((r) => (
+                <ServiceRecordRow
+                  key={r.id}
+                  record={r}
+                  vehicleId={id}
+                  isOwner={isOwner}
+                  autoOpenReview={autoReviewRecordId === r.id}
+                />
+              ))}
             </ol>
           ) : (
             <div className="py-16 text-center">
@@ -638,10 +491,6 @@ export default async function VehiclePage({
       )}
     </main>
   )
-}
-
-function humanize(s: string): string {
-  return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 /**
@@ -871,28 +720,3 @@ function ScoreLine({
   )
 }
 
-function relativeDate(dateStr: string): string {
-  const d = new Date(dateStr)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const target = new Date(d)
-  target.setHours(0, 0, 0, 0)
-  const diffDays = Math.floor((today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24))
-
-  if (diffDays === 0) return 'Today'
-  if (diffDays === 1) return 'Yesterday'
-  if (diffDays < 7) return `${diffDays} days ago`
-  if (diffDays < 30) {
-    const w = Math.floor(diffDays / 7)
-    return `${w} ${w === 1 ? 'week' : 'weeks'} ago`
-  }
-  if (diffDays < 365) {
-    const m = Math.floor(diffDays / 30)
-    return `${m} ${m === 1 ? 'month' : 'months'} ago`
-  }
-  return d.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-}

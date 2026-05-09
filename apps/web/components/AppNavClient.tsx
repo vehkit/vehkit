@@ -99,15 +99,17 @@ export function AppNavClient({
           >
             vehkit
           </Link>
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-1 h-full">
             {TABS.slice(0, 3).map((t) => {
               const active = isPathActive(pathname, t.href)
               return (
                 <Link
                   key={t.href}
                   href={t.href}
-                  className={`relative text-sm px-3 py-1.5 rounded-pill transition-colors flex items-center gap-2 ${
-                    active ? 'text-chalk bg-iron' : 'text-ash hover:text-chalk'
+                  className={`relative text-sm px-4 h-full inline-flex items-center gap-2 transition-colors ${
+                    active
+                      ? 'text-chalk after:content-[""] after:absolute after:left-3 after:right-3 after:bottom-0 after:h-[2px] after:bg-volt after:rounded-full'
+                      : 'text-ash hover:text-chalk'
                   }`}
                 >
                   <NavIcon
@@ -115,6 +117,7 @@ export function AppNavClient({
                     avatarUrl={null}
                     initials=""
                     active={active}
+                    size={16}
                   />
                   {t.label}
                   {t.href === '/notifications' && notificationCount > 0 && (
@@ -129,8 +132,10 @@ export function AppNavClient({
           <Link
             href="/profile"
             aria-label="Profile"
-            className={`block rounded-pill ${
-              isPathActive(pathname, '/profile') ? 'ring-2 ring-volt ring-offset-2 ring-offset-noir' : ''
+            className={`block rounded-pill transition-shadow ${
+              isPathActive(pathname, '/profile')
+                ? 'ring-2 ring-volt ring-offset-1 ring-offset-noir'
+                : 'hover:ring-1 hover:ring-seam hover:ring-offset-1 hover:ring-offset-noir'
             }`}
           >
             <AvatarDisplay url={avatarUrl} initials={initials} size="md" />
@@ -149,9 +154,16 @@ export function AppNavClient({
                 key={t.href}
                 href={t.href}
                 className={`flex flex-col items-center justify-center gap-1 transition-colors relative ${
-                  active ? 'text-volt' : 'text-ash'
+                  active ? 'text-chalk' : 'text-ash'
                 }`}
               >
+                {/* Top indicator strip — PF/Instagram active rhythm */}
+                {active && (
+                  <span
+                    aria-hidden
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-volt rounded-full"
+                  />
+                )}
                 <NavIcon
                   name={t.icon}
                   avatarUrl={avatarUrl}
@@ -178,11 +190,13 @@ function NavIcon({
   avatarUrl,
   initials,
   active,
+  size = 22,
 }: {
   name: 'garage' | 'bell' | 'search' | 'user'
   avatarUrl: string | null
   initials: string
   active: boolean
+  size?: number
 }) {
   if (name === 'user') {
     return (
@@ -202,8 +216,8 @@ function NavIcon({
 
   return (
     <svg
-      width="22"
-      height="22"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

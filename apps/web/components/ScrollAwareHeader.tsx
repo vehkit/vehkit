@@ -44,12 +44,26 @@ export function ScrollAwareHeader({
         show ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
     >
-      <div className="max-w-3xl mx-auto px-6 h-14 flex items-center gap-3">
+      <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
         <Link
           href={backHref}
-          className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors shrink-0"
+          aria-label={backLabel}
+          title={backLabel}
+          className="w-9 h-9 inline-flex items-center justify-center rounded-pill bg-iron/60 text-chalk hover:bg-iron transition-colors shrink-0"
         >
-          ← {backLabel}
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
         </Link>
         <div className="flex-1 min-w-0 text-center">
           <p className="text-sm font-semibold text-chalk truncate tracking-tight">
@@ -59,7 +73,7 @@ export function ScrollAwareHeader({
             <p className="text-[10px] text-ash/80 truncate -mt-0.5">{subtitle}</p>
           )}
         </div>
-        <div className="w-16 shrink-0" />
+        <div className="w-9 shrink-0" />
       </div>
     </header>
   )
