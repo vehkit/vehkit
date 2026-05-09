@@ -34,7 +34,7 @@ export default async function AgentLayout({
     agent_id: string
     agents: { id: string; name: string } | null
   }
-  const m = membership as Membership | null
+  const m = membership as unknown as Membership | null
 
   // Onboarding flow — no nav, just the bare page (e.g. /agent/start).
   if (!m) {

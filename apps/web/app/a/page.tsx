@@ -31,7 +31,9 @@ export default async function AgentRedeemPage({
     role: string
     agents: { id: string; name: string; category: string } | null
   }
-  const orgs = (memberships ?? []) as Membership[]
+  // Supabase auto-types embedded selects as arrays even when the FK is
+  // many-to-one. Cast through unknown — runtime returns single objects.
+  const orgs = (memberships ?? []) as unknown as Membership[]
 
   if (orgs.length === 0) {
     return (

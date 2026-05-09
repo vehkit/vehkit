@@ -30,7 +30,7 @@ export default async function AgentSettingsPage() {
       verification_tier: string
     } | null
   }
-  const m = membership as Membership | null
+  const m = membership as unknown as Membership | null
 
   if (!m) redirect('/agent/start')
   const a = m.agents

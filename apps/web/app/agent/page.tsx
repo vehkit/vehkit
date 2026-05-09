@@ -61,7 +61,7 @@ export default async function AgentDashboardPage() {
     agent_id: string
     agents: { name: string; category: string } | null
   }
-  const m = membership as Membership | null
+  const m = membership as unknown as Membership | null
   if (!m) redirect('/agent/start')
 
   const { data: grants } = await supabase.rpc('agent_dashboard_grants', {
