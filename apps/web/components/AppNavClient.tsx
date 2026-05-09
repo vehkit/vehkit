@@ -65,8 +65,13 @@ export function AppNavClient({
   if (pathname.startsWith('/admin')) {
     return null
   }
-  // Marketing landing has its own header.
-  if (pathname === '/') {
+  // Marketing pages have their own header.
+  if (
+    pathname === '/' ||
+    pathname === '/score' ||
+    pathname === '/buyers' ||
+    pathname === '/workshop/start'
+  ) {
     return null
   }
   // Public anonymous flows (shop redemption, share/passport, invite accept) have

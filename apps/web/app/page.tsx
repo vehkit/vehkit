@@ -1,5 +1,10 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import {
+  MarketingHeader,
+  MarketingFooter,
+  SamplePassport,
+} from '@/components/MarketingChrome'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,10 +21,9 @@ type DirectoryRow = {
 
 export default async function Home() {
   const supabase = await createClient()
-
   const [{ data: { user } }, { data: directoryRaw }] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.rpc('public_workshop_directory', { p_limit: 4, p_offset: 0 }),
+    supabase.rpc('public_workshop_directory', { p_limit: 6, p_offset: 0 }),
   ])
 
   const featured = ((directoryRaw as DirectoryRow[]) ?? []).filter(
@@ -28,56 +32,26 @@ export default async function Home() {
 
   return (
     <main className="min-h-[100svh] flex flex-col">
-      {/* Header — minimal */}
-      <header className="px-6 md:px-10 pt-6 md:pt-8">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link
-            href="/"
-            className="text-sm font-semibold tracking-tightest text-chalk"
-          >
-            vehkit
-          </Link>
-          <nav className="flex items-center gap-1">
-            <Link
-              href="/workshops"
-              className="hidden sm:block text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors px-3 py-1.5"
-            >
-              Directory
-            </Link>
-            {user ? (
-              <Link
-                href="/mycars"
-                className="text-xs tracking-widest uppercase text-chalk hover:text-volt transition-colors px-3 py-1.5"
-              >
-                My cars →
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className="text-xs tracking-widest uppercase text-chalk hover:text-volt transition-colors px-3 py-1.5"
-              >
-                Sign in
-              </Link>
-            )}
-          </nav>
-        </div>
-      </header>
+      <MarketingHeader signedIn={!!user} />
 
-      {/* Hero — the whole pitch in one screen */}
-      <section className="flex-1 flex items-center px-6 md:px-10 py-16 md:py-24">
-        <div className="max-w-6xl mx-auto w-full grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+      {/* HERO — editorial split */}
+      <section className="px-6 md:px-10 pt-16 md:pt-24 pb-20 md:pb-28">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 md:gap-20 items-center">
           <div>
             <p className="text-[10px] tracking-[0.35em] uppercase text-ash">
               Verified vehicle records
             </p>
             <h1 className="text-5xl md:text-7xl font-semibold tracking-tightest text-chalk mt-6 leading-[0.95]">
-              Every car<br />
-              deserves<br />
+              Every car
+              <br />
+              deserves
+              <br />
               a passport.
             </h1>
             <p className="text-base md:text-lg text-ash mt-8 leading-relaxed max-w-md">
-              An owner-controlled service record, attested by verified workshops,
-              immutable after twenty-four hours. Built for resale. Built for the UAE.
+              An owner-controlled service record, attested by verified
+              workshops, immutable after twenty-four hours. Built for resale.
+              Built for the UAE.
             </p>
             <div className="mt-12 flex items-center gap-6">
               {user ? (
@@ -90,29 +64,122 @@ export default async function Home() {
                 </Link>
               )}
               <Link
-                href="/workshops"
+                href="/score"
                 className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
               >
-                Browse workshops →
+                How the score works →
               </Link>
             </div>
           </div>
 
-          {/* Visual — sample passport card */}
           <div className="md:flex md:justify-end">
             <SamplePassport />
           </div>
         </div>
       </section>
 
-      {/* Featured workshops — only Gold/Silver, only when they exist */}
+      {/* THE PROBLEM — long-form pull, single column, no card */}
+      <section className="px-6 md:px-10 py-20 md:py-28 border-t border-seam">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-[10px] tracking-[0.35em] uppercase text-volt">
+            The problem
+          </p>
+          <p className="text-2xl md:text-3xl text-chalk mt-6 leading-relaxed tracking-tight">
+            A used car in the UAE is sold on trust — but trust isn't recorded.
+            Service histories live in glove compartments, on workshop
+            stickers, in WhatsApp threads. When a buyer asks{' '}
+            <em className="text-ash not-italic">what's been done</em>, the
+            seller hands over a folder, or a story.
+          </p>
+          <p className="text-base text-ash mt-8 leading-relaxed">
+            Vehkit is the alternative. Every service is logged once,
+            attested by the workshop that did the work, and locked into a
+            permanent record that follows the car from owner to owner. No
+            sticker. No folder. No story.
+          </p>
+        </div>
+      </section>
+
+      {/* PRINCIPLES — editorial numbered list, not card grid */}
+      <section className="px-6 md:px-10 py-20 md:py-28 border-t border-seam">
+        <div className="max-w-6xl mx-auto">
+          <p className="text-[10px] tracking-[0.35em] uppercase text-ash">
+            Principles
+          </p>
+          <h2 className="text-3xl md:text-5xl font-semibold tracking-tighter text-chalk mt-4 max-w-3xl leading-[1.05]">
+            Four lines we don't cross.
+          </h2>
+
+          <div className="mt-16 grid md:grid-cols-2 gap-x-16 gap-y-12">
+            <Principle
+              n="01"
+              title="Owner-controlled"
+              body="Your record. Your codes. Your share links. Workshops can attest entries; only you can publish, share, or revoke. No data leaves your account without an action you took."
+            />
+            <Principle
+              n="02"
+              title="Immutable after twenty-four hours"
+              body="Workshop entries lock after a one-day retract window. After that, neither you, nor the workshop, nor Vehkit can edit them. The record is what it was — that's what makes it worth something at resale."
+            />
+            <Principle
+              n="03"
+              title="Verified by trade license"
+              body="Silver tier requires a uploaded UAE trade license plus ten verified entries. Gold tier requires a hundred entries, a 4.5-star rating across at least five reviews, and the license. The directory is curated, not pay-to-play."
+            />
+            <Principle
+              n="04"
+              title="Privacy as default"
+              body="Workshops never see your email, phone, or full name unless you explicitly enable workshop outreach for that vehicle. Buyers see only what your share link permits. We don't sell data, don't run advertising, don't will."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* THE SCORE — full-width quiet section */}
+      <section className="px-6 md:px-10 py-20 md:py-28 border-t border-seam">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-12 gap-12 items-center">
+          <div className="md:col-span-7">
+            <p className="text-[10px] tracking-[0.35em] uppercase text-volt">
+              The Vehkit score
+            </p>
+            <h2 className="text-3xl md:text-5xl font-semibold tracking-tighter text-chalk mt-4 leading-[1.05]">
+              A number worth more
+              <br />
+              than the photos.
+            </h2>
+            <p className="text-base md:text-lg text-ash mt-8 leading-relaxed max-w-md">
+              Every car gets a passport score from zero to a hundred. It
+              rewards verified service, on-time reminder compliance, history
+              continuity, and recency. Workshop diversity bonuses keep any
+              single shop from gaming the number.
+            </p>
+            <Link
+              href="/score"
+              className="inline-flex items-center text-xs tracking-widest uppercase text-volt hover:underline mt-8 font-medium"
+            >
+              The methodology in detail →
+            </Link>
+          </div>
+
+          <div className="md:col-span-5 md:flex md:justify-end">
+            <SamplePassport />
+          </div>
+        </div>
+      </section>
+
+      {/* WORKSHOPS — sparse strip if there are verified ones */}
       {featured.length > 0 && (
-        <section className="px-6 md:px-10 pb-16 md:pb-20 border-t border-seam pt-12 md:pt-16">
+        <section className="px-6 md:px-10 py-20 md:py-28 border-t border-seam">
           <div className="max-w-6xl mx-auto">
-            <div className="flex items-end justify-between gap-4 mb-8 flex-wrap">
-              <p className="text-[10px] tracking-[0.35em] uppercase text-ash">
-                Verified workshops on Vehkit
-              </p>
+            <div className="flex items-end justify-between gap-4 flex-wrap mb-12">
+              <div>
+                <p className="text-[10px] tracking-[0.35em] uppercase text-ash">
+                  Verified workshops on Vehkit
+                </p>
+                <h2 className="text-3xl md:text-4xl font-semibold tracking-tighter text-chalk mt-3 leading-tight">
+                  Real shops. Real histories.
+                </h2>
+              </div>
               <Link
                 href="/workshops"
                 className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
@@ -125,7 +192,7 @@ export default async function Home() {
                 <Link
                   key={w.id}
                   href={`/w/${w.slug}`}
-                  className="bg-noir px-5 py-6 hover:bg-carbon transition-colors group"
+                  className="bg-noir px-5 py-7 hover:bg-carbon transition-colors group"
                 >
                   <div className="flex items-center gap-2 mb-3">
                     {w.verification_tier === 'gold' && (
@@ -158,116 +225,116 @@ export default async function Home() {
         </section>
       )}
 
-      {/* Footer — minimal, no marketing */}
-      <footer className="px-6 md:px-10 py-8 border-t border-seam">
-        <div className="max-w-6xl mx-auto flex items-center justify-between flex-wrap gap-4">
-          <p className="text-[10px] tracking-widest uppercase text-ash/60">
-            © {new Date().getFullYear()} Vehkit · Made in Dubai
+      {/* AUDIENCE HANDOFF — three columns of editorial copy */}
+      <section className="px-6 md:px-10 py-20 md:py-28 border-t border-seam">
+        <div className="max-w-6xl mx-auto">
+          <p className="text-[10px] tracking-[0.35em] uppercase text-ash">
+            Who Vehkit is for
           </p>
-          <div className="flex items-center gap-5 text-[10px] tracking-widest uppercase text-ash/60">
-            <Link href="/workshop/start" className="hover:text-chalk transition-colors">
-              For workshops
-            </Link>
-            <Link href="/privacy" className="hover:text-chalk transition-colors">
-              Privacy
-            </Link>
-            <Link href="/terms" className="hover:text-chalk transition-colors">
-              Terms
-            </Link>
-            <a
-              href="mailto:hello@vehkit.com"
-              className="hover:text-chalk transition-colors"
-            >
-              Contact
-            </a>
+          <div className="grid md:grid-cols-3 gap-12 mt-12">
+            <AudienceColumn
+              kicker="If you drive"
+              title="Track every wrench turn."
+              body="Add a car, log a service, share the passport when it's time to sell. Workshops attest the entries you generate codes for. Reminders fire when you've earned a check-up. The record is yours forever."
+              cta={{ href: '/login', label: 'Start your first car →' }}
+            />
+            <AudienceColumn
+              kicker="If you fix"
+              title="Build a verified portfolio."
+              body="Customer hands you a six-digit code. Enter it. Log the service. Done. Every entry on the customer's record carries your name forever. Verified workshops climb the directory and earn Silver / Gold."
+              cta={{ href: '/workshop/start', label: 'For workshops →' }}
+            />
+            <AudienceColumn
+              kicker="If you buy"
+              title="See the truth before you sign."
+              body="Sellers send you a passport link. You see every verified service, every workshop, every kilometer. A score from zero to a hundred summarizes the history at a glance. No edits, no deletions, no story."
+              cta={{ href: '/buyers', label: 'For buyers →' }}
+            />
           </div>
         </div>
-      </footer>
+      </section>
+
+      {/* CLOSING — single restrained line */}
+      <section className="px-6 md:px-10 py-24 md:py-32 border-t border-seam">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl md:text-5xl font-semibold tracking-tightest text-chalk leading-[1.05]">
+            Two minutes. One car.
+            <br />
+            Forever record.
+          </h2>
+          <div className="mt-12 flex items-center justify-center gap-6">
+            {user ? (
+              <Link href="/mycars" className="pill-primary inline-flex items-center">
+                Open my cars
+              </Link>
+            ) : (
+              <Link href="/login" className="pill-primary inline-flex items-center">
+                Sign up — it's free
+              </Link>
+            )}
+            <Link
+              href="/workshop/start"
+              className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
+            >
+              I run a workshop →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <MarketingFooter />
     </main>
   )
 }
 
-/**
- * Hero visual — a clean composition mimicking a real passport card.
- * No screenshot, no skeuomorphism — just typography on a card.
- */
-function SamplePassport() {
+function Principle({
+  n,
+  title,
+  body,
+}: {
+  n: string
+  title: string
+  body: string
+}) {
   return (
-    <div className="card p-6 md:p-7 max-w-sm w-full">
-      {/* Card top — workshop attestation */}
-      <div className="flex items-center justify-between gap-3 pb-4 border-b border-seam">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-pill bg-volt/15 text-volt flex items-center justify-center font-mono text-[11px] font-semibold">
-            AS
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-chalk leading-tight">
-              ASM German Auto Garage
-            </p>
-            <p className="text-[10px] text-ash leading-tight">Dubai · Gold</p>
-          </div>
-        </div>
-        <span className="text-[9px] tracking-widest uppercase text-volt">
-          ✓ Verified
-        </span>
+    <div>
+      <div className="flex items-baseline gap-3">
+        <span className="font-mono text-xs text-volt tabular-nums">{n}.</span>
+        <h3 className="text-lg font-semibold text-chalk tracking-tight">
+          {title}
+        </h3>
       </div>
-
-      {/* Service entry */}
-      <div className="py-5 border-b border-seam">
-        <p className="text-[10px] tracking-widest uppercase text-ash">
-          Latest entry
-        </p>
-        <p className="text-base font-semibold text-chalk mt-1">Major service</p>
-        <div className="flex items-baseline gap-3 mt-2 text-xs text-ash">
-          <span className="font-mono">38,500 km</span>
-          <span className="text-seam">·</span>
-          <span className="font-mono">AED 2,840</span>
-          <span className="text-seam">·</span>
-          <span>9 May</span>
-        </div>
-      </div>
-
-      {/* Score */}
-      <div className="pt-5">
-        <div className="flex items-end justify-between mb-3">
-          <p className="text-[10px] tracking-widest uppercase text-ash">
-            Vehkit score
-          </p>
-          <p className="font-mono text-3xl font-semibold text-volt tabular-nums tracking-tighter leading-none">
-            87
-            <span className="text-ash text-xs font-normal ml-1">/100</span>
-          </p>
-        </div>
-        {/* Component bars — sparse */}
-        <div className="space-y-1.5">
-          <ScoreSparkBar label="Verification" filled={36} max={40} />
-          <ScoreSparkBar label="Compliance" filled={28} max={30} />
-          <ScoreSparkBar label="Consistency" filled={16} max={20} />
-          <ScoreSparkBar label="Recency" filled={7} max={10} />
-        </div>
-      </div>
+      <p className="text-base text-ash mt-3 leading-relaxed">{body}</p>
     </div>
   )
 }
 
-function ScoreSparkBar({
-  label,
-  filled,
-  max,
+function AudienceColumn({
+  kicker,
+  title,
+  body,
+  cta,
 }: {
-  label: string
-  filled: number
-  max: number
+  kicker: string
+  title: string
+  body: string
+  cta: { href: string; label: string }
 }) {
-  const pct = Math.min(100, (filled / max) * 100)
   return (
-    <div className="flex items-center gap-3">
-      <span className="text-[10px] text-ash tracking-wide w-20 shrink-0">
-        {label}
-      </span>
-      <div className="h-0.5 bg-iron rounded-full flex-1 overflow-hidden">
-        <div className="h-full bg-volt" style={{ width: `${pct}%` }} />
-      </div>
+    <div>
+      <p className="text-[10px] tracking-[0.25em] uppercase text-volt">
+        {kicker}
+      </p>
+      <h3 className="text-2xl font-semibold tracking-tighter text-chalk mt-3 leading-tight">
+        {title}
+      </h3>
+      <p className="text-sm text-ash mt-4 leading-relaxed">{body}</p>
+      <Link
+        href={cta.href}
+        className="text-xs tracking-widest uppercase text-volt hover:underline mt-5 inline-block font-medium"
+      >
+        {cta.label}
+      </Link>
     </div>
   )
 }
