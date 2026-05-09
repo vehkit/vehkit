@@ -35,6 +35,11 @@ const sb = createClient(url, key, {
 
 const DEMO_DOMAIN = '@demo.vehkit.dev'
 
+// Optional: a real (non-demo) email to attach as the ASM showpiece owner.
+// Set SEED_SHOWCASE_EMAIL=shamirmoossadxb@gmail.com (or whatever) so that
+// when this person signs in, /workshop lands on the boosted ASM dashboard.
+const SHOWCASE_EMAIL = process.env.SEED_SHOWCASE_EMAIL ?? 'shamirmoossadxb@gmail.com'
+
 // ---------------------------------------------------------------------------
 // Reference data
 // ---------------------------------------------------------------------------
@@ -941,6 +946,76 @@ async function boostASM(workshops: { id: string; name: string; targetTier: strin
 }
 
 // ---------------------------------------------------------------------------
+// Showcase owner attachment — makes the demo signable from a real account.
+// ---------------------------------------------------------------------------
+
+async function attachShowcaseOwnerToAsm(
+  workshops: { id: string; name: string }[]
+) {
+  if (!SHOWCASE_EMAIL) {
+    console.log('→ no SEED_SHOWCASE_EMAIL — skipping showcase owner attachment')
+    return
+  }
+  console.log(`→ attaching ${SHOWCASE_EMAIL} as ASM owner…`)
+
+  const asm = workshops.find((w) => w.name === 'ASM German Auto Garage')
+  if (!asm) {
+    console.warn('  ! ASM not found — skipping')
+    return
+  }
+
+  // Find the showcase user in auth
+  const { data: list } = await sb.auth.admin.listUsers({ perPage: 1000 })
+  const user = list?.users?.find((u) => u.email === SHOWCASE_EMAIL)
+  if (!user) {
+    console.warn(`  ! ${SHOWCASE_EMAIL} not found in auth.users — sign up that account first`)
+    return
+  }
+
+  // Remove this user from any OTHER workshop memberships (so /workshop lands on ASM)
+  const { data: existingMemberships } = await sb
+    .from('workshop_members')
+    .select('workshop_id')
+    .eq('user_id', user.id)
+
+  const otherWorkshopIds =
+    (existingMemberships ?? [])
+      .map((m: any) => m.workshop_id as string)
+      .filter((id) => id !== asm.id) ?? []
+
+  if (otherWorkshopIds.length > 0) {
+    // Drop their memberships in those orgs
+    await sb
+      .from('workshop_members')
+      .delete()
+      .eq('user_id', user.id)
+      .in('workshop_id', otherWorkshopIds)
+
+    // Delete any of those workshops that now have zero members
+    for (const wid of otherWorkshopIds) {
+      const { count } = await sb
+        .from('workshop_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('workshop_id', wid)
+      if ((count ?? 0) === 0) {
+        await sb.from('workshops').delete().eq('id', wid)
+      }
+    }
+    console.log(`  unlinked from ${otherWorkshopIds.length} prior workshop(s)`)
+  }
+
+  // Upsert ASM membership for showcase user as owner
+  await sb
+    .from('workshop_members')
+    .upsert(
+      { workshop_id: asm.id, user_id: user.id, role: 'owner' },
+      { onConflict: 'workshop_id,user_id' }
+    )
+
+  console.log(`  ✓ ${SHOWCASE_EMAIL} is now an owner of ${asm.name}`)
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -958,6 +1033,7 @@ async function main() {
   await createCodes(vehicles)
   await setTiers(workshops)
   await boostASM(workshops, vehicles, workshopOwners)
+  await attachShowcaseOwnerToAsm(workshops)
   console.log('================================')
   console.log('✓ Demo seed complete.')
   console.log('')
