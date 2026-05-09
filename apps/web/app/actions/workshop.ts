@@ -208,3 +208,45 @@ export async function logServiceViaCode(formData: FormData) {
 
   redirect(`/shop/${code}/done`)
 }
+
+/**
+ * Workshop plants a reminder on a customer vehicle (privacy-gated).
+ * Calls workshop_suggest_reminder RPC which validates membership,
+ * outreach opt-in, and prior service history.
+ */
+export async function suggestReminder({
+  workshopId,
+  vehicleId,
+  reminderType,
+  dueDate,
+  dueAtKm,
+  notes,
+}: {
+  workshopId: string
+  vehicleId: string
+  reminderType: string
+  dueDate: string | null
+  dueAtKm: number | null
+  notes: string | null
+}): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not signed in' }
+
+  const { error } = await supabase.rpc('workshop_suggest_reminder', {
+    p_workshop_id: workshopId,
+    p_vehicle_id: vehicleId,
+    p_reminder_type: reminderType,
+    p_due_date: dueDate,
+    p_due_at_km: dueAtKm,
+    p_notes: notes,
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/workshop/customers')
+  revalidatePath('/workshop')
+  return { ok: true }
+}

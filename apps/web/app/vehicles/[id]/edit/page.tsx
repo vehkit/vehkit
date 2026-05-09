@@ -89,6 +89,28 @@ export default async function EditVehiclePage({
             inputMode="numeric"
             defaultValue={vehicle.current_odometer?.toString() ?? ''}
           />
+
+          {/* Workshop outreach opt-in */}
+          <div className="card p-4 mt-2">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                name="allow_workshop_outreach"
+                defaultChecked={vehicle.allow_workshop_outreach ?? false}
+                className="mt-0.5 w-4 h-4 accent-volt cursor-pointer shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-chalk">
+                  Let workshops suggest reminders
+                </p>
+                <p className="text-xs text-ash mt-1 leading-relaxed">
+                  Workshops you've visited can suggest service reminders for this car (e.g.
+                  "next oil change due"). Suggestions show up in your inbox — you accept,
+                  snooze, or dismiss. They never get your email or phone.
+                </p>
+              </div>
+            </label>
+          </div>
         </form>
       </div>
 

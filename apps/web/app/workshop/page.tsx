@@ -67,6 +67,50 @@ export default async function WorkshopDashboardPage() {
     .order('service_date', { ascending: false })
     .limit(10)
 
+  // Pending entries (within 24h retract window)
+  const { data: pendingRaw } = await supabase.rpc('workshop_pending_entries', {
+    p_workshop_id: workshopId,
+  })
+  const pending = (pendingRaw ?? []) as Array<{
+    record_id: string
+    vehicle_id: string
+    make: string
+    model: string
+    nickname: string | null
+    plate_number: string | null
+    service_type: string
+    cost_aed: number | null
+    hours_left: number
+  }>
+
+  // Upcoming visits (next 30d on cars we've serviced)
+  const { data: upcomingRaw } = await supabase.rpc('workshop_upcoming_visits', {
+    p_workshop_id: workshopId,
+    p_days_ahead: 30,
+  })
+  const upcoming = (upcomingRaw ?? []) as Array<{
+    reminder_id: string
+    vehicle_id: string
+    make: string
+    model: string
+    nickname: string | null
+    plate_number: string | null
+    reminder_type: string
+    due_date: string | null
+    due_at_km: number | null
+    km_remaining: number | null
+    days_remaining: number | null
+    is_overdue: boolean
+    allow_outreach: boolean
+    suggested_by_us: boolean
+  }>
+
+  // Customer count for the link badge
+  const { data: customerCountRaw } = await supabase.rpc('workshop_customer_vehicles', {
+    p_workshop_id: workshopId,
+  })
+  const customerCount = (customerCountRaw ?? []).length
+
   const tierLabel =
     workshop.verification_tier === 'gold'
       ? 'Gold'
@@ -113,6 +157,146 @@ export default async function WorkshopDashboardPage() {
             small
           />
         </section>
+
+        {/* Quick links */}
+        <section className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4">
+          <Link
+            href="/workshop/customers"
+            className="card px-4 py-3 hover:border-volt/30 transition-colors flex items-center justify-between"
+          >
+            <div>
+              <p className="text-[10px] tracking-widest uppercase text-ash">Customers</p>
+              <p className="text-sm text-chalk font-medium mt-0.5">
+                {customerCount} {customerCount === 1 ? 'vehicle' : 'vehicles'}
+              </p>
+            </div>
+            <span className="text-ash text-xs">→</span>
+          </Link>
+          <Link
+            href="/shop"
+            className="card px-4 py-3 hover:border-volt/30 transition-colors flex items-center justify-between"
+          >
+            <div>
+              <p className="text-[10px] tracking-widest uppercase text-ash">Log entry</p>
+              <p className="text-sm text-chalk font-medium mt-0.5">Enter code</p>
+            </div>
+            <span className="text-ash text-xs">→</span>
+          </Link>
+          <Link
+            href={`/w/${workshop.slug}`}
+            className="card px-4 py-3 hover:border-volt/30 transition-colors flex items-center justify-between"
+          >
+            <div>
+              <p className="text-[10px] tracking-widest uppercase text-ash">Public profile</p>
+              <p className="text-sm text-chalk font-medium mt-0.5 font-mono truncate">
+                /w/{workshop.slug}
+              </p>
+            </div>
+            <span className="text-ash text-xs">→</span>
+          </Link>
+        </section>
+
+        {/* Pending — within 24h retract window */}
+        {pending.length > 0 && (
+          <section className="mt-8">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs tracking-widest uppercase text-wallet font-medium">
+                Awaiting confirmation · {pending.length}
+              </h2>
+              <p className="text-[10px] text-ash tracking-wide">24h retract window</p>
+            </div>
+            <ul className="card divide-y divide-seam">
+              {pending.map((p) => {
+                const title = p.nickname ?? `${p.make} ${p.model}`
+                return (
+                  <li key={p.record_id} className="px-4 py-3 flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-wallet shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-chalk truncate">
+                        <span className="font-semibold">{humanize(p.service_type)}</span>
+                        <span className="text-ash"> · {title}</span>
+                        {p.plate_number && (
+                          <span className="text-ash font-mono"> · {p.plate_number}</span>
+                        )}
+                      </p>
+                      {p.cost_aed != null && (
+                        <p className="text-xs text-ash font-mono mt-0.5">
+                          AED {Number(p.cost_aed).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-[10px] tracking-widest uppercase text-wallet shrink-0">
+                      {p.hours_left}h left
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        )}
+
+        {/* Upcoming — next 30d on cars we've serviced */}
+        {upcoming.length > 0 && (
+          <section className="mt-8">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs tracking-widest uppercase text-volt font-medium">
+                Upcoming · next 30 days · {upcoming.length}
+              </h2>
+            </div>
+            <ul className="card divide-y divide-seam">
+              {upcoming.slice(0, 8).map((u) => {
+                const title = u.nickname ?? `${u.make} ${u.model}`
+                const dueText = u.is_overdue
+                  ? 'Overdue'
+                  : u.days_remaining != null
+                    ? `in ${u.days_remaining}d`
+                    : u.km_remaining != null
+                      ? `in ${u.km_remaining.toLocaleString()} km`
+                      : 'soon'
+                return (
+                  <li key={u.reminder_id} className="px-4 py-3 flex items-center gap-3">
+                    <div
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        u.is_overdue ? 'bg-signal' : 'bg-volt'
+                      }`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-chalk truncate">
+                        <span className="font-semibold">{humanize(u.reminder_type)}</span>
+                        <span className="text-ash"> · {title}</span>
+                        {u.plate_number && (
+                          <span className="text-ash font-mono"> · {u.plate_number}</span>
+                        )}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {u.suggested_by_us && (
+                          <span className="text-[10px] tracking-widest uppercase text-ash">
+                            ↳ suggested by you
+                          </span>
+                        )}
+                        {!u.allow_outreach && (
+                          <span className="text-[10px] text-ash/60">no outreach</span>
+                        )}
+                      </div>
+                    </div>
+                    <span
+                      className={`text-[10px] tracking-widest uppercase shrink-0 font-medium ${
+                        u.is_overdue ? 'text-signal' : 'text-volt'
+                      }`}
+                    >
+                      {dueText}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+            {upcoming.length > 8 && (
+              <p className="text-[11px] text-ash mt-2 text-right">
+                +{upcoming.length - 8} more on the customer roster
+              </p>
+            )}
+          </section>
+        )}
 
         {/* Verification panel */}
         <section className="mt-6">

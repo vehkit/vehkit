@@ -102,6 +102,7 @@ export async function updateVehicle(formData: FormData) {
     nickname: strOrNull(formData.get('nickname')),
     color: strOrNull(formData.get('color')),
     current_odometer: odo,
+    allow_workshop_outreach: formData.get('allow_workshop_outreach') === 'on',
     ...(odo !== null && { current_odometer_at: new Date().toISOString() }),
   }
 
