@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { relativeDate } from '@/lib/format'
 
 type Vehicle = {
   id: string
@@ -18,21 +19,41 @@ type Vehicle = {
   owner_id: string
 }
 
+export type VehicleSummary = {
+  serviceCount: number
+  totalSpend: number
+  lastServiceDate: string | null
+  lastWorkshop: string | null
+}
+
+type FilterMode = 'all' | 'pending'
+
 export function MyCarsList({
   vehicles,
   currentUserId,
   pendingByVehicle,
+  summaryByVehicle = {},
 }: {
   vehicles: Vehicle[]
   currentUserId: string
   pendingByVehicle: Record<string, number>
+  summaryByVehicle?: Record<string, VehicleSummary>
 }) {
   const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<FilterMode>('all')
+
+  const totalPending = Object.values(pendingByVehicle).reduce(
+    (sum, n) => sum + n,
+    0,
+  )
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return vehicles
     return vehicles.filter((v) => {
+      if (filter === 'pending' && (pendingByVehicle[v.id] ?? 0) === 0) {
+        return false
+      }
+      if (!q) return true
       const haystack = [
         v.make,
         v.model,
@@ -48,45 +69,66 @@ export function MyCarsList({
         .toLowerCase()
       return haystack.includes(q)
     })
-  }, [vehicles, query])
+  }, [vehicles, query, filter, pendingByVehicle])
 
   return (
     <>
+      {/* Search + filter strip — PF rhythm: search left-grows, filters right-fixed */}
       {vehicles.length > 1 && (
-        <div className="relative mb-4">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ash pointer-events-none">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
-              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </span>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search make, plate, nickname, VIN…"
-            className="field pl-11"
-            autoComplete="off"
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => setQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-ash hover:text-chalk text-xl leading-none"
-              aria-label="Clear search"
-            >
-              ×
-            </button>
-          )}
+        <div className="mb-4 flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ash pointer-events-none">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search make, plate, nickname, VIN…"
+              className="field pl-11 w-full"
+              autoComplete="off"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-ash hover:text-chalk text-xl leading-none"
+                aria-label="Clear search"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {/* Filter chips */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <FilterChip
+              active={filter === 'all'}
+              onClick={() => setFilter('all')}
+              label="All"
+              count={vehicles.length}
+            />
+            <FilterChip
+              active={filter === 'pending'}
+              onClick={() => setFilter('pending')}
+              label="Pending"
+              count={totalPending}
+              tone="wallet"
+              dimWhenZero
+            />
+          </div>
         </div>
       )}
 
@@ -94,6 +136,7 @@ export function MyCarsList({
         {filtered.map((v) => {
           const isShared = v.owner_id !== currentUserId
           const pendingForThis = pendingByVehicle[v.id] ?? 0
+          const summary = summaryByVehicle[v.id]
           const heroPhoto = v.hero_image_url
           const title = v.nickname ?? `${v.make} ${v.model}`
           const subline = [
@@ -117,7 +160,7 @@ export function MyCarsList({
               }`}
             >
               <div className="flex items-stretch">
-                {/* Photo thumb — left, square-ish on mobile, slightly wider desktop */}
+                {/* Photo thumb — left */}
                 <div className="relative w-28 sm:w-36 md:w-44 shrink-0 bg-iron overflow-hidden">
                   {heroPhoto ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -148,16 +191,14 @@ export function MyCarsList({
                   )}
                 </div>
 
-                {/* Content — right side, PF insight-card rhythm */}
+                {/* Content — right side, PF list-card rhythm */}
                 <div className="flex-1 min-w-0 p-4 md:p-5 flex flex-col">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <h2 className="text-base md:text-lg font-semibold text-chalk truncate leading-snug">
                         {title}
                       </h2>
-                      <p className="text-xs text-ash mt-1 truncate">
-                        {subline}
-                      </p>
+                      <p className="text-xs text-ash mt-1 truncate">{subline}</p>
                     </div>
                     {pendingForThis > 0 && (
                       <span className="text-[10px] tracking-widest uppercase bg-wallet/15 text-wallet px-2 py-0.5 rounded-pill font-semibold shrink-0">
@@ -171,23 +212,70 @@ export function MyCarsList({
                     )}
                   </div>
 
-                  {/* Bottom row — plate left, odometer right */}
-                  <div className="mt-auto pt-3 flex items-end justify-between gap-3">
-                    {plateBadge ? (
-                      <span className="text-[11px] font-mono text-ash truncate">
-                        {plateBadge}
-                      </span>
+                  {/* Intelligence line — PF "what's interesting" rhythm */}
+                  <p className="text-xs mt-2 truncate">
+                    {summary?.lastServiceDate ? (
+                      <>
+                        <span className="text-ash/60">Last service · </span>
+                        <span className="text-chalk/90">
+                          {relativeDate(summary.lastServiceDate)}
+                        </span>
+                        {summary.lastWorkshop && (
+                          <>
+                            <span className="text-ash/60"> at </span>
+                            <span className="text-chalk/90">
+                              {summary.lastWorkshop}
+                            </span>
+                          </>
+                        )}
+                      </>
                     ) : (
-                      <span />
+                      <span className="text-ash/60">No services logged yet</span>
                     )}
-                    <div className="text-right shrink-0">
-                      <span className="font-mono text-base md:text-lg font-semibold text-chalk tabular-nums tracking-tight">
-                        {v.current_odometer?.toLocaleString() ?? '—'}
-                      </span>
-                      <span className="text-[10px] tracking-widest uppercase text-ash ml-1">
-                        km
-                      </span>
-                    </div>
+                  </p>
+
+                  {/* Bottom stat strip — PF vertical-divider rhythm */}
+                  <div className="mt-auto pt-3 flex items-center gap-3">
+                    {plateBadge && (
+                      <>
+                        {/* Plate is the variable-length stat — flexible so it
+                            truncates first when the row gets tight. */}
+                        <CardStat
+                          label="Plate"
+                          value={plateBadge}
+                          mono
+                          small
+                          flexible
+                        />
+                        <span
+                          className="w-px h-7 bg-seam shrink-0"
+                          aria-hidden
+                        />
+                      </>
+                    )}
+                    <CardStat
+                      label="km"
+                      value={
+                        v.current_odometer != null
+                          ? v.current_odometer.toLocaleString()
+                          : '—'
+                      }
+                      mono
+                    />
+                    {summary && summary.serviceCount > 0 && (
+                      <>
+                        <span
+                          className="w-px h-7 bg-seam shrink-0"
+                          aria-hidden
+                        />
+                        <CardStat
+                          label={
+                            summary.serviceCount === 1 ? 'service' : 'services'
+                          }
+                          value={summary.serviceCount.toString()}
+                        />
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -196,18 +284,27 @@ export function MyCarsList({
         })}
       </div>
 
-      {filtered.length === 0 && query && (
+      {filtered.length === 0 && (query || filter === 'pending') && (
         <div className="card p-10 text-center mt-2">
-          <p className="text-chalk font-medium">No cars match "{query}"</p>
+          <p className="text-chalk font-medium">
+            {filter === 'pending'
+              ? 'No vehicles with pending entries'
+              : `No cars match "${query}"`}
+          </p>
           <p className="text-sm text-ash mt-2">
-            Try make, model, plate, or nickname.
+            {filter === 'pending'
+              ? 'Workshop entries awaiting your review will appear here.'
+              : 'Try make, model, plate, or nickname.'}
           </p>
           <button
             type="button"
-            onClick={() => setQuery('')}
+            onClick={() => {
+              setQuery('')
+              setFilter('all')
+            }}
             className="text-xs tracking-widest uppercase text-volt mt-4 hover:underline"
           >
-            Clear search
+            Reset filters
           </button>
         </div>
       )}
@@ -215,3 +312,84 @@ export function MyCarsList({
   )
 }
 
+function FilterChip({
+  active,
+  onClick,
+  label,
+  count,
+  tone,
+  dimWhenZero,
+}: {
+  active: boolean
+  onClick: () => void
+  label: string
+  count: number
+  tone?: 'wallet'
+  dimWhenZero?: boolean
+}) {
+  const isDim = dimWhenZero && count === 0 && !active
+  const activeStyles =
+    tone === 'wallet'
+      ? 'bg-wallet/15 text-wallet border-wallet/40'
+      : 'bg-volt/15 text-volt border-volt/40'
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={isDim}
+      className={`text-xs px-3 h-10 inline-flex items-center gap-2 rounded-pill border transition-colors ${
+        active
+          ? activeStyles
+          : `bg-iron/40 text-ash border-seam hover:text-chalk hover:border-iron ${
+              isDim ? 'opacity-50 cursor-not-allowed' : ''
+            }`
+      }`}
+    >
+      <span className="tracking-tight font-medium">{label}</span>
+      <span
+        className={`font-mono tabular-nums text-[10px] tracking-tight ${
+          active ? 'opacity-90' : 'opacity-70'
+        }`}
+      >
+        {count}
+      </span>
+    </button>
+  )
+}
+
+function CardStat({
+  label,
+  value,
+  mono,
+  small,
+  flexible,
+}: {
+  label: string
+  value: string
+  mono?: boolean
+  small?: boolean
+  /**
+   * When true, the stat occupies remaining space and truncates instead of
+   * pushing siblings. Use for variable-width values like plate numbers;
+   * leave default for numeric fixed-width stats.
+   */
+  flexible?: boolean
+}) {
+  return (
+    <div className={flexible ? 'min-w-0 flex-1' : 'min-w-0 shrink-0'}>
+      <p
+        className={`${
+          small ? 'text-xs' : 'text-sm md:text-base'
+        } font-semibold text-chalk tabular-nums tracking-tight leading-none truncate ${
+          mono ? 'font-mono' : ''
+        }`}
+      >
+        {value}
+      </p>
+      <p className="text-[9px] tracking-widest uppercase text-ash mt-1">
+        {label}
+      </p>
+    </div>
+  )
+}
