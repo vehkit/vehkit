@@ -76,6 +76,24 @@ export default async function ShopLogPage({
   const heroName =
     preview.vehicle_nickname ?? `${preview.vehicle_make} ${preview.vehicle_model}`
 
+  // If user is signed in AND is a workshop member, pre-fill + attribute
+  let memberWorkshop: { id: string; name: string } | null = null
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (user) {
+    const { data: m } = await supabase
+      .from('workshop_members')
+      .select('workshop_id, workshops(id, name)')
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle()
+    const w = (Array.isArray((m as any)?.workshops) ? (m as any).workshops[0] : (m as any)?.workshops) as
+      | { id: string; name: string }
+      | undefined
+    if (w?.id && w?.name) memberWorkshop = w
+  }
+
   // Initials for avatar-style indicator
   const initials = heroName
     .split(/\s+/)
@@ -146,14 +164,39 @@ export default async function ShopLogPage({
 
         <form action={logServiceViaCode} className="mt-4 space-y-4" id="shop-form">
           <input type="hidden" name="code" value={code} />
+          {memberWorkshop && (
+            <input type="hidden" name="workshop_id" value={memberWorkshop.id} />
+          )}
 
-          <Field
-            label="Workshop name"
-            name="workshop_name"
-            placeholder="Al Quoz Auto Care"
-            required
-            hint="Will appear on the customer's record."
-          />
+          {memberWorkshop ? (
+            <div>
+              <label className="label">Workshop</label>
+              <div className="card px-4 py-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm text-chalk truncate">{memberWorkshop.name}</p>
+                  <p className="text-[11px] text-ash mt-0.5">
+                    Signed in — entry will count toward your dashboard
+                  </p>
+                </div>
+                <span className="text-[10px] tracking-widest uppercase text-volt">
+                  ✓ Verified
+                </span>
+              </div>
+              <input
+                type="hidden"
+                name="workshop_name"
+                value={memberWorkshop.name}
+              />
+            </div>
+          ) : (
+            <Field
+              label="Workshop name"
+              name="workshop_name"
+              placeholder="Al Quoz Auto Care"
+              required
+              hint="Will appear on the customer's record."
+            />
+          )}
 
           <div>
             <label htmlFor="service_type" className="label">

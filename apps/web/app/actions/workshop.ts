@@ -116,6 +116,29 @@ export async function logServiceViaCode(formData: FormData) {
     )
   }
 
+  // If the submitter is a signed-in workshop member, attribute the record to
+  // their workshop so it counts toward CRM/stats. Verify membership first.
+  const workshopIdInput = String(formData.get('workshop_id') ?? '').trim()
+  if (workshopIdInput) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) {
+      const { data: membership } = await supabase
+        .from('workshop_members')
+        .select('workshop_id')
+        .eq('user_id', user.id)
+        .eq('workshop_id', workshopIdInput)
+        .maybeSingle()
+      if (membership) {
+        await supabase
+          .from('service_records')
+          .update({ workshop_id: workshopIdInput })
+          .eq('id', recordId)
+      }
+    }
+  }
+
   // Mark this IP's attempt as successful → doesn't count toward rate limit
   const h = await headers()
   const xff = h.get('x-forwarded-for')

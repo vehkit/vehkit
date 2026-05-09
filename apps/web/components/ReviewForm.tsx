@@ -13,6 +13,7 @@ export function ReviewForm({
   existingQuality,
   existingValue,
   existingTimeliness,
+  autoOpen = false,
 }: {
   recordId: string
   vehicleId: string
@@ -21,8 +22,9 @@ export function ReviewForm({
   existingQuality?: number | null
   existingValue?: number | null
   existingTimeliness?: number | null
+  autoOpen?: boolean
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(autoOpen)
   const [rating, setRating] = useState<number>(existingRating ?? 0)
   const [hover, setHover] = useState<number>(0)
   const [axes, setAxes] = useState<Record<Axis, number>>({
@@ -49,7 +51,11 @@ export function ReviewForm({
   }
 
   return (
-    <form action={submitReview} className="mt-3 card p-4 space-y-4 border-volt/30">
+    <form
+      action={submitReview}
+      className="mt-3 card p-4 space-y-4 border-volt/30"
+      id={`review-${recordId}`}
+    >
       <input type="hidden" name="record_id" value={recordId} />
       <input type="hidden" name="vehicle_id" value={vehicleId} />
       <input type="hidden" name="rating" value={rating} />

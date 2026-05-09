@@ -188,6 +188,44 @@ export async function updateServiceRecord(formData: FormData) {
   redirect(`/vehicles/${vehicleId}`)
 }
 
+/**
+ * Owner confirms a workshop entry early — locks it before the 24h window
+ * and immediately routes back to the vehicle page with a query param that
+ * auto-opens the review form. Zero-friction trust loop close.
+ */
+export async function confirmServiceRecord(formData: FormData) {
+  const id = strOrNull(formData.get('id'))
+  const vehicleId = strOrNull(formData.get('vehicle_id'))
+  if (!id || !vehicleId) redirect('/mycars')
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  // Verify the user owns this vehicle (defense in depth — RLS also blocks)
+  const { data: vehicle } = await supabase
+    .from('vehicles')
+    .select('owner_id')
+    .eq('id', vehicleId)
+    .single()
+  if (!vehicle || vehicle.owner_id !== user.id) {
+    redirect(`/vehicles/${vehicleId}?error=Not+allowed`)
+  }
+
+  await supabase
+    .from('service_records')
+    .update({ confirmed_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('vehicle_id', vehicleId)
+
+  revalidatePath(`/vehicles/${vehicleId}`)
+  revalidatePath('/notifications')
+  // Pass review=id to auto-open the rate-this-workshop form
+  redirect(`/vehicles/${vehicleId}?review=${id}#review-${id}`)
+}
+
 export async function deleteServiceRecord(formData: FormData) {
   const id = strOrNull(formData.get('id'))
   const vehicleId = strOrNull(formData.get('vehicle_id'))

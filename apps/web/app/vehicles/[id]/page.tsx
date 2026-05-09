@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { deleteVehicle } from '@/app/actions/vehicles'
-import { deleteServiceRecord } from '@/app/actions/services'
+import { deleteServiceRecord, confirmServiceRecord } from '@/app/actions/services'
 import { snoozeReminder, completeReminder } from '@/app/actions/reminders'
 import { HeroPhotoUpload } from '@/components/HeroPhotoUpload'
 import { ShareSheet } from '@/components/ShareSheet'
@@ -22,10 +22,14 @@ import {
 
 export default async function VehiclePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ review?: string }>
 }) {
   const { id } = await params
+  const sp = await searchParams
+  const autoReviewRecordId = sp.review ?? null
   const supabase = await createClient()
   const {
     data: { user },
@@ -218,11 +222,15 @@ export default async function VehiclePage({
                   .map((f: { storage_path: string }) => f.storage_path)
                   .filter(Boolean)
                 const ageMs = Date.now() - new Date(r.created_at).getTime()
+                const isConfirmed = !!r.confirmed_at
                 const isPending =
-                  r.attestation === 'workshop' && ageMs < 24 * 60 * 60 * 1000
+                  r.attestation === 'workshop' &&
+                  !isConfirmed &&
+                  ageMs < 24 * 60 * 60 * 1000
                 const hoursLeft = isPending
                   ? Math.max(1, Math.ceil((24 * 60 * 60 * 1000 - ageMs) / (60 * 60 * 1000)))
                   : 0
+                const autoOpenReview = autoReviewRecordId === r.id
                 const review = r.workshop_reviews?.[0]
                 const workshopName = r.workshop_name_freetext || 'Owner-logged'
                 const initials = workshopName
@@ -329,6 +337,19 @@ export default async function VehiclePage({
                             Edit
                           </Link>
                         )}
+                        {isPending && (
+                          <form action={confirmServiceRecord}>
+                            <input type="hidden" name="id" value={r.id} />
+                            <input type="hidden" name="vehicle_id" value={id} />
+                            <button
+                              type="submit"
+                              className="text-xs tracking-widest uppercase font-medium text-volt hover:text-volt/80 transition-colors"
+                              formNoValidate
+                            >
+                              ✓ Confirm
+                            </button>
+                          </form>
+                        )}
                         {(r.attestation !== 'workshop' || isPending) && (
                           <form action={deleteServiceRecord}>
                             <input type="hidden" name="id" value={r.id} />
@@ -355,6 +376,7 @@ export default async function VehiclePage({
                             existingQuality={review?.quality_rating ?? null}
                             existingValue={review?.value_rating ?? null}
                             existingTimeliness={review?.timeliness_rating ?? null}
+                            autoOpen={autoOpenReview}
                           />
                         )}
                       </div>
