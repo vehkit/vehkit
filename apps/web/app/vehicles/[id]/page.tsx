@@ -321,7 +321,146 @@ export default async function VehiclePage({
           </section>
         )}
 
-        {/* TOP WORKSHOP — PropertyFinder-style provider card */}
+        {/* INSIGHTS — PropertyFinder-style comparison cards */}
+        {totalRecords > 0 && (
+          <section className="mt-10">
+            <SectionHeader title="Insights" />
+            <div className="space-y-3">
+              {(() => {
+                const insights: Array<{
+                  headline: string
+                  detail: string
+                  tone: 'good' | 'bad' | 'neutral'
+                }> = []
+
+                // Score health
+                if (scoreData?.score != null) {
+                  if (scoreData.score >= 80) {
+                    insights.push({
+                      headline: `Strong passport · score of ${scoreData.score}/100`,
+                      detail:
+                        'Above the 80-point threshold buyers look for at resale.',
+                      tone: 'good',
+                    })
+                  } else if (scoreData.score >= 60) {
+                    insights.push({
+                      headline: `Healthy passport · score of ${scoreData.score}/100`,
+                      detail:
+                        'Solid history. A few more verified entries would push it past 80.',
+                      tone: 'neutral',
+                    })
+                  } else {
+                    insights.push({
+                      headline: `Score is ${scoreData.score}/100 — improvable`,
+                      detail:
+                        'Add workshop-verified services and stay current with reminders to lift it.',
+                      tone: 'bad',
+                    })
+                  }
+                }
+
+                // Verification ratio
+                if (totalRecords > 0) {
+                  const verifiedPct = Math.round(
+                    (verifiedRecords / totalRecords) * 100
+                  )
+                  if (verifiedPct >= 70) {
+                    insights.push({
+                      headline: `${verifiedPct}% of services are workshop-verified`,
+                      detail: `${verifiedRecords} of ${totalRecords} entries attested by a verified workshop.`,
+                      tone: 'good',
+                    })
+                  } else if (verifiedPct >= 30) {
+                    insights.push({
+                      headline: `${verifiedPct}% of services are workshop-verified`,
+                      detail:
+                        'A higher verified share strengthens the passport for resale.',
+                      tone: 'neutral',
+                    })
+                  } else {
+                    insights.push({
+                      headline: `Only ${verifiedPct}% of services are workshop-verified`,
+                      detail:
+                        'Owner-logged entries count, but verified ones move the score.',
+                      tone: 'bad',
+                    })
+                  }
+                }
+
+                // Workshop diversity
+                if (verifiedRecords > 0) {
+                  if (distinctWorkshops >= 2) {
+                    insights.push({
+                      headline: `Serviced across ${distinctWorkshops} distinct workshops`,
+                      detail:
+                        'Multi-workshop history rules out single-source bias and lifts the score.',
+                      tone: 'good',
+                    })
+                  } else {
+                    insights.push({
+                      headline: 'Single-workshop history',
+                      detail:
+                        'A second verified workshop on this car unlocks the diversity bonus.',
+                      tone: 'neutral',
+                    })
+                  }
+                }
+
+                // Recency from score data
+                if (scoreData?.recency_pts != null) {
+                  if (Number(scoreData.recency_pts) >= 10) {
+                    insights.push({
+                      headline: 'Serviced within the last 6 months',
+                      detail:
+                        'Recency is current. Buyers see this as active care, not storage.',
+                      tone: 'good',
+                    })
+                  } else if (Number(scoreData.recency_pts) >= 5) {
+                    insights.push({
+                      headline: 'Last service was 6–12 months ago',
+                      detail:
+                        'Schedule a routine service in the next month to stay in the green band.',
+                      tone: 'neutral',
+                    })
+                  } else if (Number(scoreData.recency_pts) === 0 && totalRecords > 0) {
+                    insights.push({
+                      headline: 'No service in the last 12 months',
+                      detail:
+                        "Long gaps signal storage or neglect — and they're recoverable in one visit.",
+                      tone: 'bad',
+                    })
+                  }
+                }
+
+                // Compliance — overdue reminders
+                if (
+                  scoreData?.open_overdue != null &&
+                  Number(scoreData.open_overdue) > 0
+                ) {
+                  insights.push({
+                    headline: `${scoreData.open_overdue} reminder${
+                      Number(scoreData.open_overdue) === 1 ? '' : 's'
+                    } overdue`,
+                    detail:
+                      'Each overdue reminder costs up to two compliance points.',
+                    tone: 'bad',
+                  })
+                }
+
+                return insights.map((i, idx) => (
+                  <InsightCard
+                    key={idx}
+                    headline={i.headline}
+                    detail={i.detail}
+                    tone={i.tone}
+                  />
+                ))
+              })()}
+            </div>
+          </section>
+        )}
+
+        {/* TOP WORKSHOP — sits below insights */}
         {topWorkshopEntry && (
           <section className="mt-10">
             <SectionHeader title="Most-frequent workshop" />
@@ -642,6 +781,100 @@ export default async function VehiclePage({
 
 function humanize(s: string): string {
   return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+/**
+ * PropertyFinder-style insight card with valence icon.
+ * Bold headline + supporting line + thumbs up / neutral / down on the right.
+ */
+function InsightCard({
+  headline,
+  detail,
+  tone,
+}: {
+  headline: string
+  detail: string
+  tone: 'good' | 'bad' | 'neutral'
+}) {
+  return (
+    <div className="card p-5 flex items-center gap-4">
+      <div className="min-w-0 flex-1">
+        <p className="text-base md:text-lg font-semibold text-chalk leading-snug">
+          {headline}
+        </p>
+        <p className="text-xs text-ash mt-1.5 leading-relaxed">{detail}</p>
+      </div>
+      <div className="shrink-0">
+        <ValenceIcon tone={tone} />
+      </div>
+    </div>
+  )
+}
+
+function ValenceIcon({ tone }: { tone: 'good' | 'bad' | 'neutral' }) {
+  if (tone === 'good') {
+    return (
+      <div className="flex items-center gap-0.5">
+        <span className="w-1.5 h-7 bg-volt rounded-pill" />
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-volt"
+          aria-hidden
+        >
+          <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" />
+        </svg>
+      </div>
+    )
+  }
+  if (tone === 'bad') {
+    return (
+      <div className="flex items-center gap-0.5">
+        <span className="w-1.5 h-7 bg-signal rounded-pill" />
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-signal"
+          aria-hidden
+        >
+          <path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zm7-13h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17" />
+        </svg>
+      </div>
+    )
+  }
+  // neutral — softer, ash thumbs sideways
+  return (
+    <div className="flex items-center gap-0.5">
+      <span className="w-1.5 h-7 bg-wallet rounded-pill" />
+      <svg
+        width="36"
+        height="36"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-wallet"
+        aria-hidden
+      >
+        <line x1="5" y1="12" x2="19" y2="12" />
+        <polyline points="12 5 19 12 12 19" />
+      </svg>
+    </div>
+  )
 }
 
 function TopWorkshopCard({
