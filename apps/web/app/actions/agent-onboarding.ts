@@ -12,23 +12,12 @@ function strOrNull(v: FormDataEntryValue | null): string | null {
 }
 
 /**
- * Slugify a name into a URL-safe handle. Append a short random suffix to
- * collide-proof the result without a fancy uniqueness loop.
- */
-function makeSlug(name: string): string {
-  const base = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40)
-  const suffix = Math.random().toString(36).slice(2, 6)
-  return `${base || 'agent'}-${suffix}`
-}
-
-/**
  * Create a new agent organisation and add the calling user as the
- * first member with role='owner'. Both INSERTs go through the RLS
- * policies declared in the agents schema migration.
+ * first 'owner' member. Goes through the SECURITY DEFINER RPC
+ * `create_agent_org` because doing two row-level inserts from the
+ * user session hits an RLS chicken-and-egg: the SELECT-after-INSERT
+ * on agents requires is_agent_member(id), which is false until the
+ * membership row is also inserted.
  */
 export async function createAgentOrg(formData: FormData) {
   const supabase = await createClient()
@@ -51,35 +40,27 @@ export async function createAgentOrg(formData: FormData) {
   const phone = strOrNull(formData.get('phone'))
   const next = strOrNull(formData.get('next')) ?? '/agent'
 
-  const { data: agent, error: agentErr } = await supabase
-    .from('agents')
-    .insert({
-      name,
-      slug: makeSlug(name),
-      category,
-      emirate,
-      phone,
-    })
-    .select('id')
-    .single()
-
-  if (agentErr || !agent) {
-    redirect(
-      `/agent/start?error=${encodeURIComponent(agentErr?.message ?? 'Could not create agent')}`,
-    )
-  }
-
-  const { error: memErr } = await supabase.from('agent_members').insert({
-    agent_id: agent.id,
-    user_id: user.id,
-    role: 'owner',
+  const { error } = await supabase.rpc('create_agent_org', {
+    p_name: name,
+    p_category: category,
+    p_emirate: emirate,
+    p_phone: phone,
   })
 
-  if (memErr) {
+  if (error) {
     redirect(
-      `/agent/start?error=${encodeURIComponent(`Created org but member insert failed: ${memErr.message}`)}`,
+      `/agent/start?error=${encodeURIComponent(friendlyOnboardingError(error.message))}`,
     )
   }
 
   redirect(next)
+}
+
+function friendlyOnboardingError(raw: string): string {
+  if (raw.includes('not_authenticated')) return 'Please sign in again.'
+  if (raw.includes('invalid_name')) return 'Pick a name.'
+  if (raw.includes('invalid_category')) return 'Pick a valid category.'
+  if (raw.toLowerCase().includes('duplicate'))
+    return 'An organisation with that name already exists. Try a slightly different name.'
+  return raw
 }
