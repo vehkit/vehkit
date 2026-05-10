@@ -159,36 +159,44 @@ export function QuickAddFab({ vehicles }: { vehicles: FabVehicle[] }) {
 
   return (
     <>
-      {/* The button — fixed bottom-right.
+      {/* The button — anchored to the right edge of the centered content
+          column, not the viewport edge. The page content uses `max-w-3xl
+          mx-auto`; we mirror that here so the FAB sits where the eye is,
+          not in the empty desktop gutter.
           Mobile: bottom-20 (clears the 4-tab bottom nav: 64px + 16px gap).
           Desktop: bottom-6. */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Quick add"
-        aria-expanded={open}
-        className="fixed right-4 md:right-6 bottom-20 md:bottom-6 z-40 w-14 h-14 rounded-pill bg-leaf hover:bg-leaf-dk text-white shadow-lg shadow-leaf/30 flex items-center justify-center transition-transform active:scale-95"
-        style={{
-          // Subtle elevation on top of leaf's solid green
-          boxShadow:
-            '0 10px 30px -8px rgba(33,192,122,0.55), 0 4px 8px -2px rgba(0,0,0,0.25)',
-        }}
+      <div
+        className="fixed inset-x-0 bottom-20 md:bottom-6 z-40 pointer-events-none"
       >
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden
-        >
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </button>
+        <div className="relative max-w-3xl mx-auto px-4 md:px-6 h-14">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="Quick add"
+            aria-expanded={open}
+            className="absolute right-4 md:right-6 w-14 h-14 rounded-pill bg-leaf hover:bg-leaf-dk text-white flex items-center justify-center transition-transform active:scale-95 pointer-events-auto"
+            style={{
+              boxShadow:
+                '0 10px 30px -8px rgba(33,192,122,0.55), 0 4px 8px -2px rgba(0,0,0,0.25)',
+            }}
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        </div>
+      </div>
 
       {/* Sheet */}
       {open && (
