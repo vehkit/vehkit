@@ -54,9 +54,9 @@ export default async function NewDocumentPage({
           Add a document
         </h1>
         <p className="text-sm text-ash mt-2 leading-relaxed">
-          Mulkiya, insurance, NOC — anything you'd otherwise scramble to
-          find when an insurance broker asks. Stored privately; only you
-          and people you explicitly share with can see it.
+          Mulkiya, registration, insurance, NOC, service contracts — anything
+          you&apos;d otherwise scramble to find at 11pm before a renewal. Stored
+          privately; only you and people you explicitly share with can see it.
         </p>
 
         {error && (
@@ -149,8 +149,8 @@ export default async function NewDocumentPage({
           </div>
 
           <p className="text-[11px] text-ash/70 leading-relaxed">
-            Adding an expiry date lets us remind you — and your insurance
-            broker, if you've shared with one — before it lapses.
+            Add an expiry date and we&apos;ll remind you before it lapses. No more
+            calendar pings, sticky notes, or 11pm renewal panics.
           </p>
 
           <div className="pt-2">

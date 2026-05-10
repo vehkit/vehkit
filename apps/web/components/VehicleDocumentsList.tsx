@@ -69,9 +69,9 @@ export function VehicleDocumentsList({
   if (documents.length === 0) {
     return (
       <div className="card p-6 text-center">
-        <p className="text-sm text-chalk font-medium">No documents attached</p>
+        <p className="text-sm text-chalk font-medium">Your glovebox is empty</p>
         <p className="text-xs text-ash mt-2 leading-relaxed">
-          Mulkiya, insurance, NOC — keep them here, share with brokers in seconds.
+          Mulkiya, registration, insurance, NOC, service contracts — store them once, find them in seconds. We&apos;ll remind you before anything expires.
         </p>
         {isOwner && (
           <Link

@@ -157,10 +157,10 @@ export default async function EditVehiclePage({
                 </span>
               </p>
               <p className="text-xs text-ash mt-1.5 leading-relaxed">
-                Insurance brokers and other agents who have a non-expired
-                grant on this vehicle. Each grant is full-access for 60
-                minutes after redemption, then renewal-track metadata for
-                30 days.
+                Anyone you&apos;ve given a share code to — broker, leasing
+                agent, buyer, fleet manager — with a non-expired grant on
+                this vehicle. Each grant is full-access for 60 minutes after
+                redemption, then renewal-track metadata for 30 days.
               </p>
             </div>
 

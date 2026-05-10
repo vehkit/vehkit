@@ -52,7 +52,7 @@ export function AgentCodeSheet({
 
   async function copyShareText() {
     if (!code) return
-    const text = `${vehicleTitle} — Vehkit insurance share\n\nCode: ${formatCode(code)}\nOpen: ${agentUrl}\n\nFull access for 60 minutes after redemption, then renewal-only metadata for 30 days.`
+    const text = `${vehicleTitle} — Vehkit share\n\nCode: ${formatCode(code)}\nOpen: ${agentUrl}\n\nFull access for 60 minutes after redemption, then renewal-only metadata for 30 days.`
     try {
       await navigator.clipboard.writeText(text)
       setCopied(true)
@@ -101,7 +101,8 @@ export function AgentCodeSheet({
             </div>
 
             <p className="text-sm text-ash leading-relaxed">
-              Send this to your insurance broker. They sign in at{' '}
+              Send this to whoever needs it — insurance broker, leasing agent,
+              buyer, fleet manager. They open{' '}
               <span className="font-mono text-chalk/80">{agentUrl}</span> and
               enter the code. Full document access for{' '}
               <span className="text-chalk">60 minutes</span>, then renewal-only

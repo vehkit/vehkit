@@ -194,7 +194,7 @@ export default async function MyCarsPage() {
       key: 'expired-docs',
       title: `${expiredDocs.length} document ${expiredDocs.length === 1 ? 'has' : 'have'} expired`,
       body:
-        'Replace expired insurance, mulkiya, or NOC files so brokers always see fresh documents.',
+        'Mulkiya, registration, insurance — refresh expired files so you\'re never that person scrambling at the gate.',
       href: vehicles?.[0] ? `/vehicles/${vehicles[0].id}#documents` : '/mycars',
       cta: 'Update',
       tone: 'signal',
@@ -206,9 +206,9 @@ export default async function MyCarsPage() {
       key: 'expiring-docs',
       title: `${expiringDocs.length} document ${expiringDocs.length === 1 ? 'expires' : 'expire'} this month`,
       body:
-        'Insurance and registration renewal coming up. Get ahead — share with a broker for quotes.',
-      href: '/agents',
-      cta: 'Find a broker',
+        'We\'ll keep nudging until it\'s sorted. Open the doc, see what\'s due, get it done.',
+      href: vehicles?.[0] ? `/vehicles/${vehicles[0].id}#documents` : '/mycars',
+      cta: 'View',
       tone: 'wallet',
       icon: 'clock',
     })
@@ -217,9 +217,9 @@ export default async function MyCarsPage() {
     const v = vehiclesMissingDocs[0]!
     allSuggestions.push({
       key: 'add-docs',
-      title: 'Add your registration & insurance',
+      title: 'Build your digital glovebox',
       body:
-        'Mulkiya, insurance, NOC — keep them on file so insurance brokers can quote in seconds.',
+        'Mulkiya, registration, insurance, NOC, service contracts — store them once, find them in seconds. We\'ll remind you before anything expires.',
       href: `/vehicles/${v.id}/documents/new`,
       cta: 'Upload',
       tone: 'volt',
@@ -248,10 +248,10 @@ export default async function MyCarsPage() {
   }
   if (totalVehicles > 0 && hasAnyDocs && !hasAnyShare) {
     allSuggestions.push({
-      key: 'share-with-broker',
-      title: 'Share with an insurance broker',
+      key: 'share-with-agent',
+      title: 'Need to share with someone?',
       body:
-        'Generate a one-time code. Brokers get 60 minutes of full document access, then renewal-track only.',
+        'Insurance quote, leasing handover, sale to a buyer — generate a one-time code. 60 minutes of full access, no PDFs flying around WhatsApp.',
       href: vehicles?.[0]
         ? `/vehicles/${vehicles[0].id}#documents`
         : '/mycars',
@@ -271,16 +271,20 @@ export default async function MyCarsPage() {
     tone: 'ash',
     icon: 'workshop',
   })
-  allSuggestions.push({
-    key: 'find-agent',
-    title: 'Insurance brokers on Vehkit',
-    body:
-      'Verified agents who can quote your renewal in minutes once you share documents with them.',
-    href: '/agents',
-    cta: 'Browse',
-    tone: 'ash',
-    icon: 'compass',
-  })
+  if (totalVehicles > 0) {
+    allSuggestions.push({
+      key: 'set-reminders-evergreen',
+      title: 'Let Vehkit do the remembering',
+      body:
+        "Mulkiya, oil change, tyre rotation, warranty — set it once, get reminded before it's due. No more renewal-day chaos.",
+      href: vehicles?.[0]
+        ? `/vehicles/${vehicles[0].id}/reminders/new`
+        : '/mycars',
+      cta: 'Add reminder',
+      tone: 'ash',
+      icon: 'clock',
+    })
+  }
 
   // Cap at 4 — anything beyond is noise
   const suggestions = allSuggestions.slice(0, 4)

@@ -413,7 +413,7 @@ export default async function VehiclePage({
           </section>
         )}
 
-        {/* DOCUMENTS — mulkiya, insurance, NOC, etc. + agent share */}
+        {/* DOCUMENTS — your digital glovebox + agent share */}
         <section id="documents" className="mt-10 scroll-mt-20">
           <SectionHeader
             title="Documents"
