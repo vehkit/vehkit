@@ -157,28 +157,19 @@ export default async function WorkshopDirectoryPage({
 }
 
 /**
- * Curated stock photos used as fallback hero images for workshop cards.
- * Picked deterministically per workshop ID so the same shop always shows
- * the same photo. Replace with `workshops.hero_image_url` once we add
- * that column and let workshops upload their own.
+ * Deterministic placeholder hero photo per workshop. We use Picsum
+ * because (a) it always returns a valid image — no 404s, (b) the
+ * `seed` segment makes the same workshop always show the same photo
+ * across requests, and (c) it doesn't depend on us cherry-picking
+ * Unsplash IDs that may rot.
+ *
+ * Once the workshop uploads via `WorkshopHeroUpload`, that takes
+ * precedence — see DirectoryRow's preference chain.
  */
-const STOCK_WORKSHOP_PHOTOS = [
-  'https://images.unsplash.com/photo-1487754180451-c456f719a1fc?w=800&auto=format&fit=crop&q=70',
-  'https://images.unsplash.com/photo-1632823469637-0fb83a40e74b?w=800&auto=format&fit=crop&q=70',
-  'https://images.unsplash.com/photo-1632823471565-1ecdf5c6b41c?w=800&auto=format&fit=crop&q=70',
-  'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=800&auto=format&fit=crop&q=70',
-  'https://images.unsplash.com/photo-1632823469850-1b7b1e8b7d4e?w=800&auto=format&fit=crop&q=70',
-  'https://images.unsplash.com/photo-1530046339915-78e95dc23f7c?w=800&auto=format&fit=crop&q=70',
-  'https://images.unsplash.com/photo-1599256632267-94b4ed68b69d?w=800&auto=format&fit=crop&q=70',
-  'https://images.unsplash.com/photo-1617886322168-72b886573c5f?w=800&auto=format&fit=crop&q=70',
-] as const
-
 function pickStockPhoto(id: string): string {
-  // Hash the id (just sum char codes — deterministic, no crypto needed)
-  let h = 0
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0
-  const idx = Math.abs(h) % STOCK_WORKSHOP_PHOTOS.length
-  return STOCK_WORKSHOP_PHOTOS[idx]!
+  // Use the workshop's UUID as the seed — same shop, same photo, every time
+  const seed = id.replace(/-/g, '').slice(0, 12)
+  return `https://picsum.photos/seed/${seed}/800/600`
 }
 
 function DirectoryRow({ w }: { w: DirectoryRow }) {
