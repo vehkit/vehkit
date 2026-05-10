@@ -91,7 +91,7 @@ export function MarketingFooter() {
         </div>
         <div className="pt-6 border-t border-seam flex items-center justify-between flex-wrap gap-3">
           <p className="text-[10px] tracking-widest uppercase text-ash/60">
-            © {new Date().getFullYear()} Vehkit · Made in Dubai
+            © {new Date().getFullYear()} Vehkit
           </p>
           <p className="text-[10px] tracking-widest uppercase text-ash/60">
             Every car deserves a passport.
@@ -135,7 +135,7 @@ function FooterCol({
  * Pure typography composition; no images.
  */
 export function SamplePassport({
-  workshop = 'ASM German Auto Garage',
+  workshop = 'Verified workshop',
   workshopMeta = 'Dubai · Gold',
   service = 'Major service',
   km = '38,500',

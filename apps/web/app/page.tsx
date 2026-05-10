@@ -88,16 +88,20 @@ export default async function Home() {
             </Link>
           </nav>
           <span className="flex-1" />
-          <span
-            className="hidden lg:flex items-center gap-2 text-[11px] font-bold uppercase whitespace-nowrap"
+          <Link
+            href="/workshop/start"
+            className="hidden lg:inline-flex text-[11px] font-bold uppercase whitespace-nowrap hover:opacity-70 transition-opacity"
             style={{ letterSpacing: '0.18em', color: MUTE }}
           >
-            <span
-              className="inline-block w-1.5 h-1.5 rounded-full"
-              style={{ background: LEAF }}
-            />
-            Made in Dubai
-          </span>
+            For workshops
+          </Link>
+          <Link
+            href="/agent/start"
+            className="hidden lg:inline-flex text-[11px] font-bold uppercase whitespace-nowrap hover:opacity-70 transition-opacity"
+            style={{ letterSpacing: '0.18em', color: MUTE }}
+          >
+            For agents
+          </Link>
           <Link
             href={user ? '/mycars' : '/login'}
             className="hidden sm:inline-flex items-center gap-2 h-[42px] px-[18px] rounded-full font-bold text-sm whitespace-nowrap"
@@ -619,7 +623,7 @@ export default async function Home() {
         style={{ background: PAPER, borderTop: `1px solid ${LINE}` }}
       >
         <div className="max-w-[1240px] mx-auto px-6 md:px-10">
-          <div className="grid md:grid-cols-[1.4fr_repeat(3,1fr)] gap-12 mb-14">
+          <div className="grid md:grid-cols-[1.4fr_repeat(4,1fr)] gap-12 mb-14">
             <div className="flex flex-col gap-4">
               <div
                 className="flex items-center gap-2.5 font-black text-[32px]"
@@ -634,16 +638,6 @@ export default async function Home() {
               >
                 Verified vehicle records. Built for the UAE.
               </p>
-              <span
-                className="flex items-center gap-2 text-[11px] font-bold uppercase mt-1"
-                style={{ letterSpacing: '0.22em', color: MUTE }}
-              >
-                <span
-                  className="inline-block w-1.5 h-1.5 rounded-full"
-                  style={{ background: LEAF }}
-                />
-                Made in Dubai
-              </span>
             </div>
             <FooterCol
               heading="Owners"
@@ -662,9 +656,16 @@ export default async function Home() {
               ]}
             />
             <FooterCol
+              heading="Agents"
+              links={[
+                { label: 'Why vehkit', href: '/agent/start' },
+                { label: 'Sign in', href: '/login?next=/agent' },
+                { label: 'For buyers', href: '/buyers' },
+              ]}
+            />
+            <FooterCol
               heading="Company"
               links={[
-                { label: 'For buyers', href: '/buyers' },
                 { label: 'Privacy', href: '/privacy' },
                 { label: 'Terms', href: '/terms' },
                 { label: 'Contact', href: 'mailto:hello@vehkit.com' },
@@ -675,7 +676,7 @@ export default async function Home() {
             className="flex justify-between pt-8 text-xs font-bold uppercase flex-wrap gap-2"
             style={{ borderTop: `1px solid ${LINE}`, color: MUTE, letterSpacing: '0.18em' }}
           >
-            <span>© {new Date().getFullYear()} Vehkit · Made in Dubai</span>
+            <span>© {new Date().getFullYear()} Vehkit</span>
             <span>Every car deserves a passport.</span>
           </div>
         </div>

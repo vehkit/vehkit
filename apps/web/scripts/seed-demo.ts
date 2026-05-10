@@ -59,11 +59,11 @@ const HERO_PHOTOS = [
 
 const WORKSHOPS_DATA = [
   {
-    name: 'ASM German Auto Garage',
+    name: 'Bavaria Specialist Garage',
     emirate: 'Dubai',
     address: 'Al Quoz Industrial Area 4, Dubai',
     phone: '+971 4 322 1455',
-    email: 'info@asmgerman.ae',
+    email: 'info@bavariaspecialist.ae',
     targetTier: 'gold' as const,
   },
   {
@@ -140,7 +140,7 @@ const OWNERS_DATA = [
 ]
 
 const WORKSHOP_OWNERS_DATA = [
-  { full_name: 'Hans Müller' }, // ASM German
+  { full_name: 'Hans Müller' }, // Bavaria Specialist
   { full_name: 'Khalid Al-Marri' }, // Al Quoz
   { full_name: 'Rashid Al-Shamsi' }, // Sharjah Service
   { full_name: 'Stefan Becker' }, // AD Premium
@@ -711,7 +711,7 @@ const ASM_PREMIUM_COMMENTS = [
 async function boostASM(workshops: { id: string; name: string; targetTier: string }[], vehicles: any[], workshopOwners: { id: string }[]) {
   console.log('→ boosting ASM German as showpiece…')
 
-  const asm = workshops.find((w) => w.name === 'ASM German Auto Garage')
+  const asm = workshops.find((w) => w.name === 'Bavaria Specialist Garage')
   if (!asm) {
     console.warn('  ! ASM workshop not found, skipping boost')
     return
@@ -958,7 +958,7 @@ async function attachShowcaseOwnerToAsm(
   }
   console.log(`→ attaching ${SHOWCASE_EMAIL} as ASM owner…`)
 
-  const asm = workshops.find((w) => w.name === 'ASM German Auto Garage')
+  const asm = workshops.find((w) => w.name === 'Bavaria Specialist Garage')
   if (!asm) {
     console.warn('  ! ASM not found — skipping')
     return
