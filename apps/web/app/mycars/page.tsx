@@ -18,8 +18,8 @@ export default async function MyCarsPage() {
     .slice(0, 10)
 
   // Parallelize: vehicles + per-vehicle pending count + per-vehicle history
-  // + documents + reminders + agent grants. All used by the suggestions
-  // engine below.
+  // + documents + reminders + agent grants + top workshops (for the
+  // community discovery tile in the suggestions section).
   const [
     vehiclesRes,
     pendingRes,
@@ -27,6 +27,7 @@ export default async function MyCarsPage() {
     docsRes,
     remindersRes,
     grantsRes,
+    topWorkshopsRes,
   ] = await Promise.all([
     supabase.from('vehicles').select('*').order('created_at', { ascending: false }),
     supabase
@@ -55,6 +56,11 @@ export default async function MyCarsPage() {
       .eq('granted_by', user.id)
       .is('revoked_at', null)
       .gt('expires_at', new Date().toISOString()),
+    supabase.rpc('public_workshop_directory', {
+      p_emirate: null,
+      p_limit: 4,
+      p_offset: 0,
+    }),
   ])
 
   const vehicles = vehiclesRes.data
@@ -76,6 +82,14 @@ export default async function MyCarsPage() {
   const activeGrants = (grantsRes.data ?? []) as Array<{
     id: string
     vehicle_id: string
+  }>
+  const topWorkshops = (topWorkshopsRes.data ?? []) as Array<{
+    id: string
+    name: string
+    logo_url: string | null
+    hero_image_url: string | null
+    verification_tier: string
+    total_entries: number
   }>
 
   const pendingByVehicle = new Map<string, number>()
@@ -327,24 +341,39 @@ export default async function MyCarsPage() {
               summaryByVehicle={Object.fromEntries(summaryByVehicle)}
             />
 
-            {/* Dynamic suggestions — adapts to user state */}
+            {/* Dynamic suggestions — adapts to user state.
+                Tiered like Bayut's home: ONE hero, ONE community discovery
+                card with workshop avatars, plus 2 secondary rows. */}
             {suggestions.length > 0 && (
-              <section className="mt-10">
-                <div className="flex items-baseline justify-between mb-3">
+              <section className="mt-10 space-y-3">
+                <div className="flex items-baseline justify-between mb-1">
                   <h2 className="text-[10px] tracking-widest uppercase text-ash">
                     What's next
                   </h2>
-                  <span className="text-[10px] tracking-widest uppercase text-ash font-mono tabular-nums">
-                    {suggestions.length}
-                  </span>
                 </div>
-                <ul className="grid sm:grid-cols-2 gap-3">
-                  {suggestions.map((s) => (
-                    <li key={s.key}>
-                      <SuggestionCard s={s} />
-                    </li>
-                  ))}
-                </ul>
+
+                {/* TIER 1 — hero (highest-urgency suggestion) */}
+                <HeroSuggestion s={suggestions[0]!} />
+
+                {/* TIER 2 — community discovery with workshop avatars */}
+                <CommunityCard
+                  workshops={topWorkshops}
+                  href="/workshops"
+                  kicker="Workshop directory"
+                  title="Find a verified workshop"
+                  body="Gold and Silver shops across the UAE — sorted by tier, with reviews."
+                />
+
+                {/* TIER 3 — narrow secondary rows */}
+                {suggestions.length > 1 && (
+                  <ul className="space-y-3">
+                    {suggestions.slice(1, 4).map((s) => (
+                      <li key={s.key}>
+                        <RowSuggestion s={s} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </section>
             )}
           </>
@@ -479,57 +508,246 @@ type SuggestionData = {
   icon: 'alert' | 'doc' | 'clock' | 'share' | 'compass' | 'workshop'
 }
 
-function SuggestionCard({ s }: { s: SuggestionData }) {
+/**
+ * TIER 1 — full-width hero CTA. Used for the single highest-urgency
+ * suggestion. Mirrors Bayut's "Sell or Rent Your Property" hero panel:
+ * dark coloured surface, oversized title, supporting line, large
+ * decorative icon, prominent badge.
+ */
+function HeroSuggestion({ s }: { s: SuggestionData }) {
+  // Surface tone — urgency drives the dominant colour
+  const surface =
+    s.tone === 'signal'
+      ? 'bg-gradient-to-br from-signal/20 via-signal/10 to-noir border-signal/40'
+      : s.tone === 'wallet'
+        ? 'bg-gradient-to-br from-wallet/25 via-wallet/10 to-noir border-wallet/40'
+        : s.tone === 'volt'
+          ? 'bg-gradient-to-br from-leaf/30 via-leaf/15 to-noir border-leaf/40'
+          : 'bg-gradient-to-br from-iron via-carbon to-noir border-seam'
+  const titleColor =
+    s.tone === 'signal'
+      ? 'text-signal'
+      : s.tone === 'wallet'
+        ? 'text-wallet'
+        : s.tone === 'volt'
+          ? 'text-leaf'
+          : 'text-chalk'
+  const badgeLabel =
+    s.tone === 'signal'
+      ? 'Action required'
+      : s.tone === 'wallet'
+        ? 'Heads up'
+        : 'New'
+  const badgeBg =
+    s.tone === 'signal'
+      ? 'bg-signal text-noir'
+      : s.tone === 'wallet'
+        ? 'bg-wallet text-noir'
+        : 'bg-leaf text-noir'
+  return (
+    <Link
+      href={s.href as Parameters<typeof Link>[0]['href']}
+      className={`relative block rounded-DEFAULT border ${surface} overflow-hidden hover:opacity-95 transition-opacity`}
+    >
+      {/* Badge — top-left, mimics Bayut's NEW pill */}
+      <span
+        className={`absolute top-4 left-4 text-[10px] tracking-widest uppercase px-2 py-1 rounded-pill font-semibold ${badgeBg} z-10`}
+      >
+        {badgeLabel}
+      </span>
+
+      {/* Decorative oversized icon — top-right corner, low opacity */}
+      <div
+        className={`absolute -top-2 -right-2 ${titleColor} opacity-10 pointer-events-none`}
+        aria-hidden
+      >
+        <BigSuggestionIcon name={s.icon} />
+      </div>
+
+      <div className="p-6 md:p-8 pt-12 md:pt-12 relative">
+        <h3
+          className={`text-xl md:text-2xl font-semibold tracking-tighter leading-tight ${titleColor}`}
+        >
+          {s.title}
+        </h3>
+        <p className="text-sm md:text-base text-chalk/85 mt-3 leading-relaxed max-w-md">
+          {s.body}
+        </p>
+        <p
+          className={`text-xs tracking-widest uppercase mt-5 ${titleColor} font-medium`}
+        >
+          {s.cta} →
+        </p>
+      </div>
+    </Link>
+  )
+}
+
+/**
+ * TIER 2 — community discovery card. Shows real workshop logos as
+ * overlapping circles (Bayut's "TruBroker" pattern). Conveys "this is a
+ * marketplace with real participants" rather than just a directory link.
+ */
+function CommunityCard({
+  workshops,
+  href,
+  kicker,
+  title,
+  body,
+}: {
+  workshops: Array<{
+    id: string
+    name: string
+    logo_url: string | null
+    hero_image_url: string | null
+  }>
+  href: string
+  kicker: string
+  title: string
+  body: string
+}) {
+  const top = workshops.slice(0, 4)
+  return (
+    <Link
+      href={href as Parameters<typeof Link>[0]['href']}
+      className="relative block rounded-DEFAULT border border-leaf/30 overflow-hidden bg-gradient-to-br from-leaf-dk/40 via-noir to-noir hover:opacity-95 transition-opacity"
+    >
+      {/* Subtle layered horizontal lines, evoking Bayut's stacked waves */}
+      <div
+        className="absolute inset-0 opacity-30 pointer-events-none"
+        aria-hidden
+        style={{
+          backgroundImage:
+            'repeating-linear-gradient(0deg, transparent 0 28px, rgb(var(--leaf) / 0.05) 28px 29px)',
+        }}
+      />
+
+      <div className="relative p-6 md:p-8">
+        {/* Avatar row — mimics TruBroker faces */}
+        {top.length > 0 && (
+          <div className="flex items-center -space-x-2 mb-4">
+            {top.map((w) => {
+              const initials = w.name
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((s) => s.charAt(0).toUpperCase())
+                .join('')
+              const photo = w.logo_url ?? w.hero_image_url
+              return (
+                <div
+                  key={w.id}
+                  className="w-12 h-12 rounded-pill border-2 border-noir bg-iron overflow-hidden flex items-center justify-center font-mono text-[11px] font-semibold text-leaf"
+                  title={w.name}
+                >
+                  {photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={photo}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span aria-hidden>{initials}</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        <p className="text-[10px] tracking-widest uppercase text-leaf">
+          {kicker}
+        </p>
+        <h3 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-tight mt-1.5">
+          {title}
+        </h3>
+        <p className="text-sm text-chalk/80 mt-2 leading-relaxed max-w-md">
+          {body}
+        </p>
+        <p className="text-xs tracking-widest uppercase text-leaf font-medium mt-4">
+          Browse →
+        </p>
+      </div>
+    </Link>
+  )
+}
+
+/**
+ * TIER 3 — narrow horizontal row card. Mirrors Bayut's TruEstimate /
+ * BayutGPT rows: small illustration left, title + body right, chevron.
+ */
+function RowSuggestion({ s }: { s: SuggestionData }) {
   const iconBg =
     s.tone === 'signal'
       ? 'bg-signal/15 text-signal'
       : s.tone === 'wallet'
         ? 'bg-wallet/15 text-wallet'
         : s.tone === 'volt'
-          ? 'bg-volt/15 text-volt'
+          ? 'bg-leaf/15 text-leaf'
           : 'bg-iron text-ash'
-  const ctaColor =
-    s.tone === 'signal'
-      ? 'text-signal'
-      : s.tone === 'wallet'
-        ? 'text-wallet'
-        : s.tone === 'volt'
-          ? 'text-volt'
-          : 'text-volt'
   return (
     <Link
       href={s.href as Parameters<typeof Link>[0]['href']}
-      className="card p-5 block hover:border-volt/30 transition-colors h-full flex flex-col"
+      className="card p-4 md:p-5 flex items-center gap-4 hover:border-leaf/30 transition-colors"
     >
-      <div className="flex items-start gap-3">
-        <span
-          className={`shrink-0 w-10 h-10 rounded-pill flex items-center justify-center ${iconBg}`}
-          aria-hidden
-        >
-          <SuggestionIcon name={s.icon} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm md:text-base font-semibold text-chalk leading-snug">
-            {s.title}
-          </p>
-        </div>
+      <span
+        className={`shrink-0 w-14 h-14 rounded-DEFAULT flex items-center justify-center ${iconBg}`}
+        aria-hidden
+      >
+        <SuggestionIcon name={s.icon} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-base md:text-lg font-semibold text-chalk leading-snug">
+          {s.title}
+        </p>
+        <p className="text-xs md:text-sm text-ash mt-1 leading-relaxed line-clamp-2">
+          {s.body}
+        </p>
       </div>
-      <p className="text-xs text-ash mt-3 leading-relaxed flex-1">{s.body}</p>
-      <p className={`text-xs tracking-widest uppercase mt-4 ${ctaColor}`}>
-        {s.cta} →
-      </p>
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-ash shrink-0"
+        aria-hidden
+      >
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
     </Link>
   )
 }
 
-function SuggestionIcon({ name }: { name: SuggestionData['icon'] }) {
+/**
+ * Larger version of the icon set, used as the decorative accent inside
+ * HeroSuggestion. ~96px so it fills the corner like Bayut's skyline
+ * illustration without needing a real illustration asset.
+ */
+function BigSuggestionIcon({ name }: { name: SuggestionData['icon'] }) {
+  return <SuggestionIcon name={name} sizePx={120} strokeWidth={1.4} />
+}
+
+function SuggestionIcon({
+  name,
+  sizePx = 18,
+  strokeWidth = 2,
+}: {
+  name: SuggestionData['icon']
+  sizePx?: number
+  strokeWidth?: number
+}) {
   const common = {
-    width: 18,
-    height: 18,
+    width: sizePx,
+    height: sizePx,
     viewBox: '0 0 24 24',
     fill: 'none' as const,
     stroke: 'currentColor',
-    strokeWidth: 2,
+    strokeWidth,
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
     'aria-hidden': true,
