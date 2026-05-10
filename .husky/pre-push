@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+# Vehkit pre-push gate — type-check before anything reaches GitHub / Vercel.
+#
+# Catches the TS-narrowing-to-never family of bugs that have been eating
+# ~3 minutes per push when Vercel surfaces them. Local type-check is
+# ~10s, cheaper than a CI round trip.
+#
+# To skip in an emergency: git push --no-verify
+
+set -e
+
+echo "vehkit pre-push: type-check"
+pnpm type-check
+
+echo "pre-push gate passed"

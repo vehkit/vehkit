@@ -39,17 +39,22 @@ export default async function EditServicePage({
 
   return (
     <main className="min-h-[100svh] pb-32">
-      <div className="max-w-xl mx-auto px-6 pt-10">
+      <div className="max-w-xl mx-auto px-6 pt-8 md:pt-10">
         <Link
           href={`/vehicles/${id}`}
-          className="nav-pill hover:text-chalk transition-colors"
+          className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
         >
           ← {vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`}
         </Link>
-        <h1 className="text-3xl md:text-4xl font-semibold text-chalk tracking-tighter mt-4">
-          Edit service
+        <p className="nav-pill mt-3">vehkit · service log</p>
+        <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none mt-3">
+          Edit service entry
         </h1>
-        <p className="text-ash mt-1">Fix what was wrong.</p>
+        <p className="text-sm text-ash mt-2 leading-relaxed">
+          Owner-logged entries can be edited. Workshop-attested entries are
+          immutable after the 24h confirmation window — that's the trust
+          anchor.
+        </p>
 
         {errorMsg && (
           <div className="mt-6 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">

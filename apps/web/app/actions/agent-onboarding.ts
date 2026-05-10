@@ -1,6 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
 const ALLOWED_CATEGORIES = new Set(['insurance', 'fleet', 'leasing', 'other'])
@@ -63,4 +64,44 @@ function friendlyOnboardingError(raw: string): string {
   if (raw.toLowerCase().includes('duplicate'))
     return 'An organisation with that name already exists. Try a slightly different name.'
   return raw
+}
+
+/**
+ * Update editable fields on an existing agent organisation. Restricted
+ * to org members via RLS; further restricted to owners/admins via the
+ * `owners_admins_update_agent` policy.
+ */
+export async function updateAgentOrg(formData: FormData) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login?next=/agent/settings')
+
+  const agentId = strOrNull(formData.get('agent_id'))
+  if (!agentId) redirect('/agent/settings?error=Missing+agent')
+
+  const name = strOrNull(formData.get('name'))
+  if (!name) redirect('/agent/settings?error=Pick+a+name')
+
+  const categoryRaw = String(formData.get('category') ?? 'insurance')
+  const category = ALLOWED_CATEGORIES.has(categoryRaw)
+    ? categoryRaw
+    : 'insurance'
+  const emirate = strOrNull(formData.get('emirate'))
+  const phone = strOrNull(formData.get('phone'))
+  const email = strOrNull(formData.get('email'))
+
+  const { error } = await supabase
+    .from('agents')
+    .update({ name, category, emirate, phone, email })
+    .eq('id', agentId)
+
+  if (error) {
+    redirect(`/agent/settings?error=${encodeURIComponent(error.message)}`)
+  }
+
+  revalidatePath('/agent/settings')
+  revalidatePath('/agent')
+  redirect('/agent/settings?saved=1')
 }

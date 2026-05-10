@@ -12,13 +12,14 @@ type Tab = {
 
 const TABS: Tab[] = [
   { href: '/agent', label: 'Dashboard', shortLabel: 'Home', icon: 'home' },
-  { href: '/a', label: 'Redeem code', shortLabel: 'Redeem', icon: 'plus' },
+  { href: '/agent/redeem', label: 'Redeem code', shortLabel: 'Redeem', icon: 'plus' },
   { href: '/agent/settings', label: 'Settings', shortLabel: 'Settings', icon: 'gear' },
 ]
 
 function isActive(pathname: string, href: string): boolean {
   if (href === '/agent') return pathname === '/agent'
-  if (href === '/a') return pathname === '/a' || pathname.startsWith('/a/')
+  if (href === '/agent/redeem')
+    return pathname === '/agent/redeem' || pathname.startsWith('/agent/redeem/')
   return pathname.startsWith(href)
 }
 

@@ -48,7 +48,7 @@ export function AgentCodeSheet({
   const remainingSec = Math.max(0, Math.floor((remainingMs % 60000) / 1000))
   const expired = remainingMs <= 0
 
-  const agentUrl = `${baseUrl}/a`
+  const agentUrl = `${baseUrl}/agent/redeem`
 
   async function copyShareText() {
     if (!code) return

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { updateVehicle } from '@/app/actions/vehicles'
+import { revokeAllAgentGrants } from '@/app/actions/agent'
 import { EMIRATES } from '@vehkit/types'
 
 export default async function EditVehiclePage({
@@ -9,11 +10,12 @@ export default async function EditVehiclePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; revoked?: string }>
 }) {
   const { id } = await params
   const sp = await searchParams
   const errorMsg = sp.error
+  const revoked = sp.revoked === '1'
 
   const supabase = await createClient()
   const {
@@ -21,13 +23,27 @@ export default async function EditVehiclePage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: vehicle, error } = await supabase
-    .from('vehicles')
-    .select('*')
-    .eq('id', id)
-    .single()
+  const [vehicleRes, grantsRes] = await Promise.all([
+    supabase.from('vehicles').select('*').eq('id', id).single(),
+    supabase
+      .from('agent_grants')
+      .select('id, agent_id, expires_at, revoked_at, agents(name)')
+      .eq('vehicle_id', id)
+      .is('revoked_at', null)
+      .gt('expires_at', new Date().toISOString()),
+  ])
 
-  if (error || !vehicle) notFound()
+  const vehicle = vehicleRes.data
+  if (vehicleRes.error || !vehicle) notFound()
+
+  type ActiveGrant = {
+    id: string
+    agent_id: string
+    expires_at: string
+    revoked_at: string | null
+    agents: { name: string } | null
+  }
+  const activeGrants = (grantsRes.data ?? []) as unknown as ActiveGrant[]
 
   return (
     <main className="min-h-[100svh] pb-32">
@@ -119,6 +135,73 @@ export default async function EditVehiclePage({
             </label>
           </div>
         </form>
+
+        {/* PRIVACY & SHARING — agent grant control */}
+        <section className="mt-10">
+          <h2 className="text-[10px] tracking-widest uppercase text-ash mb-3">
+            Privacy &amp; sharing
+          </h2>
+
+          {revoked && (
+            <div className="mb-3 bg-volt/10 border border-volt/30 text-volt text-sm px-4 py-3 rounded-DEFAULT">
+              All active agent grants on this vehicle have been revoked.
+            </div>
+          )}
+
+          <div className="card p-5 space-y-3">
+            <div>
+              <p className="text-sm md:text-base font-semibold text-chalk leading-snug">
+                Active agent shares ·{' '}
+                <span className="font-mono tabular-nums">
+                  {activeGrants.length}
+                </span>
+              </p>
+              <p className="text-xs text-ash mt-1.5 leading-relaxed">
+                Insurance brokers and other agents who have a non-expired
+                grant on this vehicle. Each grant is full-access for 60
+                minutes after redemption, then renewal-track metadata for
+                30 days.
+              </p>
+            </div>
+
+            {activeGrants.length > 0 && (
+              <ul className="border-t border-seam pt-3 space-y-1.5">
+                {activeGrants.map((g) => (
+                  <li
+                    key={g.id}
+                    className="flex items-center justify-between text-xs"
+                  >
+                    <span className="text-chalk truncate">
+                      {g.agents?.name ?? g.agent_id}
+                    </span>
+                    <span className="text-ash font-mono tabular-nums">
+                      until{' '}
+                      {new Date(g.expires_at).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                      })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <form action={revokeAllAgentGrants} className="border-t border-seam pt-3">
+              <input type="hidden" name="vehicle_id" value={id} />
+              <button
+                type="submit"
+                disabled={activeGrants.length === 0}
+                className="w-full text-center text-xs tracking-widest uppercase text-signal hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
+              >
+                Revoke all agent shares now
+              </button>
+              <p className="text-[10px] text-ash/70 leading-relaxed mt-2 text-center">
+                Cuts off every active grant in one click. Brokers lose
+                read access immediately. They can request a fresh code.
+              </p>
+            </form>
+          </div>
+        </section>
       </div>
 
       <div className="fixed bottom-16 md:bottom-0 inset-x-0 px-6 pb-6 pt-4 bg-gradient-to-t from-noir via-noir/95 to-noir/0 z-20">

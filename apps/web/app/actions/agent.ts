@@ -62,7 +62,7 @@ export async function generateAgentCode(vehicleId: string): Promise<{
 export async function redeemAgentCode(formData: FormData) {
   const rawCode = String(formData.get('code') ?? '').trim()
   const code = normalizeCode(rawCode)
-  if (!code) redirect('/a?error=Invalid+code+format')
+  if (!code) redirect('/agent/redeem?error=Invalid+code+format')
 
   const agentIdInput = String(formData.get('agent_id') ?? '').trim()
 
@@ -71,7 +71,7 @@ export async function redeemAgentCode(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) {
-    redirect(`/login?next=${encodeURIComponent(`/a?code=${code}`)}`)
+    redirect(`/login?next=${encodeURIComponent(`/agent/redeem?code=${code}`)}`)
   }
 
   let agentId = agentIdInput
@@ -84,7 +84,7 @@ export async function redeemAgentCode(formData: FormData) {
       .limit(1)
       .maybeSingle()
     if (!membership) {
-      redirect('/agent/start?next=' + encodeURIComponent(`/a?code=${code}`))
+      redirect('/agent/start?next=' + encodeURIComponent(`/agent/redeem?code=${code}`))
     }
     agentId = membership.agent_id
   }
@@ -97,9 +97,8 @@ export async function redeemAgentCode(formData: FormData) {
   })
 
   if (error || !grantId) {
-    redirect(
-      `/a?error=${encodeURIComponent(error?.message ?? 'Redemption failed')}`,
-    )
+    const msg = friendlyRedeemError(error?.message ?? 'Redemption failed')
+    redirect(`/agent/redeem?error=${encodeURIComponent(msg)}`)
   }
 
   // Mark the IP attempt so rate limiting can deprioritise successful flows.
@@ -121,4 +120,59 @@ export async function redeemAgentCode(formData: FormData) {
 
   revalidatePath('/agent')
   redirect(`/agent/grant/${grantId}`)
+}
+
+/**
+ * Owner panic-button — revokes ALL non-revoked agent grants on a vehicle in
+ * one go. Useful when the customer suspects misuse, sold the car, or just
+ * wants to cut the agent off cleanly. Idempotent.
+ */
+export async function revokeAllAgentGrants(formData: FormData) {
+  const vehicleId = String(formData.get('vehicle_id') ?? '').trim()
+  if (!vehicleId) redirect('/mycars')
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  // Defense in depth — RLS also enforces this, but bail early
+  const { data: vehicle } = await supabase
+    .from('vehicles')
+    .select('owner_id')
+    .eq('id', vehicleId)
+    .single()
+  if (!vehicle || vehicle.owner_id !== user.id) {
+    redirect(`/vehicles/${vehicleId}?error=Not+allowed`)
+  }
+
+  await supabase
+    .from('agent_grants')
+    .update({ revoked_at: new Date().toISOString() })
+    .eq('vehicle_id', vehicleId)
+    .is('revoked_at', null)
+
+  revalidatePath(`/vehicles/${vehicleId}`)
+  revalidatePath(`/vehicles/${vehicleId}/edit`)
+  redirect(`/vehicles/${vehicleId}/edit?revoked=1`)
+}
+
+/**
+ * Translate the structured exception codes from redeem_agent_code into
+ * user-friendly copy. Mirrors the approach in services.ts confirm/reject.
+ */
+function friendlyRedeemError(raw: string): string {
+  const r = raw.toLowerCase()
+  if (r.includes('not_authenticated')) return 'Please sign in again.'
+  if (r.includes('not_agent_member'))
+    return 'You are not a member of this agent organisation.'
+  if (r.includes('agent_not_verified'))
+    return "Your agent desk isn't verified yet. Upload your trade licence in Settings — once Vehkit reviews it, you'll be able to redeem customer codes."
+  if (r.includes('code_not_found'))
+    return 'That code does not exist or has expired.'
+  if (r.includes('code_already_used'))
+    return 'That code has already been redeemed.'
+  if (r.includes('code_expired')) return 'That code has expired.'
+  return raw
 }
