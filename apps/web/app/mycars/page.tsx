@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createSampleVehicle } from '@/app/actions/vehicles'
 import { MyCarsList, type VehicleSummary } from '@/components/MyCarsList'
+import { GaragePulse, type FuelLogRow, type ActivityEvent } from '@/components/GaragePulse'
 
 export default async function MyCarsPage() {
   const supabase = await createClient()
@@ -28,6 +29,7 @@ export default async function MyCarsPage() {
     remindersRes,
     grantsRes,
     topWorkshopsRes,
+    fuelRes,
   ] = await Promise.all([
     supabase.from('vehicles').select('*').order('created_at', { ascending: false }),
     supabase
@@ -39,12 +41,12 @@ export default async function MyCarsPage() {
       .is('rejected_at', null),
     supabase
       .from('service_records')
-      .select('vehicle_id, service_date, workshop_name_freetext, cost_aed')
+      .select('vehicle_id, service_date, workshop_name_freetext, cost_aed, created_at, id')
       .is('rejected_at', null)
       .order('service_date', { ascending: false }),
     supabase
       .from('vehicle_documents')
-      .select('id, vehicle_id, doc_type, expires_at')
+      .select('id, vehicle_id, doc_type, label, expires_at, created_at')
       .is('archived_at', null),
     supabase
       .from('reminders')
@@ -61,6 +63,10 @@ export default async function MyCarsPage() {
       p_limit: 4,
       p_offset: 0,
     }),
+    supabase
+      .from('fuel_logs')
+      .select('id, vehicle_id, logged_at, odometer_km, liters, total_aed, fuel_grade, station_name')
+      .order('logged_at', { ascending: false }),
   ])
 
   const vehicles = vehiclesRes.data
@@ -70,8 +76,11 @@ export default async function MyCarsPage() {
     id: string
     vehicle_id: string
     doc_type: string
+    label: string | null
     expires_at: string | null
+    created_at: string
   }>
+  const fuelLogs = (fuelRes.data ?? []) as FuelLogRow[]
   const reminders = (remindersRes.data ?? []) as Array<{
     id: string
     vehicle_id: string
@@ -289,6 +298,62 @@ export default async function MyCarsPage() {
   // Cap at 4 — anything beyond is noise
   const suggestions = allSuggestions.slice(0, 4)
 
+  // ===== Activity timeline =====
+  // Mix services + fuel + docs into a single time-sorted feed for "Recent
+  // activity". We take the most recent ~5 across all sources.
+  const vehiclesById = new Map(
+    (vehicles ?? []).map((v) => [
+      v.id,
+      v.nickname ?? `${v.make} ${v.model}`,
+    ]),
+  )
+  const events: ActivityEvent[] = []
+  for (const r of historyRows.slice(0, 8)) {
+    events.push({
+      kind: 'service',
+      at:
+        (r as { service_date?: string | null }).service_date ??
+        (r as { created_at?: string }).created_at ??
+        '',
+      vehicleId: r.vehicle_id as string,
+      vehicleLabel: vehiclesById.get(r.vehicle_id as string) ?? 'Vehicle',
+      label:
+        (r as { workshop_name_freetext?: string | null })
+          .workshop_name_freetext ?? 'Service entry',
+      meta:
+        (r as { cost_aed?: number | null }).cost_aed != null
+          ? `AED ${Number((r as { cost_aed?: number }).cost_aed).toLocaleString()}`
+          : null,
+    })
+  }
+  for (const f of fuelLogs.slice(0, 8)) {
+    events.push({
+      kind: 'fuel',
+      at: f.logged_at,
+      vehicleId: f.vehicle_id,
+      vehicleLabel: vehiclesById.get(f.vehicle_id) ?? 'Vehicle',
+      label: f.station_name ?? 'Fill-up',
+      meta:
+        f.total_aed != null
+          ? `${Number(f.liters).toFixed(1)} L · AED ${Number(
+              f.total_aed,
+            ).toLocaleString()}`
+          : `${Number(f.liters).toFixed(1)} L`,
+    })
+  }
+  for (const d of documents.slice(0, 4)) {
+    events.push({
+      kind: 'doc',
+      at: d.created_at,
+      vehicleId: d.vehicle_id,
+      vehicleLabel: vehiclesById.get(d.vehicle_id) ?? 'Vehicle',
+      label: d.label ?? d.doc_type.replace(/_/g, ' '),
+      meta: d.expires_at ? `Expires ${d.expires_at}` : null,
+    })
+  }
+  events.sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
+  const recentActivity = events.slice(0, 6)
+
   return (
     <main className="min-h-[100svh] pb-24 md:pb-12">
       {/* Top bar — mobile only; desktop uses AppNav */}
@@ -343,6 +408,21 @@ export default async function MyCarsPage() {
               currentUserId={user.id}
               pendingByVehicle={Object.fromEntries(pendingByVehicle)}
               summaryByVehicle={Object.fromEntries(summaryByVehicle)}
+            />
+
+            {/* Garage Pulse — analytics across everything the user logs:
+                fuel efficiency, spend, services, docs, recent activity.
+                Renders only when there's enough data to be meaningful. */}
+            <GaragePulse
+              vehicles={(vehicles ?? []).map((v) => ({
+                id: v.id,
+                label: v.nickname ?? `${v.make} ${v.model}`,
+                currentOdometer: v.current_odometer ?? null,
+              }))}
+              fuelLogs={fuelLogs}
+              summaryByVehicle={Object.fromEntries(summaryByVehicle)}
+              documentsCount={documents.length}
+              activity={recentActivity}
             />
 
             {/* Dynamic suggestions — adapts to user state.
