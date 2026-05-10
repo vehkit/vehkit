@@ -132,8 +132,8 @@ export function MyCarsList({
         </div>
       )}
 
-      {/* Vertical card grid — Bayut listing rhythm. 1 col mobile, 2 col tablet+. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* One card per row — full-width Bayut listing rhythm. */}
+      <div className="grid grid-cols-1 gap-4">
         {filtered.map((v) => {
           const isShared = v.owner_id !== currentUserId
           const pendingForThis = pendingByVehicle[v.id] ?? 0
