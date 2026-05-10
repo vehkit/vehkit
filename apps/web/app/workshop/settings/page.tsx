@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { TradeLicenseUpload } from '@/components/TradeLicenseUpload'
+import { WorkshopHeroUpload } from '@/components/WorkshopHeroUpload'
 import { updateWorkshop } from '@/app/actions/workshop-mgmt'
 import { EMIRATES } from '@vehkit/types'
 
@@ -164,6 +165,17 @@ export default async function WorkshopSettingsPage({
           workshopId={workshop.id}
           hasLicense={!!workshop.trade_license_url}
           currentTier={workshop.verification_tier}
+        />
+      </section>
+
+      {/* Hero photo — appears on /workshops directory and /w/[slug] profile */}
+      <section className="mt-6">
+        <h2 className="text-xs tracking-widest uppercase text-ash mb-3">
+          Directory photo
+        </h2>
+        <WorkshopHeroUpload
+          workshopId={workshop.id}
+          currentUrl={workshop.hero_image_url ?? null}
         />
       </section>
 

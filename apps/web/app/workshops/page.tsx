@@ -10,6 +10,7 @@ type DirectoryRow = {
   emirate: string | null
   verification_tier: string
   logo_url: string | null
+  hero_image_url: string | null
   total_entries: number
   avg_rating: number
   review_count: number
@@ -181,7 +182,9 @@ function pickStockPhoto(id: string): string {
 }
 
 function DirectoryRow({ w }: { w: DirectoryRow }) {
-  const heroPhoto = w.logo_url ?? pickStockPhoto(w.id)
+  // Preference order: workshop-uploaded hero → logo (fallback) → curated stock
+  const heroPhoto =
+    w.hero_image_url ?? w.logo_url ?? pickStockPhoto(w.id)
 
   return (
     <Link
