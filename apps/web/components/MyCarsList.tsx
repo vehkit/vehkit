@@ -132,7 +132,8 @@ export function MyCarsList({
         </div>
       )}
 
-      <div className="space-y-4">
+      {/* Vertical card grid — Bayut listing rhythm. 1 col mobile, 2 col tablet+. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {filtered.map((v) => {
           const isShared = v.owner_id !== currentUserId
           const pendingForThis = pendingByVehicle[v.id] ?? 0
@@ -155,130 +156,142 @@ export function MyCarsList({
             <Link
               key={v.id}
               href={`/vehicles/${v.id}`}
-              className={`card block overflow-hidden hover:border-volt/30 transition-colors group ${
+              className={`card block overflow-hidden hover:border-leaf/30 transition-colors group ${
                 pendingForThis > 0 ? 'ring-1 ring-wallet/40' : ''
               }`}
             >
-              <div className="flex items-stretch">
-                {/* Photo thumb — left */}
-                <div className="relative w-32 sm:w-40 md:w-52 shrink-0 bg-iron overflow-hidden">
-                  {heroPhoto ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={heroPhoto}
-                      alt=""
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-iron via-carbon to-noir">
-                      <svg
-                        width="28"
-                        height="28"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        className="text-ash/60"
-                        aria-hidden
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M3 13l1.66-4.97A2 2 0 016.55 6.5h10.9a2 2 0 011.89 1.53L21 13M5 13h14M7 17h.01M17 17h.01M5 13v4a1 1 0 001 1h12a1 1 0 001-1v-4"
-                        />
-                      </svg>
-                    </div>
-                  )}
+              {/* Hero photo on top — fixed aspect for grid alignment */}
+              <div className="relative w-full aspect-[16/10] bg-iron overflow-hidden">
+                {heroPhoto ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={heroPhoto}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-iron via-carbon to-noir">
+                    <svg
+                      width="32"
+                      height="32"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      className="text-ash/60"
+                      aria-hidden
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M3 13l1.66-4.97A2 2 0 016.55 6.5h10.9a2 2 0 011.89 1.53L21 13M5 13h14M7 17h.01M17 17h.01M5 13v4a1 1 0 001 1h12a1 1 0 001-1v-4"
+                      />
+                    </svg>
+                  </div>
+                )}
+
+                {/* Top-right corner badge — pending or shared */}
+                {pendingForThis > 0 && (
+                  <span className="absolute top-3 right-3 text-[10px] tracking-widest uppercase bg-wallet/95 text-noir px-2 py-1 rounded-pill font-semibold shadow-sm">
+                    {pendingForThis} pending
+                  </span>
+                )}
+                {isShared && pendingForThis === 0 && (
+                  <span className="absolute top-3 right-3 text-[10px] tracking-widest uppercase bg-noir/70 backdrop-blur text-chalk px-2 py-1 rounded-pill font-medium">
+                    Shared
+                  </span>
+                )}
+              </div>
+
+              {/* Content stack */}
+              <div className="p-5 flex flex-col gap-4">
+                {/* Title block */}
+                <div className="min-w-0">
+                  <h2 className="text-lg md:text-xl font-semibold text-chalk truncate leading-tight tracking-tight">
+                    {title}
+                  </h2>
+                  <p className="text-xs md:text-sm text-ash mt-1 truncate">
+                    {subline}
+                  </p>
                 </div>
 
-                {/* Content — right side, PF list-card rhythm */}
-                <div className="flex-1 min-w-0 p-5 md:p-6 flex flex-col">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <h2 className="text-lg md:text-xl font-semibold text-chalk truncate leading-snug">
-                        {title}
-                      </h2>
-                      <p className="text-xs md:text-sm text-ash mt-1 truncate">
-                        {subline}
-                      </p>
-                    </div>
-                    {pendingForThis > 0 && (
-                      <span className="text-[10px] tracking-widest uppercase bg-wallet/15 text-wallet px-2 py-0.5 rounded-pill font-semibold shrink-0">
-                        {pendingForThis} pending
-                      </span>
-                    )}
-                    {isShared && pendingForThis === 0 && (
-                      <span className="text-[10px] tracking-widest uppercase bg-iron text-ash px-2 py-0.5 rounded-pill font-medium shrink-0">
-                        Shared
-                      </span>
-                    )}
+                {/* Pin row — plate (mirrors Bayut's location with map icon) */}
+                {plateBadge && (
+                  <div className="flex items-center gap-2 min-w-0">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-ash shrink-0"
+                      aria-hidden
+                    >
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <span className="text-xs text-chalk/85 truncate font-mono">
+                      {plateBadge}
+                    </span>
                   </div>
+                )}
 
-                  {/* Intelligence line — PF "what's interesting" rhythm */}
-                  <p className="text-xs mt-2 truncate">
+                {/* Stat box — Bayut's signature inset block with vertical divider */}
+                <div className="bg-iron/50 rounded-DEFAULT p-3 grid grid-cols-2 divide-x divide-seam">
+                  <div className="px-1">
+                    <p className="text-[10px] tracking-widest uppercase text-ash">
+                      Odometer
+                    </p>
+                    <p className="text-base md:text-lg font-semibold text-chalk font-mono tabular-nums tracking-tight mt-1 leading-none">
+                      {v.current_odometer != null
+                        ? `${v.current_odometer.toLocaleString()}`
+                        : '—'}
+                      <span className="text-[10px] tracking-widest uppercase text-ash ml-1">
+                        km
+                      </span>
+                    </p>
+                  </div>
+                  <div className="px-1 pl-3">
+                    <p className="text-[10px] tracking-widest uppercase text-ash">
+                      {summary?.lastServiceDate ? 'Last service' : 'Services'}
+                    </p>
                     {summary?.lastServiceDate ? (
-                      <>
-                        <span className="text-ash/60">Last service · </span>
-                        <span className="text-chalk/90">
-                          {relativeDate(summary.lastServiceDate)}
-                        </span>
-                        {summary.lastWorkshop && (
-                          <>
-                            <span className="text-ash/60"> at </span>
-                            <span className="text-chalk/90">
-                              {summary.lastWorkshop}
-                            </span>
-                          </>
-                        )}
-                      </>
+                      <p className="text-sm md:text-base font-semibold text-chalk tracking-tight mt-1 leading-tight truncate">
+                        {relativeDate(summary.lastServiceDate)}
+                      </p>
                     ) : (
-                      <span className="text-ash/60">No services logged yet</span>
-                    )}
-                  </p>
-
-                  {/* Bottom stat strip — PF vertical-divider rhythm */}
-                  <div className="mt-auto pt-3 flex items-center gap-3">
-                    {plateBadge && (
-                      <>
-                        {/* Plate is the variable-length stat — flexible so it
-                            truncates first when the row gets tight. */}
-                        <CardStat
-                          label="Plate"
-                          value={plateBadge}
-                          mono
-                          small
-                          flexible
-                        />
-                        <span
-                          className="w-px h-7 bg-seam shrink-0"
-                          aria-hidden
-                        />
-                      </>
-                    )}
-                    <CardStat
-                      label="km"
-                      value={
-                        v.current_odometer != null
-                          ? v.current_odometer.toLocaleString()
-                          : '—'
-                      }
-                      mono
-                    />
-                    {summary && summary.serviceCount > 0 && (
-                      <>
-                        <span
-                          className="w-px h-7 bg-seam shrink-0"
-                          aria-hidden
-                        />
-                        <CardStat
-                          label={
-                            summary.serviceCount === 1 ? 'service' : 'services'
-                          }
-                          value={summary.serviceCount.toString()}
-                        />
-                      </>
+                      <p className="text-base md:text-lg font-semibold text-chalk font-mono tabular-nums tracking-tight mt-1 leading-none">
+                        {summary?.serviceCount ?? 0}
+                      </p>
                     )}
                   </div>
+                </div>
+
+                {/* CTA strip at bottom — Bayut's "Register Interest" block,
+                    here as a soft leaf-tinted "Open passport" affordance.
+                    The whole card is the Link, but the strip closes the
+                    visual rhythm. */}
+                <div className="bg-leaf/10 hover:bg-leaf/15 transition-colors rounded-DEFAULT py-3 text-center">
+                  <span className="text-sm font-medium text-leaf inline-flex items-center gap-2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    Open passport
+                  </span>
                 </div>
               </div>
             </Link>
