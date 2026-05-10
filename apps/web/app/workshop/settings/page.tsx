@@ -4,7 +4,7 @@ import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { TradeLicenseUpload } from '@/components/TradeLicenseUpload'
 import { WorkshopHeroUpload } from '@/components/WorkshopHeroUpload'
-import { updateWorkshop } from '@/app/actions/workshop-mgmt'
+import { updateWorkshop, setWorkshopUnlisted } from '@/app/actions/workshop-mgmt'
 import { EMIRATES } from '@vehkit/types'
 
 export const dynamic = 'force-dynamic'
@@ -177,6 +177,46 @@ export default async function WorkshopSettingsPage({
           workshopId={workshop.id}
           currentUrl={workshop.hero_image_url ?? null}
         />
+      </section>
+
+      {/* Public listing visibility — workshop opts in/out of the public
+          directory + landing page surfaces. Operational flows (verifying
+          service records for existing customers) are unaffected. */}
+      <section className="card p-5 mt-6">
+        <p className="text-[10px] tracking-widest uppercase text-ash">
+          Public listing
+        </p>
+        <div className="mt-2 flex items-start justify-between gap-4 flex-wrap">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-chalk leading-relaxed">
+              {workshop.is_unlisted
+                ? 'Hidden from the public directory and landing page.'
+                : 'Listed on the public directory and the landing page.'}
+            </p>
+            <p className="text-xs text-ash mt-1.5 leading-relaxed">
+              Either way, you can keep verifying customer service records and
+              your existing customers see your name on their history.
+            </p>
+          </div>
+          <form action={setWorkshopUnlisted}>
+            <input type="hidden" name="id" value={workshop.id} />
+            <input
+              type="hidden"
+              name="unlisted"
+              value={workshop.is_unlisted ? '0' : '1'}
+            />
+            <button
+              type="submit"
+              className={
+                workshop.is_unlisted
+                  ? 'pill-primary text-sm whitespace-nowrap'
+                  : 'pill-ghost text-sm whitespace-nowrap'
+              }
+            >
+              {workshop.is_unlisted ? 'Re-list publicly' : 'Hide from public'}
+            </button>
+          </form>
+        </div>
       </section>
 
       {/* How customers find you */}

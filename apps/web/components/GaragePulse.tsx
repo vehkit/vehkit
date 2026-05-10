@@ -75,7 +75,10 @@ export function GaragePulse({
     (s, f) => s + Number(f.total_aed ?? 0),
     0,
   )
-  const litres30 = fuelLast30.reduce((s, f) => s + Number(f.liters), 0)
+  const totalFuelSpend = fuelLogs.reduce(
+    (s, f) => s + Number(f.total_aed ?? 0),
+    0,
+  )
   const totalFills = fuelLogs.length
 
   const totalServices = Object.values(summaryByVehicle).reduce(
@@ -91,6 +94,14 @@ export function GaragePulse({
     (s, v) => s + (v.currentOdometer ?? 0),
     0,
   )
+
+  // ===== Cost-per-km — the headline number =====
+  // Combines fuel + service spend over total kilometres tracked. We only
+  // surface this when we have BOTH spend and km — otherwise it'd be
+  // either zero or infinity, and the card would look broken.
+  const totalSpend = totalFuelSpend + totalServiceSpend
+  const showCostPerKm = totalSpend > 0 && totalKmTracked > 0
+  const costPerKm = showCostPerKm ? totalSpend / totalKmTracked : null
 
   // ===== Per-vehicle fuel insights =====
   const perVehicleFuel = vehicles
@@ -112,6 +123,53 @@ export function GaragePulse({
           By the numbers
         </p>
       </div>
+
+      {/* Hero — cost per kilometre. The single most useful number once
+          a user has logged a few fills + services. Combines fuel +
+          service spend over distance. */}
+      {showCostPerKm && costPerKm != null && (
+        <div className="card p-5 md:p-6 mb-3 bg-gradient-to-br from-leaf/10 via-iron/30 to-noir border-leaf/30">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <p className="text-[10px] tracking-widest uppercase text-leaf">
+                Cost per kilometre
+              </p>
+              <p className="mt-2 leading-none">
+                <span className="text-[10px] tracking-widest uppercase text-ash align-top mr-1">
+                  AED
+                </span>
+                <span className="text-4xl md:text-5xl font-semibold text-chalk tracking-tight font-mono tabular-nums">
+                  {costPerKm.toFixed(2)}
+                </span>
+                <span className="text-sm tracking-widest uppercase text-ash ml-2">
+                  / km
+                </span>
+              </p>
+              <p className="text-xs text-ash mt-2 leading-relaxed max-w-md">
+                What it actually costs to keep your{' '}
+                {vehicles.length === 1 ? 'car' : `${vehicles.length} cars`} on
+                the road — fuel and service combined, across every kilometre
+                you&apos;ve logged.
+              </p>
+            </div>
+            <div className="text-right shrink-0">
+              <CostBreakdown
+                label="Fuel"
+                value={totalFuelSpend}
+                of={totalSpend}
+              />
+              <CostBreakdown
+                label="Service"
+                value={totalServiceSpend}
+                of={totalSpend}
+              />
+              <p className="text-[10px] tracking-widest uppercase text-ash mt-2">
+                Across {totalKmTracked.toLocaleString()} km
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Top stat strip — 2x2 grid on mobile (no dividers, padding-based
           rhythm), 4-up row on md+ with vertical dividers between items. */}
@@ -287,6 +345,27 @@ function buildVehicleFuelInsight(
 // ===========================================================================
 // Subcomponents
 // ===========================================================================
+
+function CostBreakdown({
+  label,
+  value,
+  of,
+}: {
+  label: string
+  value: number
+  of: number
+}) {
+  const pct = of > 0 ? Math.round((value / of) * 100) : 0
+  return (
+    <p className="text-[11px] text-ash leading-snug">
+      <span className="uppercase tracking-widest text-[9px] mr-2">{label}</span>
+      <span className="font-mono tabular-nums text-chalk">
+        AED {Math.round(value).toLocaleString()}
+      </span>
+      <span className="text-ash/70 ml-1">· {pct}%</span>
+    </p>
+  )
+}
 
 function PulseStat({
   value,

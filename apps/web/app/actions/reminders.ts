@@ -68,7 +68,6 @@ export async function snoozeReminder(formData: FormData) {
 
   if (vehicleId) revalidatePath(`/vehicles/${vehicleId}`)
   revalidatePath('/notifications')
-  revalidatePath('/reminders')
   redirect(vehicleId ? `/vehicles/${vehicleId}` : '/notifications')
 }
 
@@ -90,7 +89,6 @@ export async function completeReminder(formData: FormData) {
 
   if (vehicleId) revalidatePath(`/vehicles/${vehicleId}`)
   revalidatePath('/notifications')
-  revalidatePath('/reminders')
   redirect(vehicleId ? `/vehicles/${vehicleId}` : '/notifications')
 }
 
@@ -134,7 +132,6 @@ export async function createReminder(formData: FormData) {
   }
 
   revalidatePath(`/vehicles/${vehicleId}`)
-  revalidatePath('/reminders')
   revalidatePath('/notifications')
   redirect(`/vehicles/${vehicleId}`)
 }

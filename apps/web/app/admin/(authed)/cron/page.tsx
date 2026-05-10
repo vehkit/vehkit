@@ -89,11 +89,14 @@ export default async function AdminCronPage() {
     vMap.set(v.id, v.nickname || `${v.make} ${v.model}` || v.plate_number || v.id.slice(0, 6))
   }
 
-  // Audit log activity (last 50). Schema columns are entity_type/entity_id,
-  // not resource_type/resource_id — older code drift, fixed.
+  // Admin audit log activity (last 50). The legacy `audit_log` table is
+  // dead; `admin_audit_log` is the live one fed by admin SECURITY DEFINER
+  // RPCs (set_agent_tier, etc).
   const { data: audit } = await supabase
-    .from('audit_log')
-    .select('id, action, entity_type, entity_id, created_at, actor_id')
+    .from('admin_audit_log')
+    .select(
+      'id, action, target_table, target_id, target_user_id, admin_handle, metadata, created_at',
+    )
     .order('created_at', { ascending: false })
     .limit(50)
 
@@ -217,19 +220,19 @@ export default async function AdminCronPage() {
 
       <section className="card p-5">
         <h2 className="text-sm tracking-widest uppercase text-ash mb-4">
-          Audit log · last 50
+          Admin audit log · last 50
         </h2>
         {(audit ?? []).length === 0 ? (
-          <p className="text-sm text-ash">No audit activity.</p>
+          <p className="text-sm text-ash">No admin actions logged yet.</p>
         ) : (
           <div className="overflow-x-auto -mx-2">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs tracking-widest uppercase text-ash">
                   <th className="px-2 py-2 font-normal">When</th>
+                  <th className="px-2 py-2 font-normal">Admin</th>
                   <th className="px-2 py-2 font-normal">Action</th>
-                  <th className="px-2 py-2 font-normal">Resource</th>
-                  <th className="px-2 py-2 font-normal">Actor</th>
+                  <th className="px-2 py-2 font-normal">Target</th>
                 </tr>
               </thead>
               <tbody>
@@ -246,10 +249,13 @@ export default async function AdminCronPage() {
                         minute: '2-digit',
                       })}
                     </td>
+                    <td className="px-2 py-2 text-chalk font-mono text-xs">
+                      {a.admin_handle ?? '—'}
+                    </td>
                     <td className="px-2 py-2 text-chalk">{a.action}</td>
-                    <td className="px-2 py-2 text-ash">{a.entity_type}</td>
                     <td className="px-2 py-2 text-xs text-ash font-mono">
-                      {a.actor_id ? a.actor_id.slice(0, 8) : '—'}
+                      {a.target_table ?? '—'}
+                      {a.target_id ? ` · ${a.target_id.slice(0, 8)}` : ''}
                     </td>
                   </tr>
                 ))}

@@ -50,7 +50,9 @@ async function runChecks(): Promise<Check[]> {
     } else {
       checks.push({
         label: 'profiles count',
-        ok: (count ?? 0) > 0,
+        // Connectivity check: query succeeded means schema is live + RLS bypass
+        // works. Empty tables (fresh deploy) shouldn't read as "fail".
+        ok: true,
         detail: `${count ?? 0} rows`,
       })
     }

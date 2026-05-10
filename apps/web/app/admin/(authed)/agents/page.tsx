@@ -14,6 +14,8 @@ type Agent = {
   email: string | null
   verification_tier: 'unverified' | 'silver' | 'gold'
   trade_license: string | null
+  trade_license_url: string | null
+  trade_license_uploaded_at: string | null
   created_at: string
 }
 
@@ -247,7 +249,15 @@ export default async function AdminAgentsPage({
                     <TierBadge tier={a.verification_tier} />
                   </td>
                   <td className="p-3 text-xs text-ash">
-                    {a.trade_license ? '✓ on file' : '—'}
+                    {a.trade_license_url ? (
+                      <span className="text-leaf">✓ uploaded</span>
+                    ) : a.trade_license ? (
+                      <span title="Number entered, file not uploaded">
+                        ⚠ number only
+                      </span>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   <td className="p-3">
                     <form action={setAgentTier} className="flex gap-1">

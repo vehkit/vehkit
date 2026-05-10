@@ -140,8 +140,8 @@ export async function createServiceRecord(formData: FormData) {
   }
 
   revalidatePath(`/vehicles/${vehicleId}`)
-  revalidatePath('/garage')
-  revalidatePath('/reminders')
+  revalidatePath('/mycars')
+  revalidatePath('/notifications')
   redirect(`/vehicles/${vehicleId}`)
 }
 

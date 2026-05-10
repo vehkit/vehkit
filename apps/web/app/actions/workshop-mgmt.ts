@@ -80,3 +80,40 @@ export async function updateWorkshop(formData: FormData) {
   revalidatePath('/workshop/settings')
   redirect('/workshop/settings?saved=1')
 }
+
+/**
+ * Toggle workshop listing visibility on the public marketing surfaces
+ * (landing page strip + grid, /workshops directory). The set_workshop_unlisted
+ * RPC validates membership + writes an admin_audit_log row.
+ *
+ * Operational flows (service-record verification, /shop/[code] entry,
+ * customer history) are unaffected — only the marketing/discovery
+ * surfaces hide the workshop.
+ */
+export async function setWorkshopUnlisted(formData: FormData) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login?next=/workshop/settings')
+
+  const id = String(formData.get('id') ?? '')
+  const unlisted = String(formData.get('unlisted') ?? '') === '1'
+  if (!id) redirect('/workshop/settings')
+
+  const { error } = await supabase.rpc('set_workshop_unlisted', {
+    p_workshop_id: id,
+    p_unlisted: unlisted,
+  })
+  if (error) {
+    redirect(
+      `/workshop/settings?error=${encodeURIComponent(error.message)}`,
+    )
+  }
+
+  // Revalidate every surface that might render this workshop.
+  revalidatePath('/')
+  revalidatePath('/workshops')
+  revalidatePath('/workshop/settings')
+  redirect('/workshop/settings?saved=1')
+}
