@@ -201,6 +201,32 @@ export default async function AgentSettingsPage({
             </p>
           </div>
         </section>
+
+        {/* ACCOUNT — current user + sign out */}
+        <section className="mt-10">
+          <h2 className="text-[10px] tracking-widest uppercase text-ash mb-3">
+            Account
+          </h2>
+          <div className="card p-5 flex items-center justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm md:text-base font-semibold text-chalk leading-snug truncate">
+                {user.email}
+              </p>
+              <p className="text-xs text-ash mt-1 leading-relaxed">
+                Signed in as a member of <span className="text-chalk">{a.name}</span>
+                . Sign out to switch accounts or end the session.
+              </p>
+            </div>
+            <form action="/auth/signout" method="post">
+              <button
+                type="submit"
+                className="text-xs tracking-widest uppercase text-signal hover:underline shrink-0"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
+        </section>
       </div>
 
       {/* Sticky save button */}

@@ -135,10 +135,18 @@ export function WorkshopNav({
             })}
           </nav>
 
-          <div className="text-right max-w-[180px] truncate">
-            <p className="text-[10px] tracking-widest uppercase text-ash">Workshop</p>
-            <p className="text-xs text-chalk truncate">{workshopName}</p>
-          </div>
+          <Link
+            href="/workshop/settings"
+            className="text-right max-w-[180px] truncate group"
+            title="Open settings"
+          >
+            <p className="text-[10px] tracking-widest uppercase text-ash group-hover:text-chalk transition-colors">
+              Workshop
+            </p>
+            <p className="text-xs text-chalk truncate group-hover:text-volt transition-colors">
+              {workshopName} ↗
+            </p>
+          </Link>
         </div>
       </header>
 

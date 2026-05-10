@@ -132,6 +132,23 @@ export default async function AgentStartPage({
           </Link>{' '}
           after setup.
         </p>
+
+        {/* Account escape hatch — onboarding has no AgentNav, so this is the
+            only way to switch accounts mid-flow. */}
+        <div className="mt-8 pt-6 border-t border-seam flex items-center justify-between gap-3">
+          <p className="text-[11px] text-ash truncate min-w-0 flex-1">
+            Signed in as{' '}
+            <span className="text-chalk font-mono">{user.email}</span>
+          </p>
+          <form action="/auth/signout" method="post">
+            <button
+              type="submit"
+              className="text-[11px] tracking-widest uppercase text-signal hover:underline shrink-0"
+            >
+              Sign out
+            </button>
+          </form>
+        </div>
       </div>
     </main>
   )

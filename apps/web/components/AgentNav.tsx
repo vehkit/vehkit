@@ -113,12 +113,18 @@ export function AgentNav({
             })}
           </nav>
 
-          <div className="text-right max-w-[200px] truncate">
-            <p className="text-[10px] tracking-widest uppercase text-ash">
+          <Link
+            href="/agent/settings"
+            className="text-right max-w-[200px] truncate group"
+            title="Open settings"
+          >
+            <p className="text-[10px] tracking-widest uppercase text-ash group-hover:text-chalk transition-colors">
               {activeGrants} active
             </p>
-            <p className="text-xs text-chalk truncate">{agentName}</p>
-          </div>
+            <p className="text-xs text-chalk truncate group-hover:text-volt transition-colors">
+              {agentName} ↗
+            </p>
+          </Link>
         </div>
       </header>
 
