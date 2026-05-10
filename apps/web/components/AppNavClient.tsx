@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { AvatarDisplay } from './AvatarUpload'
 import { getInitials } from '@/lib/initials'
+import { VehkitLockup } from './VehkitMark'
 
 type Tab = {
   href: '/mycars' | '/notifications' | '/workshops' | '/profile'
@@ -102,9 +103,10 @@ export function AppNavClient({
         <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link
             href="/mycars"
-            className="text-sm font-semibold tracking-tightest text-chalk hover:text-volt transition-colors"
+            className="hover:opacity-80 transition-opacity"
+            aria-label="Vehkit home"
           >
-            vehkit
+            <VehkitLockup height={22} />
           </Link>
           <nav className="flex items-center gap-1 h-full">
             {TABS.slice(0, 3).map((t) => {

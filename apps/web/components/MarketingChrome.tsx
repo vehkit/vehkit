@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { VehkitLockup } from './VehkitMark'
 
 const NAV = [
   { href: '/score', label: 'Score' },
@@ -13,9 +14,10 @@ export function MarketingHeader({ signedIn }: { signedIn: boolean }) {
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         <Link
           href="/"
-          className="text-sm font-semibold tracking-tightest text-chalk"
+          className="hover:opacity-80 transition-opacity"
+          aria-label="Vehkit home"
         >
-          vehkit
+          <VehkitLockup height={24} />
         </Link>
         <nav className="flex items-center gap-1 md:gap-2">
           {NAV.map((item) => (

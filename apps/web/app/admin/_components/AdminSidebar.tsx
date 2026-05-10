@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { adminLogout } from '../_actions/auth'
+import { VehkitMark } from '@/components/VehkitMark'
 
 const NAV = [
   { href: '/admin', label: 'Overview' },
@@ -23,9 +24,14 @@ export function AdminSidebar() {
 
   return (
     <aside className="md:w-56 md:min-h-[100svh] md:flex md:flex-col border-b md:border-b-0 md:border-r border-seam bg-carbon">
-      <div className="px-5 py-5 border-b border-seam">
-        <p className="text-xs tracking-[0.25em] uppercase text-ash">Vehkit</p>
-        <p className="text-base font-semibold text-chalk mt-0.5">Admin</p>
+      <div className="px-5 py-5 border-b border-seam flex items-center gap-3">
+        <VehkitMark size={28} />
+        <div>
+          <p className="text-[10px] tracking-[0.25em] uppercase text-ash">Vehkit</p>
+          <p className="text-base font-semibold text-chalk leading-none mt-0.5">
+            Admin
+          </p>
+        </div>
       </div>
 
       <nav className="flex md:flex-col gap-1 px-3 py-3 overflow-x-auto md:overflow-x-visible flex-1">

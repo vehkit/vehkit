@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Nunito } from 'next/font/google'
 import { cookies } from 'next/headers'
 import './globals.css'
 import { AppNav } from '@/components/AppNav'
@@ -7,6 +7,16 @@ import { AppNav } from '@/components/AppNav'
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
+  display: 'swap',
+})
+
+// Nunito is the brand display font — used by the inlined `vehkit`
+// wordmark inside <VehkitLockup>. Loading it as a CSS variable lets
+// the SVG's font-family lookup find it on first paint.
+const nunito = Nunito({
+  subsets: ['latin'],
+  variable: '--font-nunito',
+  weight: ['800'],
   display: 'swap',
 })
 
@@ -58,16 +68,28 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'Vehkit',
+    startupImage: ['/brand/app-icon/vehkit-app-icon-light-1024.png'],
   },
   formatDetection: {
     telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: '/brand/app-icon/vehkit-favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/brand/app-icon/vehkit-favicon-64.png', sizes: '64x64', type: 'image/png' },
+      { url: '/brand/app-icon/vehkit-favicon-256.png', sizes: '256x256', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/brand/app-icon/vehkit-app-icon-light-1024.png', sizes: '1024x1024', type: 'image/png' },
+    ],
+    shortcut: '/brand/app-icon/vehkit-favicon-256.png',
   },
 }
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: dark)', color: '#0A0B0F' },
-    { media: '(prefers-color-scheme: light)', color: '#FAFAF8' },
+    { media: '(prefers-color-scheme: dark)', color: '#0A0A0B' },
+    { media: '(prefers-color-scheme: light)', color: '#F5F5F0' },
   ],
   width: 'device-width',
   initialScale: 1,
@@ -148,7 +170,7 @@ export default async function RootLayout({
   const theme = themeCookie === 'light' ? 'light' : 'dark'
 
   return (
-    <html lang="en" className={`${inter.variable} ${theme}`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${nunito.variable} ${theme}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: FORM_GUARD_SCRIPT }} />

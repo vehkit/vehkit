@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { VehkitMark } from './VehkitMark'
 
 type Tab = {
   href: string
@@ -78,8 +79,10 @@ export function AgentNav({
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link
             href="/agent"
-            className="flex items-center gap-2 hover:text-volt transition-colors"
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            aria-label="Vehkit agent home"
           >
+            <VehkitMark size={22} />
             <span className="text-sm font-semibold tracking-tightest text-chalk">
               vehkit
             </span>
@@ -132,6 +135,7 @@ export function AgentNav({
       <header className="md:hidden sticky top-0 z-30 bg-noir/90 backdrop-blur border-b border-seam">
         <div className="px-5 h-14 flex items-center justify-between">
           <Link href="/agent" className="flex items-center gap-2">
+            <VehkitMark size={20} />
             <span className="text-sm font-semibold tracking-tightest text-chalk">
               vehkit
             </span>

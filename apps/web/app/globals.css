@@ -11,32 +11,39 @@
 @layer base {
   :root,
   .dark {
-    --noir: 10 11 15;
+    --noir: 10 10 11; /* B04 brand noir */
     --carbon: 22 24 29;
     --iron: 31 33 39;
     --seam: 42 45 51;
-    --chalk: 244 244 242;
+    --chalk: 245 245 240; /* B04 brand chalk */
     --ash: 139 142 150;
-    --volt: 25 230 140;
-    --wallet: 229 193 88;
+    /* B04 primary brand — leaf #21C07A. `volt` is held at the same value
+     * for backward compat with existing code. The true B04 electric volt
+     * #D4FF00 is held in reserve for a focused future rename pass. */
+    --leaf: 33 192 122;
+    --leaf-dk: 26 163 101;
+    --volt: 33 192 122; /* alias of --leaf during transition */
+    --wallet: 201 169 97; /* B04 premium — #C9A961 */
     --signal: 255 90 95;
-    --selection-bg: 25 230 140 / 0.25;
+    --selection-bg: 33 192 122 / 0.25;
     --shadow-card: 0 1px 0 0 rgb(255 255 255 / 0.04) inset,
       0 8px 24px -8px rgb(0 0 0 / 0.5);
     color-scheme: dark;
   }
 
   .light {
-    --noir: 250 250 248; /* warm off-white page bg */
-    --carbon: 255 255 255; /* card surface */
-    --iron: 240 240 236; /* elevated surface */
-    --seam: 224 222 215; /* light borders */
-    --chalk: 14 16 22; /* near-black primary text */
-    --ash: 102 106 114; /* mid-grey muted text */
-    --volt: 7 156 88; /* deeper green for white bg readability */
-    --wallet: 161 122 18; /* darker gold for white bg */
-    --signal: 200 38 41; /* darker red for white bg */
-    --selection-bg: 7 156 88 / 0.18;
+    --noir: 245 245 240; /* warm chalk page bg */
+    --carbon: 255 255 255;
+    --iron: 240 240 236;
+    --seam: 224 222 215;
+    --chalk: 10 10 11; /* near-black primary text */
+    --ash: 102 106 114;
+    --leaf: 26 163 101; /* leaf-dk shade for legibility on chalk */
+    --leaf-dk: 22 142 88;
+    --volt: 26 163 101; /* alias of --leaf during transition */
+    --wallet: 161 122 18;
+    --signal: 200 38 41;
+    --selection-bg: 26 163 101 / 0.18;
     --shadow-card: 0 1px 0 0 rgb(0 0 0 / 0.02) inset,
       0 1px 2px 0 rgb(0 0 0 / 0.05),
       0 8px 24px -12px rgb(0 0 0 / 0.08);
