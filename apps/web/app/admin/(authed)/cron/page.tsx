@@ -89,21 +89,23 @@ export default async function AdminCronPage() {
     vMap.set(v.id, v.nickname || `${v.make} ${v.model}` || v.plate_number || v.id.slice(0, 6))
   }
 
-  // Audit log activity (last 50)
+  // Audit log activity (last 50). Schema columns are entity_type/entity_id,
+  // not resource_type/resource_id — older code drift, fixed.
   const { data: audit } = await supabase
     .from('audit_log')
-    .select('id, action, resource_type, created_at, actor_id, resource_id')
+    .select('id, action, entity_type, entity_id, created_at, actor_id')
     .order('created_at', { ascending: false })
     .limit(50)
 
-  // Workshop attempts in last 24h (rate limiting / abuse signal)
+  // Workshop attempts in last 24h (rate limiting / abuse signal).
+  // Column is created_at, not attempted_at.
   const dayAgo = new Date()
   dayAgo.setDate(dayAgo.getDate() - 1)
 
   const { count: shopAttempts24h } = await supabase
     .from('shop_attempts')
     .select('*', { count: 'exact', head: true })
-    .gte('attempted_at', dayAgo.toISOString())
+    .gte('created_at', dayAgo.toISOString())
 
   return (
     <div className="px-6 md:px-10 py-8 max-w-6xl">
@@ -245,7 +247,7 @@ export default async function AdminCronPage() {
                       })}
                     </td>
                     <td className="px-2 py-2 text-chalk">{a.action}</td>
-                    <td className="px-2 py-2 text-ash">{a.resource_type}</td>
+                    <td className="px-2 py-2 text-ash">{a.entity_type}</td>
                     <td className="px-2 py-2 text-xs text-ash font-mono">
                       {a.actor_id ? a.actor_id.slice(0, 8) : '—'}
                     </td>

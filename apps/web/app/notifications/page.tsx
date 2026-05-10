@@ -77,7 +77,9 @@ export default async function NotificationsPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/notifications')
 
-  // 1. Pending workshop entries (last 24h)
+  // 1. Pending workshop entries (last 24h, not yet confirmed or rejected).
+  // Without the IS NULL filters, already-acted-on entries inflate the count
+  // and clutter the list — they belong in the timeline, not the inbox.
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   const { data: pending } = await supabase
     .from('service_records')
@@ -86,6 +88,8 @@ export default async function NotificationsPage() {
     )
     .eq('attestation', 'workshop')
     .gte('created_at', oneDayAgo)
+    .is('confirmed_at', null)
+    .is('rejected_at', null)
     .order('created_at', { ascending: false })
 
   // 2. Open reminders

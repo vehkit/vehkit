@@ -34,7 +34,9 @@ export async function AppNav() {
       .from('service_records')
       .select('id, vehicle_id, created_at')
       .eq('attestation', 'workshop')
-      .gte('created_at', oneDayAgo),
+      .gte('created_at', oneDayAgo)
+      .is('confirmed_at', null)
+      .is('rejected_at', null),
   ])
 
   const vehicles = vehiclesRes.data ?? []

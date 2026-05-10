@@ -161,7 +161,7 @@ export async function createSampleVehicle() {
       cost_aed: 320,
       workshop_name_freetext: 'Al Futtaim Toyota',
       notes: 'Mobil 1 5W-30, oil filter replaced',
-      attestation: 'workshop',
+      attestation: 'receipt',
       created_by: user.id,
     },
     {
@@ -172,7 +172,7 @@ export async function createSampleVehicle() {
       cost_aed: 1450,
       workshop_name_freetext: 'ZDegree Tyre Shop',
       notes: 'Continental ContiPremiumContact 6 · 195/65 R15 · all four',
-      attestation: 'workshop',
+      attestation: 'receipt',
       created_by: user.id,
     },
     {
