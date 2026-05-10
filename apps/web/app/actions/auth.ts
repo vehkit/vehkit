@@ -14,6 +14,7 @@ const ALLOWED_NEXT_PREFIXES = [
   '/workshops',
   '/fleet',
   '/admin',
+  '/agent',
   '/a/',
   '/f/',
   '/r/',
@@ -47,9 +48,14 @@ export async function requestMagicLink(formData: FormData) {
   const h = await headers()
   const host = h.get('host') ?? 'vehkit.com'
   const proto = h.get('x-forwarded-proto') ?? 'https'
-  const callbackUrl = `${proto}://${host}/auth/callback`
 
-  // Cookie: post-auth destination. 10 minutes is plenty for a magic link click.
+  // Bake `next` into the magic link URL itself (not just the cookie) so the
+  // post-auth destination survives device-hop clicks — phone-to-desktop is
+  // common for magic links and the cookie won't be there.
+  const callbackUrl = `${proto}://${host}/auth/callback?next=${encodeURIComponent(next)}`
+
+  // Cookie is now a belt-and-braces backup for same-device flows. Still
+  // useful: it's signed/httpOnly and harder to spoof than a query param.
   const c = await cookies()
   c.set('vehkit-auth-next', next, {
     path: '/',
