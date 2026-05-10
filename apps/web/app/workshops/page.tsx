@@ -155,89 +155,102 @@ export default async function WorkshopDirectoryPage({
   )
 }
 
+/**
+ * Curated stock photos used as fallback hero images for workshop cards.
+ * Picked deterministically per workshop ID so the same shop always shows
+ * the same photo. Replace with `workshops.hero_image_url` once we add
+ * that column and let workshops upload their own.
+ */
+const STOCK_WORKSHOP_PHOTOS = [
+  'https://images.unsplash.com/photo-1487754180451-c456f719a1fc?w=800&auto=format&fit=crop&q=70',
+  'https://images.unsplash.com/photo-1632823469637-0fb83a40e74b?w=800&auto=format&fit=crop&q=70',
+  'https://images.unsplash.com/photo-1632823471565-1ecdf5c6b41c?w=800&auto=format&fit=crop&q=70',
+  'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=800&auto=format&fit=crop&q=70',
+  'https://images.unsplash.com/photo-1632823469850-1b7b1e8b7d4e?w=800&auto=format&fit=crop&q=70',
+  'https://images.unsplash.com/photo-1530046339915-78e95dc23f7c?w=800&auto=format&fit=crop&q=70',
+  'https://images.unsplash.com/photo-1599256632267-94b4ed68b69d?w=800&auto=format&fit=crop&q=70',
+  'https://images.unsplash.com/photo-1617886322168-72b886573c5f?w=800&auto=format&fit=crop&q=70',
+] as const
+
+function pickStockPhoto(id: string): string {
+  // Hash the id (just sum char codes — deterministic, no crypto needed)
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0
+  const idx = Math.abs(h) % STOCK_WORKSHOP_PHOTOS.length
+  return STOCK_WORKSHOP_PHOTOS[idx]!
+}
+
 function DirectoryRow({ w }: { w: DirectoryRow }) {
-  const initials =
-    w.name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((s) => s.charAt(0).toUpperCase())
-      .join('') || '·'
-  const tone =
-    w.verification_tier === 'gold'
-      ? 'bg-wallet/15 text-wallet'
-      : w.verification_tier === 'silver'
-        ? 'bg-volt/15 text-volt'
-        : 'bg-iron text-ash'
+  const heroPhoto = w.logo_url ?? pickStockPhoto(w.id)
 
   return (
     <Link
       href={`/w/${w.slug}`}
-      className="card block p-4 md:p-5 hover:border-volt/30 transition-colors group"
+      className="card block overflow-hidden hover:border-volt/30 transition-colors group"
     >
-      <div className="flex items-center gap-4">
-        {/* Logo or initials avatar */}
-        <div
-          className={`shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-pill overflow-hidden flex items-center justify-center font-mono text-sm md:text-base font-semibold tracking-tighter ${tone}`}
-        >
-          {w.logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={w.logo_url}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <span aria-hidden>{initials}</span>
-          )}
+      <div className="flex items-stretch">
+        {/* Photo — left, square-ish on mobile, slightly wider on desktop.
+            Mirrors the MyCarsList rhythm so consumers + buyers see a
+            consistent listing format across the product. */}
+        <div className="relative w-28 sm:w-36 md:w-44 shrink-0 bg-iron overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={heroPhoto}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
+          />
         </div>
 
-        {/* Content */}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-base md:text-lg font-semibold text-chalk truncate leading-snug">
-              {w.name}
-            </h2>
-            <TierBadge tier={w.verification_tier} />
+        {/* Content — right side, PF list-card rhythm */}
+        <div className="flex-1 min-w-0 p-4 md:p-5 flex flex-col">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base md:text-lg font-semibold text-chalk truncate leading-snug">
+                  {w.name}
+                </h2>
+                <TierBadge tier={w.verification_tier} />
+              </div>
+              {/* Intelligence line — emirate · rating · review count */}
+              <p className="text-xs text-ash mt-1 truncate">
+                {w.emirate && <span className="text-chalk/90">{w.emirate}</span>}
+                {w.review_count > 0 && (
+                  <>
+                    {w.emirate && ' · '}
+                    <span className="font-mono tabular-nums">
+                      {w.avg_rating.toFixed(1)}★
+                    </span>
+                    <span> · </span>
+                    <span>
+                      {w.review_count}{' '}
+                      {w.review_count === 1 ? 'review' : 'reviews'}
+                    </span>
+                  </>
+                )}
+              </p>
+            </div>
           </div>
-          {/* Intelligence line — emirate · rating · entries volume */}
-          <p className="text-xs text-ash mt-1 truncate">
-            {w.emirate && (
-              <span className="text-chalk/90">{w.emirate}</span>
-            )}
-            {w.review_count > 0 && (
-              <>
-                {w.emirate && ' · '}
-                <span className="font-mono tabular-nums">
-                  {w.avg_rating.toFixed(1)}★
-                </span>
-                <span> · </span>
-                <span>
-                  {w.review_count}{' '}
-                  {w.review_count === 1 ? 'review' : 'reviews'}
-                </span>
-              </>
-            )}
-          </p>
-        </div>
 
-        {/* Right-side stat */}
-        <div className="text-right shrink-0">
-          <p className="font-mono text-xl md:text-2xl font-semibold text-chalk tabular-nums tracking-tight leading-none">
-            {w.total_entries.toLocaleString()}
-          </p>
-          <p className="text-[10px] tracking-widest uppercase text-ash mt-1">
-            entries
-          </p>
+          {/* Bottom row — entries volume right-aligned, star bar left */}
+          <div className="mt-auto pt-3 flex items-end justify-between gap-3">
+            {w.review_count > 0 ? (
+              <StarRating rating={w.avg_rating} size="sm" />
+            ) : (
+              <span className="text-[10px] tracking-widest uppercase text-ash">
+                No reviews yet
+              </span>
+            )}
+            <div className="text-right shrink-0">
+              <span className="font-mono text-base md:text-lg font-semibold text-chalk tabular-nums tracking-tight">
+                {w.total_entries.toLocaleString()}
+              </span>
+              <span className="text-[10px] tracking-widest uppercase text-ash ml-1">
+                entries
+              </span>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Optional star row when there are reviews */}
-      {w.review_count > 0 && (
-        <div className="mt-3 pt-3 border-t border-seam">
-          <StarRating rating={w.avg_rating} size="sm" />
-        </div>
-      )}
     </Link>
   )
 }
