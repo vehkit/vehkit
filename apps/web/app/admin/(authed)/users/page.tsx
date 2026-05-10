@@ -95,6 +95,7 @@ export default async function AdminUsersPage({
               <th className="text-left p-3">Lang</th>
               <th className="text-right p-3">Vehicles</th>
               <th className="text-right p-3">Joined</th>
+              <th className="text-right p-3">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -114,11 +115,19 @@ export default async function AdminUsersPage({
                     year: 'numeric',
                   })}
                 </td>
+                <td className="p-3 text-right">
+                  <Link
+                    href={`/admin/users/${u.id}/preview`}
+                    className="text-xs tracking-widest uppercase text-volt hover:underline"
+                  >
+                    Preview
+                  </Link>
+                </td>
               </tr>
             ))}
             {list.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-ash">
+                <td colSpan={7} className="p-8 text-center text-ash">
                   No users {q && `match "${q}"`}
                 </td>
               </tr>
