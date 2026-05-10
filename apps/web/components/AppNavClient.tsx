@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { AvatarDisplay } from './AvatarUpload'
 import { getInitials } from '@/lib/initials'
 import { VehkitLockup } from './VehkitMark'
+import { QuickAddFab, type FabVehicle } from './QuickAddFab'
 
 type Tab = {
   href: '/mycars' | '/notifications' | '/workshops' | '/profile'
@@ -48,11 +49,13 @@ export function AppNavClient({
   fullName,
   email,
   notificationCount,
+  fabVehicles,
 }: {
   avatarUrl: string | null
   fullName: string | null
   email: string
   notificationCount: number
+  fabVehicles: FabVehicle[]
 }) {
   const pathname = usePathname() ?? ''
   const initials = getInitials(fullName, email)
@@ -95,6 +98,15 @@ export function AppNavClient({
   ) {
     return null
   }
+
+  // Suppress the FAB on form pages — you're already adding something — and
+  // on /profile which has its own sticky-save bar.
+  // Matches /vehicles/new, /vehicles/{id}/edit, /vehicles/{id}/.../new,
+  // /vehicles/{id}/.../edit, and /profile.
+  const onFormPage =
+    pathname === '/vehicles/new' ||
+    pathname === '/profile' ||
+    /^\/vehicles\/[^/]+\/(?:edit|.*\/new|.*\/edit)$/.test(pathname)
 
   return (
     <>
@@ -151,6 +163,12 @@ export function AppNavClient({
           </Link>
         </div>
       </header>
+
+      {/* Floating quick-add — sits on top of all consumer surfaces.
+          Hidden on form pages (you're already mid-flow).
+          Smart context: on /vehicles/[id]/* the FAB pre-selects that car;
+          single-car users skip the picker entirely. */}
+      {!onFormPage && <QuickAddFab vehicles={fabVehicles} />}
 
       {/* Mobile bottom tabs */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-noir/95 backdrop-blur border-t border-seam">

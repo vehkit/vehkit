@@ -431,34 +431,9 @@ export default async function MyCarsPage() {
         )}
       </section>
 
-      {/* Floating add button — anchored bottom-right on desktop, bottom-center
-          on mobile (above the tab bar). Slim PF pill, not a full-width slab. */}
-      {vehicles && vehicles.length > 0 && (
-        <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-20">
-          <Link
-            href="/vehicles/new"
-            className="inline-flex items-center gap-2 bg-volt text-noir font-semibold text-sm px-5 h-11 rounded-pill shadow-lg shadow-noir/40 hover:bg-volt/90 transition-colors"
-            aria-label="Add a vehicle"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            <span className="hidden md:inline">Add a vehicle</span>
-            <span className="md:hidden">Add</span>
-          </Link>
-        </div>
-      )}
+      {/* The floating "+" FAB lives on AppNav so it persists across all
+          consumer pages — it covers add-car + service + reminder + doc + fuel
+          with smart vehicle context. No per-page floating button needed. */}
     </main>
   )
 }
