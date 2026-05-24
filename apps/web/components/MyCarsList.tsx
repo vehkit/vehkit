@@ -156,142 +156,169 @@ export function MyCarsList({
             <Link
               key={v.id}
               href={`/vehicles/${v.id}`}
-              className={`card block overflow-hidden hover:border-leaf/30 transition-colors group ${
+              className={`card block overflow-hidden border border-seam hover:border-leaf/30 transition-colors group ${
                 pendingForThis > 0 ? 'ring-1 ring-wallet/40' : ''
               }`}
             >
-              {/* Hero photo on top — fixed aspect for grid alignment */}
-              <div className="relative w-full aspect-[16/10] bg-iron overflow-hidden">
-                {heroPhoto ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={heroPhoto}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-iron via-carbon to-noir">
-                    <svg
-                      width="32"
-                      height="32"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      className="text-ash/60"
-                      aria-hidden
-                    >
-                      <path
+              {/* Bayut horizontal card layout — photo left on sm:+,
+                  stacks vertically on mobile. Photo fixed proportion so
+                  rows align across the column. */}
+              <div className="flex flex-col sm:flex-row">
+                {/* Hero photo */}
+                <div className="relative w-full sm:w-[280px] md:w-[340px] aspect-[16/10] sm:aspect-auto sm:min-h-[220px] bg-iron overflow-hidden shrink-0">
+                  {heroPhoto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={heroPhoto}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-iron via-carbon to-noir">
+                      <svg
+                        width="40"
+                        height="40"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        className="text-ash/60"
+                        aria-hidden
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M3 13l1.66-4.97A2 2 0 016.55 6.5h10.9a2 2 0 011.89 1.53L21 13M5 13h14M7 17h.01M17 17h.01M5 13v4a1 1 0 001 1h12a1 1 0 001-1v-4"
+                        />
+                      </svg>
+                    </div>
+                  )}
+
+                  {/* Top-right corner badge — pending or shared */}
+                  {pendingForThis > 0 && (
+                    <span className="absolute top-3 right-3 text-[10px] tracking-widest uppercase bg-wallet/95 text-noir px-2 py-1 rounded-pill font-semibold shadow-sm">
+                      {pendingForThis} pending
+                    </span>
+                  )}
+                  {isShared && pendingForThis === 0 && (
+                    <span className="absolute top-3 right-3 text-[10px] tracking-widest uppercase bg-noir/70 backdrop-blur text-chalk px-2 py-1 rounded-pill font-medium">
+                      Shared
+                    </span>
+                  )}
+                </div>
+
+                {/* Content — fills remaining width on desktop */}
+                <div className="p-5 md:p-6 flex flex-col gap-4 flex-1 min-w-0">
+                  {/* Title block — bigger on desktop to match Bayut rhythm */}
+                  <div className="min-w-0">
+                    <h2 className="text-lg md:text-2xl font-semibold text-chalk truncate leading-tight tracking-tight">
+                      {title}
+                    </h2>
+                    <p className="text-xs md:text-sm text-ash mt-1.5 truncate">
+                      {subline}
+                    </p>
+                  </div>
+
+                  {/* Pin row — plate */}
+                  {plateBadge && (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        d="M3 13l1.66-4.97A2 2 0 016.55 6.5h10.9a2 2 0 011.89 1.53L21 13M5 13h14M7 17h.01M17 17h.01M5 13v4a1 1 0 001 1h12a1 1 0 001-1v-4"
-                      />
-                    </svg>
+                        className="text-ash shrink-0"
+                        aria-hidden
+                      >
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      <span className="text-xs md:text-sm text-chalk/85 truncate font-mono">
+                        {plateBadge}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Stat row — Bayut's icon-row pattern: odometer + last
+                      service inline, with thin vertical separator */}
+                  <div className="flex items-center gap-4 md:gap-6 text-sm">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-ash shrink-0"
+                        aria-hidden
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                      <span className="font-mono tabular-nums text-chalk truncate">
+                        {v.current_odometer != null
+                          ? `${v.current_odometer.toLocaleString()} km`
+                          : '— km'}
+                      </span>
+                    </div>
+                    <span className="w-px h-4 bg-seam shrink-0" aria-hidden />
+                    <div className="flex items-center gap-2 min-w-0">
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-ash shrink-0"
+                        aria-hidden
+                      >
+                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                      </svg>
+                      <span className="text-chalk truncate">
+                        {summary?.lastServiceDate
+                          ? `Service ${relativeDate(summary.lastServiceDate)}`
+                          : summary?.serviceCount
+                            ? `${summary.serviceCount} services`
+                            : 'No services yet'}
+                      </span>
+                    </div>
                   </div>
-                )}
 
-                {/* Top-right corner badge — pending or shared */}
-                {pendingForThis > 0 && (
-                  <span className="absolute top-3 right-3 text-[10px] tracking-widest uppercase bg-wallet/95 text-noir px-2 py-1 rounded-pill font-semibold shadow-sm">
-                    {pendingForThis} pending
-                  </span>
-                )}
-                {isShared && pendingForThis === 0 && (
-                  <span className="absolute top-3 right-3 text-[10px] tracking-widest uppercase bg-noir/70 backdrop-blur text-chalk px-2 py-1 rounded-pill font-medium">
-                    Shared
-                  </span>
-                )}
-              </div>
-
-              {/* Content stack */}
-              <div className="p-5 flex flex-col gap-4">
-                {/* Title block */}
-                <div className="min-w-0">
-                  <h2 className="text-lg md:text-xl font-semibold text-chalk truncate leading-tight tracking-tight">
-                    {title}
-                  </h2>
-                  <p className="text-xs md:text-sm text-ash mt-1 truncate">
-                    {subline}
-                  </p>
-                </div>
-
-                {/* Pin row — plate (mirrors Bayut's location with map icon) */}
-                {plateBadge && (
-                  <div className="flex items-center gap-2 min-w-0">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-ash shrink-0"
-                      aria-hidden
-                    >
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                    <span className="text-xs text-chalk/85 truncate font-mono">
-                      {plateBadge}
+                  {/* Footer row — opens passport CTA + meta */}
+                  <div className="mt-auto pt-3 border-t border-seam flex items-center justify-between gap-3">
+                    <span className="text-xs tracking-widest uppercase text-ash">
+                      {summary?.lastWorkshop
+                        ? `Last at ${summary.lastWorkshop}`
+                        : 'Open the passport'}
+                    </span>
+                    <span className="text-sm font-medium text-leaf inline-flex items-center gap-1.5">
+                      Open
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden
+                      >
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
+                      </svg>
                     </span>
                   </div>
-                )}
-
-                {/* Stat box — Bayut's signature inset block with vertical divider */}
-                <div className="bg-iron/50 rounded-DEFAULT p-3 grid grid-cols-2 divide-x divide-seam">
-                  <div className="px-1">
-                    <p className="text-[10px] tracking-widest uppercase text-ash">
-                      Odometer
-                    </p>
-                    <p className="text-base md:text-lg font-semibold text-chalk font-mono tabular-nums tracking-tight mt-1 leading-none">
-                      {v.current_odometer != null
-                        ? `${v.current_odometer.toLocaleString()}`
-                        : '—'}
-                      <span className="text-[10px] tracking-widest uppercase text-ash ml-1">
-                        km
-                      </span>
-                    </p>
-                  </div>
-                  <div className="px-1 pl-3">
-                    <p className="text-[10px] tracking-widest uppercase text-ash">
-                      {summary?.lastServiceDate ? 'Last service' : 'Services'}
-                    </p>
-                    {summary?.lastServiceDate ? (
-                      <p className="text-sm md:text-base font-semibold text-chalk tracking-tight mt-1 leading-tight truncate">
-                        {relativeDate(summary.lastServiceDate)}
-                      </p>
-                    ) : (
-                      <p className="text-base md:text-lg font-semibold text-chalk font-mono tabular-nums tracking-tight mt-1 leading-none">
-                        {summary?.serviceCount ?? 0}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* CTA strip at bottom — Bayut's "Register Interest" block,
-                    here as a soft leaf-tinted "Open passport" affordance.
-                    The whole card is the Link, but the strip closes the
-                    visual rhythm. */}
-                <div className="bg-leaf/10 hover:bg-leaf/15 transition-colors rounded-DEFAULT py-3 text-center">
-                  <span className="text-sm font-medium text-leaf inline-flex items-center gap-2">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden
-                    >
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                    </svg>
-                    Open passport
-                  </span>
                 </div>
               </div>
             </Link>

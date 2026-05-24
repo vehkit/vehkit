@@ -357,15 +357,15 @@ export default async function MyCarsPage() {
   return (
     <main className="min-h-[100svh] pb-24 md:pb-12">
       {/* Top bar — mobile only; desktop uses AppNav */}
-      <header className="px-6 pt-6 pb-2 md:hidden max-w-3xl mx-auto">
+      <header className="px-6 md:px-10 pt-6 pb-2 md:hidden max-w-[1240px] mx-auto">
         <p className="nav-pill">vehkit</p>
       </header>
 
-      {/* Editorial header — PF rhythm: title + supporting stat strip.
-          Compact: title and stats share a row on desktop, stack on mobile. */}
-      <div className="px-6 pt-2 md:pt-5 pb-3 max-w-3xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-          <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none">
+      {/* Editorial header — Bayut list-page rhythm: big title + supporting
+          stat strip. Title sits prominently at ~30px+ on desktop. */}
+      <div className="px-6 md:px-10 pt-4 md:pt-8 pb-6 md:pb-8 max-w-[1240px] mx-auto">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <h1 className="text-2xl md:text-4xl font-semibold text-chalk tracking-tighter leading-tight">
             Your garage
           </h1>
           {totalVehicles > 0 && (
@@ -400,7 +400,7 @@ export default async function MyCarsPage() {
         </div>
       </div>
 
-      <section className="px-6 max-w-3xl mx-auto">
+      <section className="px-6 md:px-10 max-w-[1240px] mx-auto">
         {vehicles && vehicles.length > 0 ? (
           <>
             <MyCarsList
