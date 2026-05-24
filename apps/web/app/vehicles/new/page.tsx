@@ -21,13 +21,14 @@ export default async function NewVehiclePage({
   return (
     <main className="min-h-[100svh] pb-32">
       <div className="max-w-xl mx-auto px-6 pt-8 md:pt-10">
-        <p className="nav-pill">vehkit · garage</p>
+        <p className="nav-pill">Step 1 of your setup</p>
         <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none mt-3">
-          Add a vehicle
+          Add your car
         </h1>
         <p className="text-sm text-ash mt-2 leading-relaxed">
-          Start its passport. Make, model, plate — under a minute. Service
-          history, documents, and broker shares all stack on top of this.
+          Just the basics now — only{' '}
+          <span className="text-chalk font-medium">make and model</span> are
+          required. You can add documents, services and reminders right after.
         </p>
 
         {errorMsg && (
@@ -49,23 +50,34 @@ export default async function NewVehiclePage({
             label="Nickname"
             name="nickname"
             placeholder="The Patrol"
-            hint="Shows on your garage card."
+            hint="What you'd call it in conversation. Shows on your garage card."
           />
 
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2">
-              <Field label="Plate" name="plate_number" placeholder="A 12345" />
+              <Field
+                label="Plate number"
+                name="plate_number"
+                placeholder="A 12345"
+                hint="Letter + numbers, exactly as on the plate."
+              />
             </div>
             <Select label="Emirate" name="plate_emirate" options={EMIRATES} />
           </div>
 
-          <Field label="VIN / Chassis" name="vin" placeholder="17 characters" />
           <Field
-            label="Odometer (km)"
+            label="VIN / Chassis number"
+            name="vin"
+            placeholder="17 characters"
+            hint="Found on your mulkiya (registration). Optional — but helps with resale."
+          />
+          <Field
+            label="Current kilometres"
             name="current_odometer"
             type="number"
             inputMode="numeric"
             placeholder="82000"
+            hint="What the odometer reads today. We use this to time service reminders."
           />
         </form>
       </div>
@@ -77,7 +89,7 @@ export default async function NewVehiclePage({
             Cancel
           </Link>
           <button type="submit" form="vehicle-form" className="pill-primary flex-[2] text-center">
-            Add vehicle
+            Save and continue
           </button>
         </div>
       </div>

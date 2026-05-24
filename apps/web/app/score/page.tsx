@@ -34,13 +34,43 @@ export default async function ScorePage() {
             <br />
             more than the photos.
           </h1>
-          <p className="text-lg text-ash mt-8 leading-relaxed max-w-2xl">
-            Every car on Vehkit gets a passport score from zero to a hundred.
-            It's not a marketing label. It's a function of four things every
-            careful owner already does — recorded over time, attested by the
-            workshops who did the work, and resistant to gaming by any single
-            shop.
+          <p className="text-lg md:text-xl text-chalk mt-8 leading-relaxed max-w-2xl font-medium">
+            Think of it as a credit score — for your car. Every Vehkit car gets
+            a 0–100 number that summarises how well it&apos;s been looked after.
           </p>
+          <p className="text-base text-ash mt-5 leading-relaxed max-w-2xl">
+            Higher means a longer paper trail, more services on time, more
+            workshops in the record, and a recent visit. Lower means gaps,
+            missed reminders, or one shop trying to vouch for the whole story.
+            It moves up and down as you maintain the car.
+          </p>
+        </div>
+      </section>
+
+      {/* TL;DR — what moves the number */}
+      <section className="px-6 md:px-10 pb-16 md:pb-20">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-[10px] tracking-[0.35em] uppercase text-ash mb-6">
+            What moves the number
+          </p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <TLDR
+              up="A verified workshop logs a service"
+              down="You log it yourself with no workshop"
+            />
+            <TLDR
+              up="You hit reminders on time"
+              down="Reminders go overdue"
+            />
+            <TLDR
+              up="Services across two or more shops"
+              down="One shop owns the entire history"
+            />
+            <TLDR
+              up="A recent service in the last 6 months"
+              down="No activity for over a year"
+            />
+          </div>
         </div>
       </section>
 
@@ -96,8 +126,8 @@ export default async function ScorePage() {
             <p className="text-base text-ash mt-8 leading-relaxed max-w-md">
               Twelve verified entries from two workshops. One overdue reminder
               (brake fluid). Last service three weeks ago. Eighty-seven of a
-              hundred. The buyer sees this. So does the owner. So does the
-              insurance broker, eventually.
+              hundred. The buyer sees this. So does the owner. So does anyone
+              you choose to share the passport with.
             </p>
             <p className="text-sm text-ash/80 mt-6 leading-relaxed max-w-md">
               The lost thirteen points are recoverable. Catch up on that brake
@@ -246,6 +276,61 @@ function ScoreReader({ kicker, body }: { kicker: string; body: string }) {
         {kicker}
       </p>
       <p className="text-sm text-chalk/85 mt-3 leading-relaxed">{body}</p>
+    </div>
+  )
+}
+
+function TLDR({ up, down }: { up: string; down: string }) {
+  return (
+    <div className="card p-5">
+      <div className="flex items-start gap-2.5">
+        <span
+          className="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-leaf/20 flex items-center justify-center"
+          aria-hidden
+        >
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-leaf"
+          >
+            <polyline points="6 9 12 15 18 9" style={{ transform: 'rotate(180deg)', transformOrigin: 'center' }} />
+          </svg>
+        </span>
+        <p className="text-sm text-chalk leading-snug">
+          <span className="text-leaf font-semibold">Up: </span>
+          {up}
+        </p>
+      </div>
+      <div className="flex items-start gap-2.5 mt-3 pt-3 border-t border-seam">
+        <span
+          className="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-signal/20 flex items-center justify-center"
+          aria-hidden
+        >
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-signal"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </span>
+        <p className="text-sm text-ash leading-snug">
+          <span className="text-signal font-semibold">Down: </span>
+          {down}
+        </p>
+      </div>
     </div>
   )
 }

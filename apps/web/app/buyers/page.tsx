@@ -30,16 +30,49 @@ export default async function BuyersPage() {
             For buyers
           </p>
           <h1 className="text-5xl md:text-7xl font-semibold tracking-tightest text-chalk mt-6 leading-[0.95]">
-            Don't buy a used car
+            Don&apos;t buy a used car
             <br />
             without one.
           </h1>
-          <p className="text-lg text-ash mt-8 leading-relaxed max-w-2xl">
-            The price you pay is set by what the seller can prove. Photos
-            don't prove. Stickers don't prove. A folder of receipts is half a
-            story you can't verify. A Vehkit passport is the rest of it —
-            owner-issued, workshop-attested, and impossible to backdate.
+          <p className="text-lg md:text-xl text-chalk mt-8 leading-relaxed max-w-2xl font-medium">
+            Ask the seller for their Vehkit link. Open it. See every verified
+            service, every workshop, every kilometre, and a 0–100 score that
+            sums it up.{' '}
+            <span className="text-ash font-normal">
+              No edits, no deletions, no story.
+            </span>
           </p>
+          <p className="text-base text-ash mt-5 leading-relaxed max-w-2xl">
+            The price you pay should be set by what the car can prove, not what
+            the seller can claim. Photos and stickers and a folder of receipts
+            are half a story. A Vehkit passport is the rest.
+          </p>
+        </div>
+      </section>
+
+      {/* 3 STEPS — what a buyer actually does */}
+      <section className="px-6 md:px-10 pb-16 border-t border-seam pt-16">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-[10px] tracking-[0.35em] uppercase text-ash mb-8">
+            How to use a passport
+          </p>
+          <div className="grid md:grid-cols-3 gap-4">
+            <BuyerStep
+              n="01"
+              title="Ask the seller for their link"
+              body="Any honest seller can generate one in two taps. If they refuse, that's your answer."
+            />
+            <BuyerStep
+              n="02"
+              title="Open the link"
+              body="No app, no account, no signup. You see the full record in your browser, on any device."
+            />
+            <BuyerStep
+              n="03"
+              title="Check the score and the gaps"
+              body="80+ is healthy. Anything lower, ask why. The history is honest — the gaps are visible too."
+            />
+          </div>
         </div>
       </section>
 
@@ -157,28 +190,28 @@ export default async function BuyersPage() {
       <section className="px-6 md:px-10 py-24 md:py-32 border-t border-seam">
         <div className="max-w-3xl mx-auto text-center">
           <p className="text-[10px] tracking-[0.35em] uppercase text-volt">
-            Selling soon? Buying soon?
+            Buying soon?
           </p>
           <h2 className="text-3xl md:text-5xl font-semibold tracking-tightest text-chalk mt-4 leading-[1.05]">
-            Don't sign without a passport.
+            Don&apos;t sign without a passport.
           </h2>
           <p className="text-base text-ash mt-6 leading-relaxed max-w-md mx-auto">
-            Ask the seller. If they don't have one, ask them to start one. The
-            record begins the moment they sign up — they have nothing to hide
-            if they have nothing to hide.
+            Ask the seller for their Vehkit link before you commit. If they
+            don&apos;t have one, ask them to start one — the record begins the
+            moment they sign up. Honest sellers don&apos;t mind.
           </p>
-          <div className="mt-12 flex items-center justify-center gap-6">
-            <Link
-              href="/workshops"
-              className="pill-primary inline-flex items-center"
-            >
-              See verified workshops
-            </Link>
+          <div className="mt-12 flex items-center justify-center gap-6 flex-wrap">
             <Link
               href="/score"
-              className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
+              className="pill-primary inline-flex items-center"
             >
               How the score works →
+            </Link>
+            <Link
+              href="/workshops"
+              className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
+            >
+              Browse verified workshops →
             </Link>
           </div>
         </div>
@@ -222,6 +255,28 @@ function Question({ q, a }: { q: string; a: string }) {
       <div className="md:col-span-8">
         <p className="text-base text-ash leading-relaxed">{a}</p>
       </div>
+    </div>
+  )
+}
+
+function BuyerStep({
+  n,
+  title,
+  body,
+}: {
+  n: string
+  title: string
+  body: string
+}) {
+  return (
+    <div className="card p-6">
+      <p className="font-mono text-xs text-volt tabular-nums tracking-widest">
+        {n}
+      </p>
+      <h3 className="text-lg font-semibold text-chalk tracking-tight mt-3 leading-snug">
+        {title}
+      </h3>
+      <p className="text-sm text-ash mt-2 leading-relaxed">{body}</p>
     </div>
   )
 }

@@ -26,32 +26,60 @@ export default async function ForWorkshopsPage() {
             For workshops
           </p>
           <h1 className="text-5xl md:text-7xl font-semibold tracking-tightest text-chalk mt-6 leading-[0.95]">
-            Put your work
+            Free dashboard.
             <br />
-            on the record.
+            Free customers.
+            <br />
+            <span className="text-volt">Free for life.</span>
           </h1>
-          <p className="text-lg text-ash mt-8 leading-relaxed max-w-2xl">
-            When the customer's next workshop asks{' '}
-            <em className="text-chalk not-italic">"who did this last?"</em> —
-            your name should be the answer. Vehkit gives you a verified entry
-            on every car you service, a portfolio that compounds across
-            customers, and a free dashboard that runs your shop.
+          <p className="text-lg md:text-xl text-chalk mt-8 leading-relaxed max-w-2xl font-medium">
+            List your shop. Log a customer&apos;s service in 60 seconds. They
+            get reminders, you stay on the record. New customers find you in
+            our directory.
           </p>
-          <div className="mt-12 flex items-center gap-6">
+          <p className="text-base text-ash mt-5 leading-relaxed max-w-2xl">
+            No subscription. No commission. No credit card. We don&apos;t
+            charge you, we don&apos;t take a cut of your jobs, and we
+            don&apos;t sell ads to your competitors.
+          </p>
+          <div className="mt-12 flex items-center gap-6 flex-wrap">
             <Link href="/workshop/claim" className="pill-primary inline-flex items-center">
-              Claim your workshop
+              Claim your workshop — free
             </Link>
             <Link
               href="/workshops"
               className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
             >
-              See the directory →
+              See workshops on Vehkit →
             </Link>
           </div>
         </div>
       </section>
 
-      {/* WHAT IT GIVES YOU */}
+      {/* QUICK PROOF — 3 stat-cards: what you get on day one */}
+      <section className="px-6 md:px-10 pb-16 border-t border-seam pt-16">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-[10px] tracking-[0.35em] uppercase text-ash mb-8">
+            What you get on day one
+          </p>
+          <div className="grid md:grid-cols-3 gap-4">
+            <ProofCard
+              big="A profile page"
+              small="A live page customers can find — your name, location, services, reviews. Public, searchable, free."
+            />
+            <ProofCard
+              big="A dashboard"
+              small="Customer list, upcoming reminders, pending entries, recent reviews — everything you need to run your shop on one screen."
+            />
+            <ProofCard
+              big="A reputation"
+              small="Every service you log stays on that car forever. When the owner sells, the buyer sees your name. Loyalty travels with the car."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* WHAT IT GIVES YOU — scannable, one-line bodies */}
       <section className="px-6 md:px-10 py-20 md:py-24 border-t border-seam">
         <div className="max-w-5xl mx-auto">
           <p className="text-[10px] tracking-[0.35em] uppercase text-ash">
@@ -61,26 +89,61 @@ export default async function ForWorkshopsPage() {
             More than a logbook.
           </h2>
 
-          <div className="mt-16 grid md:grid-cols-2 gap-x-16 gap-y-12">
+          <div className="mt-16 grid md:grid-cols-2 gap-x-16 gap-y-10">
             <Feature
               n="01"
-              title="A verified portfolio that travels."
-              body="Every entry you attest stays on that car forever. When the owner sells in three years, the buyer reads your name. When the owner moves to a new workshop, that workshop sees what you did. Reputation compounds across customers, not against them."
+              title="Your name stays with the car"
+              body="Every service you log is locked to that car forever. The next owner sees you did it. The next workshop sees you did it. Your work earns you future customers."
             />
             <Feature
               n="02"
-              title="A dashboard that runs your shop."
-              body="Customer roster sorted by last visit. Upcoming reminders on cars you've serviced. Pending entries awaiting confirmation. Recent reviews. Multi-axis ratings. Twelve-week trend charts. Free, unlimited."
+              title="A real dashboard, not a spreadsheet"
+              body="Customers sorted by last visit. Cars due for service. Reviews you've earned. Reminders you can send. All free, all in your browser, no software to install."
             />
             <Feature
               n="03"
-              title="Verified outreach, on the customer's terms."
-              body="When an owner opts in, you can plant a service reminder on their car — they see it in their inbox marked as suggested by you. You never get their email or phone. Trust compounds; spam doesn't."
+              title="Send reminders without spamming"
+              body="When a customer opts in, you can flag their car for a service nudge. They get it in their email. You never see their phone or address. No spam, no risk."
             />
             <Feature
               n="04"
-              title="A directory that earns visibility."
-              body="Verified workshops climb the public directory. Buyers and prospective customers find you. Tiered: ten entries plus a trade license earns Silver. A hundred entries, four-and-a-half-star average, five reviews earns Gold. Ranking is curated by data, not by money."
+              title="Get found by new customers"
+              body="The Vehkit directory is the first place buyers look for verified shops. Earn Silver after 10 jobs and a trade licence. Earn Gold after 100 jobs and 5 reviews. No paid placement."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* IS THIS REALLY FREE — addresses the big skeptical question */}
+      <section className="px-6 md:px-10 py-20 md:py-24 border-t border-seam">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-[10px] tracking-[0.35em] uppercase text-volt">
+            Honest answers
+          </p>
+          <h2 className="text-3xl md:text-5xl font-semibold tracking-tighter text-chalk mt-4 leading-[1.05]">
+            Is this actually free?
+          </h2>
+          <p className="text-base text-ash mt-6 leading-relaxed">
+            Yes, and we want to be transparent about why so it doesn&apos;t
+            feel like a trap.
+          </p>
+
+          <div className="mt-12 space-y-8">
+            <FAQ
+              q="Do you take a cut of my jobs?"
+              a="No. You charge whatever you charge. We never see prices unless the customer chooses to log them, and even then it&apos;s their record, not ours to monetise."
+            />
+            <FAQ
+              q="Will you start charging later?"
+              a="The dashboard, profile, customer list, and directory listing stay free for workshops, period. Our revenue comes from the agent side — insurance brokers, leasing desks, buyers — paying for verified document access. Not from you."
+            />
+            <FAQ
+              q="Will customers see my prices?"
+              a="Only the cost field on entries you log, if you fill it in. Leave it blank and no one sees a price. The customer is in control of what they share with buyers."
+            />
+            <FAQ
+              q="Do I need a website or fancy software?"
+              a="No. Vehkit runs in your browser. You can log a service from your phone in the bay. No app, no install, no IT person required."
             />
           </div>
         </div>
@@ -90,10 +153,12 @@ export default async function ForWorkshopsPage() {
       <section className="px-6 md:px-10 py-20 md:py-24 border-t border-seam">
         <div className="max-w-5xl mx-auto">
           <p className="text-[10px] tracking-[0.35em] uppercase text-ash">
-            The verification ladder
+            How you climb the directory
           </p>
           <h2 className="text-3xl md:text-5xl font-semibold tracking-tighter text-chalk mt-4 leading-[1.05] max-w-3xl">
-            Climb on data, not dues.
+            Earned by work,
+            <br />
+            not paid for.
           </h2>
 
           <div className="mt-12 grid md:grid-cols-3 gap-px bg-seam rounded-DEFAULT overflow-hidden">
@@ -102,76 +167,76 @@ export default async function ForWorkshopsPage() {
               tone="ash"
               criteria={[
                 'Free to claim',
-                'Listed in the directory',
-                'Customer entries attribute to you',
-                'Full dashboard',
+                'Listed in our directory',
+                'Customer entries show your name',
+                'Full dashboard from day one',
               ]}
             />
             <Tier
-              label="Silver Verified"
+              label="Silver"
               tone="volt"
               criteria={[
-                'Trade license uploaded',
-                '10+ verified service entries',
-                'Silver badge in directory',
-                'Higher placement in search',
+                'Upload your trade licence',
+                '10+ verified services logged',
+                'Silver badge on your profile',
+                'Ranked above unverified shops',
               ]}
             />
             <Tier
-              label="Gold Verified"
+              label="Gold"
               tone="wallet"
               criteria={[
-                'Trade license uploaded',
-                '100+ verified service entries',
-                '4.5★ average across 5+ reviews',
+                'Trade licence + 100+ services',
+                '4.5★ average, 5+ reviews',
                 'Gold badge, top of directory',
+                'Featured on the home page',
               ]}
             />
           </div>
 
           <p className="text-sm text-ash mt-6 leading-relaxed max-w-2xl">
-            Tiers are evaluated automatically. There's no application fee, no
-            subscription, no premium tier. The data does the gatekeeping.
+            Tiers update automatically. No fees, no application, no premium
+            upgrade. Do the work — the badge follows.
           </p>
         </div>
       </section>
 
-      {/* HOW IT WORKS — editorial, not card-grid */}
+      {/* HOW IT WORKS — plain language, shop owner's POV */}
       <section className="px-6 md:px-10 py-20 md:py-24 border-t border-seam">
         <div className="max-w-4xl mx-auto">
           <p className="text-[10px] tracking-[0.35em] uppercase text-ash">
-            How an entry happens
+            Logging a service
           </p>
           <h2 className="text-3xl md:text-5xl font-semibold tracking-tighter text-chalk mt-4 leading-[1.05]">
-            The whole loop in
+            Under a minute,
             <br />
-            ninety seconds.
+            from start to done.
           </h2>
 
           <div className="mt-12 space-y-12">
             <FlowStep
               n="①"
               who="The customer"
-              action="generates a six-digit code"
-              detail="On their car page, they tap Generate workshop code. Vehkit issues a single-use code that expires in one hour."
+              action="hands you a 6-digit code"
+              detail="They tap a button on their car page in Vehkit and read you the code. It works once and expires in an hour."
             />
             <FlowStep
               n="②"
               who="You"
-              action="enter the code at vehkit.com/shop"
-              detail="If you're signed in to your workshop dashboard, your shop is already attached. Fill in service type, date, odometer, cost. Tap submit."
+              action="open vehkit.com/shop and type the code"
+              detail="Already signed in? Your shop name is pre-filled. Type the service (oil change, brakes, whatever), the date, the kilometres, the cost. Tap submit."
             />
             <FlowStep
               n="③"
-              who="The owner"
-              action="confirms the entry — or not"
-              detail="They get an email and a notification. They have twenty-four hours to retract if you logged the wrong thing. After that, the record is permanent. Most owners confirm immediately."
+              who="The customer"
+              action="confirms it's right"
+              detail="They get an email and see it in their Vehkit. They tap confirm — or retract if you made a typo. After 24 hours it locks in permanently."
             />
             <FlowStep
               n="④"
-              who="The score"
-              action="updates on the car's passport"
-              detail="Verified entries lift the verification component. Workshop diversity rewards the second and third shop on a car's history. Your name is now part of that car's permanent record."
+              who="Your name"
+              action="is now on that car forever"
+              detail="Your shop appears in their service history, in their next workshop's view of the car, and in the buyer's view when they sell. Your work earns you future work."
             />
           </div>
         </div>
@@ -181,7 +246,7 @@ export default async function ForWorkshopsPage() {
       <section className="px-6 md:px-10 py-24 md:py-32 border-t border-seam">
         <div className="max-w-3xl mx-auto text-center">
           <p className="text-[10px] tracking-[0.35em] uppercase text-volt">
-            Sign your shop up
+            Ready when you are
           </p>
           <h2 className="text-3xl md:text-5xl font-semibold tracking-tightest text-chalk mt-4 leading-[1.05]">
             Free. Always.
@@ -189,11 +254,11 @@ export default async function ForWorkshopsPage() {
             No credit card.
           </h2>
           <p className="text-base text-ash mt-6 leading-relaxed max-w-md mx-auto">
-            Five minutes to claim. Your first verified entry takes another two.
-            Your portfolio starts the moment a customer hands you their first
-            code.
+            5 minutes to set up your shop. 60 seconds to log your first
+            service. Then it just runs in the background while you do the
+            work.
           </p>
-          <div className="mt-12 flex items-center justify-center gap-6">
+          <div className="mt-12 flex items-center justify-center gap-6 flex-wrap">
             <Link href="/workshop/claim" className="pill-primary inline-flex items-center">
               Claim your workshop
             </Link>
@@ -230,6 +295,32 @@ function Feature({
         </h3>
       </div>
       <p className="text-base text-ash mt-3 leading-relaxed">{body}</p>
+    </div>
+  )
+}
+
+function ProofCard({ big, small }: { big: string; small: string }) {
+  return (
+    <div className="card p-6">
+      <p className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-tight">
+        {big}
+      </p>
+      <p className="text-sm text-ash mt-3 leading-relaxed">{small}</p>
+    </div>
+  )
+}
+
+function FAQ({ q, a }: { q: string; a: string }) {
+  return (
+    <div className="grid md:grid-cols-12 gap-3 md:gap-8">
+      <div className="md:col-span-5">
+        <h3 className="text-lg font-semibold text-chalk tracking-tight leading-snug">
+          {q}
+        </h3>
+      </div>
+      <div className="md:col-span-7">
+        <p className="text-base text-ash leading-relaxed">{a}</p>
+      </div>
     </div>
   )
 }

@@ -71,11 +71,8 @@ export default async function Home() {
             <span>vehkit</span>
           </Link>
           <nav className="hidden md:flex gap-7 text-sm font-semibold">
-            <Link href="#problem" className="hover:opacity-80">
-              The problem
-            </Link>
-            <Link href="#principles" className="hover:opacity-80">
-              Principles
+            <Link href="#how" className="hover:opacity-80">
+              How it works
             </Link>
             <Link href="#score" className="hover:opacity-80">
               The score
@@ -84,7 +81,7 @@ export default async function Home() {
               Workshops
             </Link>
             <Link href="#who" className="hover:opacity-80">
-              Who it's for
+              Who it&apos;s for
             </Link>
           </nav>
           <span className="flex-1" />
@@ -131,7 +128,7 @@ export default async function Home() {
               className="text-[11px] font-bold uppercase"
               style={{ letterSpacing: '0.32em', color: MUTE }}
             >
-              Verified vehicle records · UAE
+              For UAE car owners · free
             </p>
             <h1
               className="font-black mt-4 mb-7"
@@ -168,12 +165,12 @@ export default async function Home() {
               className="text-[19px] leading-[1.5] font-medium mb-9 max-w-[560px]"
               style={{ color: MUTE }}
             >
-              An owner-controlled service record, attested by verified
-              workshops,{' '}
+              Keep every service receipt, mulkiya and insurance doc in one
+              place.{' '}
               <b style={{ color: INK, fontWeight: 700 }}>
-                immutable after twenty-four hours.
+                We&apos;ll remind you before anything expires.
               </b>{' '}
-              Built for resale. Built for the UAE.
+              When you sell, the buyer sees the full history.
             </p>
             <div className="flex gap-3 items-center flex-wrap">
               <Link
@@ -181,32 +178,31 @@ export default async function Home() {
                 className="inline-flex items-center gap-2 h-[42px] px-[18px] rounded-full font-bold text-sm text-white"
                 style={{ background: LEAF, letterSpacing: '-0.01em' }}
               >
-                Start your first car <span aria-hidden>→</span>
+                Add your first car — free <span aria-hidden>→</span>
               </Link>
               <Link
-                href="#score"
-                className="inline-flex items-center gap-2 h-[42px] px-[18px] rounded-full font-bold text-sm"
+                href="#how"
+                className="inline-flex items-center gap-2 text-sm font-bold"
                 style={{
-                  border: `1px solid ${LINE}`,
-                  color: INK,
+                  color: MUTE,
                   letterSpacing: '-0.01em',
                 }}
               >
-                How the score works <span aria-hidden>→</span>
+                See how it works <span aria-hidden>↓</span>
               </Link>
             </div>
             <div className="mt-9 flex gap-9 items-center flex-wrap">
-              <Stat n="24h" l="Retract window" />
+              <Stat n="2 min" l="To set up" />
               <span
                 className="hidden sm:inline-block w-px h-9"
                 style={{ background: LINE }}
               />
-              <Stat n="100" l="Score scale" />
+              <Stat n="Auto" l="Renewal reminders" />
               <span
                 className="hidden sm:inline-block w-px h-9"
                 style={{ background: LINE }}
               />
-              <Stat n="7 emirates" l="Workshop coverage" />
+              <Stat n="Free" l="1 car, forever" />
             </div>
           </div>
 
@@ -248,6 +244,45 @@ export default async function Home() {
           </div>
         </section>
       )}
+
+      {/* ─── How it works (3 steps) ─── */}
+      <section id="how" className="py-24 md:py-[120px]">
+        <div className="max-w-[1240px] mx-auto px-6 md:px-10">
+          <SectionHead
+            eyebrow="How it works"
+            title={
+              <>
+                Three steps. About{' '}
+                <em
+                  className="not-italic whitespace-nowrap"
+                  style={{ color: LEAF }}
+                >
+                  five minutes.
+                </em>
+              </>
+            }
+            right="No app to download. No credit card. Add your car once, then we do the remembering."
+          />
+
+          <div className="grid md:grid-cols-3 gap-6">
+            <Step
+              num="01"
+              title="Add your car"
+              body="Make, model, plate, current kilometres. About two minutes. We accept any UAE-registered vehicle — petrol, diesel, hybrid, electric."
+            />
+            <Step
+              num="02"
+              title="Add your stuff"
+              body="Upload your mulkiya, insurance, and any service receipts you have. Or hand your workshop a six-digit code and let them log services for you."
+            />
+            <Step
+              num="03"
+              title="We do the rest"
+              body="One morning email a month with what's expiring, what's due for service, and what kilometres you should be at. Selling? Share one link — the buyer sees everything."
+            />
+          </div>
+        </div>
+      </section>
 
       {/* ─── Problem ─── */}
       <section
@@ -704,6 +739,46 @@ function Stat({ n, l }: { n: string; l: string }) {
       >
         {l}
       </div>
+    </div>
+  )
+}
+
+function Step({
+  num,
+  title,
+  body,
+}: {
+  num: string
+  title: string
+  body: string
+}) {
+  return (
+    <div
+      className="p-9 rounded-3xl flex flex-col gap-4"
+      style={{ background: 'white', border: `1px solid ${LINE}`, minHeight: 260 }}
+    >
+      <div
+        className="w-14 h-14 rounded-2xl grid place-items-center font-black text-2xl"
+        style={{
+          background: LEAF_50,
+          color: LEAF_DK,
+          letterSpacing: '-0.04em',
+        }}
+      >
+        {num}
+      </div>
+      <h3
+        className="font-black text-[26px] leading-[1.1] m-0"
+        style={{ letterSpacing: '-0.03em', color: NOIR }}
+      >
+        {title}
+      </h3>
+      <p
+        className="text-[15px] leading-[1.55] font-medium m-0"
+        style={{ color: MUTE }}
+      >
+        {body}
+      </p>
     </div>
   )
 }

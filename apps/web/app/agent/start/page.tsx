@@ -38,9 +38,12 @@ export default async function AgentStartPage({
           Set up your agent desk
         </h1>
         <p className="text-sm text-ash mt-2 leading-relaxed">
-          Insurance brokers, fleet desks, leasing operators — your customers
-          share car documents with you via one-time codes. Full access for 60
-          minutes, then renewal-track metadata for 30 days.
+          For insurance brokers, leasing desks, fleet managers, used-car buyers
+          and anyone customers might trust with their car documents. They share
+          a one-time code; you get{' '}
+          <span className="text-chalk font-medium">full access for 60 minutes</span>
+          , then a quick reference of expiry dates for 30 days after. No PDFs
+          flying around on WhatsApp.
         </p>
 
         {sp.error && (

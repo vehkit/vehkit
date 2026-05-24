@@ -462,50 +462,68 @@ export default async function MyCarsPage() {
             )}
           </>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
+            {/* Hero — plain-English value prop + ONE primary CTA */}
             <div className="card p-8">
-              <p className="nav-pill text-[10px]">Welcome to Vehkit</p>
-              <h2 className="text-2xl font-semibold text-chalk tracking-tighter mt-3">
-                Every car deserves a passport.
+              <p className="nav-pill text-[10px]">Welcome</p>
+              <h2 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter mt-3 leading-tight">
+                Let&apos;s get your car set up.
               </h2>
-              <p className="text-ash mt-3 leading-relaxed text-sm">
-                Track every service, repair, and reminder for every car you own. Workshops verify
-                their work with a 6-digit code. The full record stays with the car — even when
-                you sell it.
+              <p className="text-ash mt-3 leading-relaxed text-sm md:text-base">
+                Add your car once. Upload your mulkiya, insurance and any
+                service receipts — or hand them to your workshop and let them
+                do it.{' '}
+                <span className="text-chalk font-medium">
+                  We&apos;ll email you before anything expires.
+                </span>{' '}
+                When you sell, share one link — the buyer sees everything.
               </p>
-              <div className="mt-6 grid grid-cols-3 gap-3 text-center">
-                <Bullet n="1" label="Add your car" />
-                <Bullet n="2" label="Log services" />
-                <Bullet n="3" label="Share record" />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Link
                 href="/vehicles/new"
-                className="card p-6 hover:border-volt/30 transition-colors block"
+                className="pill-primary mt-6 inline-flex items-center gap-2"
               >
-                <p className="nav-pill text-[10px]">Get started</p>
-                <p className="text-lg font-semibold text-chalk mt-2">Add your car</p>
-                <p className="text-sm text-ash mt-1">
-                  Make, model, plate — under a minute.
-                </p>
-                <p className="text-volt text-sm mt-4 font-medium">+ New vehicle →</p>
+                Add your car — 2 minutes <span aria-hidden>→</span>
               </Link>
 
-              <form action={createSampleVehicle}>
+              <form action={createSampleVehicle} className="mt-3">
                 <button
                   type="submit"
-                  className="card p-6 hover:border-volt/30 transition-colors text-left w-full"
+                  className="text-sm text-ash hover:text-chalk transition-colors underline-offset-4 hover:underline"
                 >
-                  <p className="nav-pill text-[10px]">Just exploring?</p>
-                  <p className="text-lg font-semibold text-chalk mt-2">Try with a sample car</p>
-                  <p className="text-sm text-ash mt-1">
-                    A demo Toyota Corolla with 3 service entries.
-                  </p>
-                  <p className="text-volt text-sm mt-4 font-medium">+ Sample car →</p>
+                  or try with a sample car (a demo Corolla)
                 </button>
               </form>
+            </div>
+
+            {/* Journey preview — shows what comes next so the first step feels purposeful */}
+            <div className="card p-6">
+              <p className="text-[10px] tracking-widest uppercase text-ash">
+                What happens next
+              </p>
+              <ol className="mt-4 space-y-3">
+                <JourneyStep
+                  n="1"
+                  active
+                  title="Add your car"
+                  body="Make, model, plate, current kilometres. Two minutes."
+                />
+                <JourneyStep
+                  n="2"
+                  title="Upload your stuff"
+                  body="Mulkiya, insurance, service receipts. Drop in PDFs or photos — we store them safely."
+                />
+                <JourneyStep
+                  n="3"
+                  title="We do the remembering"
+                  body="One morning email a month. Renewals, services due, reminders set. Nothing slips."
+                />
+                <JourneyStep
+                  n="4"
+                  title="Share one link when you sell"
+                  body="Full verified history travels with the car. Buyers see the truth in one tap."
+                />
+              </ol>
             </div>
           </div>
         )}
@@ -546,14 +564,46 @@ function Stat({
   )
 }
 
-function Bullet({ n, label }: { n: string; label: string }) {
+function JourneyStep({
+  n,
+  title,
+  body,
+  active,
+}: {
+  n: string
+  title: string
+  body: string
+  active?: boolean
+}) {
   return (
-    <div>
-      <div className="w-8 h-8 rounded-pill bg-iron border border-seam flex items-center justify-center mx-auto">
-        <span className="font-mono text-sm text-volt font-semibold">{n}</span>
+    <li className="flex gap-4 items-start">
+      <div
+        className={`shrink-0 w-9 h-9 rounded-pill flex items-center justify-center ${
+          active
+            ? 'bg-leaf text-noir border-2 border-leaf'
+            : 'bg-iron text-ash border border-seam'
+        }`}
+      >
+        <span className="font-mono text-sm font-semibold">{n}</span>
       </div>
-      <p className="text-xs text-ash mt-2">{label}</p>
-    </div>
+      <div className="min-w-0 flex-1">
+        <p
+          className={`text-sm md:text-base font-semibold leading-snug ${
+            active ? 'text-leaf' : 'text-chalk'
+          }`}
+        >
+          {title}
+          {active && (
+            <span className="ml-2 text-[10px] tracking-widest uppercase text-leaf/80 font-medium">
+              · You are here
+            </span>
+          )}
+        </p>
+        <p className="text-xs md:text-sm text-ash mt-1 leading-relaxed">
+          {body}
+        </p>
+      </div>
+    </li>
   )
 }
 
