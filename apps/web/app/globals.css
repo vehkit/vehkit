@@ -23,7 +23,12 @@
     --leaf: 33 192 122;
     --leaf-dk: 26 163 101;
     --leaf-50: 21 38 30; /* leaf-tinted dark — for tinted surfaces on dark theme */
-    --volt: 212 255 0; /* full electric volt — sparing accent */
+    /* `volt` is aliased to leaf across the codebase. Changing this to the
+     * true electric volt #D4FF00 would require sweeping every text-volt /
+     * bg-volt callsite (~60 files). Future pass: introduce a separate
+     * `--electric` token for the rare deliberate yellow accent, then
+     * surgically rename. */
+    --volt: 33 192 122;
     --wallet: 201 169 97; /* B04 premium — #C9A961 */
     --signal: 255 90 95;
     --selection-bg: 33 192 122 / 0.25;
@@ -47,7 +52,8 @@
     --leaf: 33 192 122; /* full saturated leaf, matches dark theme */
     --leaf-dk: 26 163 101;
     --leaf-50: 233 250 241; /* leaf-tinted highlight bg, #E9FAF1 */
-    --volt: 212 255 0; /* electric accent, sparingly */
+    /* Volt aliased to leaf (see dark theme comment). Cleanup pass later. */
+    --volt: 33 192 122;
     --wallet: 201 169 97;
     --signal: 200 38 41;
     --selection-bg: 33 192 122 / 0.22;
@@ -119,7 +125,10 @@
     @apply rounded-pill px-5 py-3 font-medium transition-colors active:scale-[0.98];
   }
   .pill-primary {
-    @apply pill bg-volt text-noir hover:bg-volt/90;
+    /* Primary CTA — always leaf green with white text, in BOTH themes.
+     * Volt is reserved for one deliberate electric accent per surface
+     * (the passport-mockup bar, etc.), never as a bulk fill. */
+    @apply pill bg-leaf text-white hover:bg-leaf-dk;
   }
   .pill-ghost {
     @apply pill bg-iron text-chalk hover:bg-iron/70;
