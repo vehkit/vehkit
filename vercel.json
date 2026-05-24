@@ -1,7 +1,7 @@
 {
   "regions": ["bom1"],
   "functions": {
-    "apps/web/**": {
+    "app/api/**/route.ts": {
       "maxDuration": 30
     }
   },
