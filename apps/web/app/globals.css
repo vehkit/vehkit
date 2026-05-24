@@ -46,7 +46,11 @@
     --noir: 250 250 246; /* paper — page background */
     --carbon: 255 255 255; /* pure white card surface */
     --iron: 245 245 240; /* chalk-warm card surface */
-    --seam: 26 26 28 / 0.10; /* ink @ 10% — the canonical line color */
+    /* Seam = the visual equivalent of "ink @ 10% on paper" pre-blended into
+     * a flat RGB triplet. CSS variables can't carry an alpha channel and
+     * also work with Tailwind's `<alpha-value>` syntax — the double-alpha
+     * produces malformed CSS. Pre-blending solves it. */
+    --seam: 230 228 222; /* subtle warm gray, very low contrast on paper */
     --chalk: 26 26 28; /* ink — primary text */
     --ash: 90 90 95; /* mute — secondary text */
     --leaf: 33 192 122; /* full saturated leaf, matches dark theme */
@@ -143,7 +147,9 @@
     @apply block text-sm font-medium text-chalk mb-1.5;
   }
   .card {
-    @apply bg-carbon border border-seam rounded-DEFAULT;
+    /* No border — cards float on the drop-shadow. Add `border border-seam`
+     * explicitly on a card that genuinely needs a framed edge (rare). */
+    @apply bg-carbon rounded-DEFAULT;
     box-shadow: var(--shadow-card);
   }
   .nav-pill {
