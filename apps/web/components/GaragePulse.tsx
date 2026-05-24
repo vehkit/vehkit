@@ -124,28 +124,28 @@ export function GaragePulse({
         </p>
       </div>
 
-      {/* Hero — cost per kilometre. The single most useful number once
-          a user has logged a few fills + services. Combines fuel +
-          service spend over distance. */}
+      {/* Hero — cost per kilometre. Open section: big leaf number carries
+          the visual weight; no card wrapper, no gradient. Consistent with
+          the rest of the Bayut-style open rhythm below. */}
       {showCostPerKm && costPerKm != null && (
-        <div className="card p-5 md:p-6 mb-3 bg-gradient-to-br from-leaf/10 via-iron/30 to-noir border-leaf/30">
+        <div className="mb-8 pb-8 border-b border-seam">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="min-w-0">
               <p className="text-[10px] tracking-widest uppercase text-leaf">
                 Cost per kilometre
               </p>
-              <p className="mt-2 leading-none">
+              <p className="mt-3 leading-none">
                 <span className="text-[10px] tracking-widest uppercase text-ash align-top mr-1">
                   AED
                 </span>
-                <span className="text-4xl md:text-5xl font-semibold text-chalk tracking-tight font-mono tabular-nums">
+                <span className="text-5xl md:text-6xl font-semibold text-leaf tracking-tight font-mono tabular-nums">
                   {costPerKm.toFixed(2)}
                 </span>
                 <span className="text-sm tracking-widest uppercase text-ash ml-2">
                   / km
                 </span>
               </p>
-              <p className="text-xs text-ash mt-2 leading-relaxed max-w-md">
+              <p className="text-xs text-ash mt-3 leading-relaxed max-w-md">
                 What it actually costs to keep your{' '}
                 {vehicles.length === 1 ? 'car' : `${vehicles.length} cars`} on
                 the road — fuel and service combined, across every kilometre
@@ -171,9 +171,15 @@ export function GaragePulse({
         </div>
       )}
 
-      {/* Top stat strip — 2x2 grid on mobile (no dividers, padding-based
-          rhythm), 4-up row on md+ with vertical dividers between items. */}
-      <div className="card p-4 md:p-5">
+      {/* Open sections — Bayut detail-page rhythm. No card wrappers; sections
+          are separated by thin top borders and consistent vertical spacing.
+          Stat strip is the first section so it gets no top border. */}
+
+      {/* Top stat strip — open row with vertical dividers between items */}
+      <div>
+        <p className="text-[10px] tracking-widest uppercase text-ash mb-3">
+          Garage stats
+        </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-0 md:divide-x md:divide-seam">
           <PulseStat
             value={totalKmTracked.toLocaleString()}
@@ -196,13 +202,13 @@ export function GaragePulse({
         </div>
       </div>
 
-      {/* Per-vehicle fuel insights */}
+      {/* Per-vehicle fuel insights — open list with thin internal dividers */}
       {perVehicleFuel.length > 0 && (
-        <div className="mt-4">
-          <p className="text-[10px] tracking-widest uppercase text-ash mb-2">
+        <div className="mt-8 pt-6 border-t border-seam">
+          <p className="text-[10px] tracking-widest uppercase text-ash mb-3">
             Fuel by vehicle
           </p>
-          <ul className="space-y-3">
+          <ul className="divide-y divide-seam">
             {perVehicleFuel.map((p) => (
               <li key={p.vehicleId}>
                 <FuelInsightCard p={p} />
@@ -212,17 +218,17 @@ export function GaragePulse({
         </div>
       )}
 
-      {/* Service spend roll-up (small) — only when service data exists */}
+      {/* Service spend roll-up — open section, no card */}
       {totalServices > 0 && totalServiceSpend > 0 && (
-        <div className="mt-4 card p-4 flex items-center justify-between gap-3">
+        <div className="mt-8 pt-6 border-t border-seam flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[10px] tracking-widest uppercase text-ash">
               Service spend
             </p>
-            <p className="text-base md:text-lg font-semibold text-chalk mt-1 leading-none">
+            <p className="text-2xl md:text-3xl font-semibold text-chalk mt-2 leading-none font-mono tabular-nums">
               AED {Math.round(totalServiceSpend).toLocaleString()}
             </p>
-            <p className="text-[11px] text-ash mt-1.5">
+            <p className="text-[11px] text-ash mt-2">
               Across {totalServices}{' '}
               {totalServices === 1 ? 'entry' : 'entries'} ·{' '}
               {documentsCount}{' '}
@@ -231,20 +237,21 @@ export function GaragePulse({
           </div>
           <Link
             href={`/vehicles/${vehicles[0]?.id ?? ''}#service`}
-            className="text-[11px] tracking-widest uppercase text-leaf shrink-0 hover:underline"
+            className="text-[11px] tracking-widest uppercase text-leaf shrink-0 hover:underline pt-1"
           >
             View →
           </Link>
         </div>
       )}
 
-      {/* Recent activity timeline */}
+      {/* Recent activity — open list, no card wrapper. Just heading + rows
+          separated by thin internal dividers. */}
       {activity.length > 0 && (
-        <div className="mt-4">
-          <p className="text-[10px] tracking-widest uppercase text-ash mb-2">
+        <div className="mt-8 pt-6 border-t border-seam">
+          <p className="text-[10px] tracking-widest uppercase text-ash mb-3">
             Recent activity
           </p>
-          <ul className="card divide-y divide-seam overflow-hidden">
+          <ul className="divide-y divide-seam">
             {activity.map((e, i) => (
               <li key={`${e.kind}-${i}-${e.at}`}>
                 <ActivityRow e={e} />
@@ -404,7 +411,7 @@ function FuelInsightCard({ p }: { p: VehicleFuelInsight }) {
   return (
     <Link
       href={`/vehicles/${p.vehicleId}`}
-      className="card p-4 flex items-start gap-3 hover:border-leaf/30 transition-colors"
+      className="flex items-start gap-3 py-4 -mx-2 px-2 rounded-DEFAULT hover:bg-iron/50 transition-colors"
     >
       <span
         className="shrink-0 w-10 h-10 rounded-pill bg-leaf/15 text-leaf flex items-center justify-center"
