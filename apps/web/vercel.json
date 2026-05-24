@@ -1,5 +1,6 @@
 {
   "regions": ["bom1"],
+  "buildCommand": "next build",
   "functions": {
     "app/api/**/route.ts": {
       "maxDuration": 30
