@@ -113,14 +113,52 @@ export function GaragePulse({
   // when we have at least 1 fuel log OR at least 1 service entry.
   if (fuelLogs.length === 0 && totalServices === 0) return null
 
+  // ===== Per-car aggregates (for the breakdown rows under the headline AED
+  // numbers — so a 2-car user immediately sees which car is the expensive
+  // one rather than wondering whose money this is). =====
+  const perCarServiceSpend = vehicles.map((v) => ({
+    vehicleId: v.id,
+    label: v.label,
+    spend: summaryByVehicle[v.id]?.totalSpend ?? 0,
+  }))
+  const perCarFuelSpend = vehicles.map((v) => ({
+    vehicleId: v.id,
+    label: v.label,
+    spend: fuelLogs
+      .filter((f) => f.vehicle_id === v.id)
+      .reduce((s, f) => s + Number(f.total_aed ?? 0), 0),
+  }))
+  // Cost/km per car — total spend (fuel + service) / current odometer.
+  // Only show when both > 0 for that car, otherwise the line would lie.
+  const perCarCostPerKm = vehicles
+    .map((v) => {
+      const fuel = perCarFuelSpend.find((p) => p.vehicleId === v.id)?.spend ?? 0
+      const service =
+        perCarServiceSpend.find((p) => p.vehicleId === v.id)?.spend ?? 0
+      const km = v.currentOdometer ?? 0
+      const spend = fuel + service
+      return {
+        vehicleId: v.id,
+        label: v.label,
+        costPerKm: spend > 0 && km > 0 ? spend / km : null,
+      }
+    })
+    .filter((p) => p.costPerKm != null) as Array<{
+    vehicleId: string
+    label: string
+    costPerKm: number
+  }>
+
   return (
     <section className="mt-10">
-      <div className="flex items-baseline justify-between mb-3">
+      <div className="flex items-baseline justify-between mb-6">
         <h2 className="text-[10px] tracking-widest uppercase text-ash">
           Garage pulse
         </h2>
-        <p className="text-[10px] tracking-widest uppercase text-ash/60">
-          By the numbers
+        <p className="text-[10px] tracking-widest uppercase text-ash/70">
+          {vehicles.length === 1
+            ? 'Your car'
+            : `Across all ${vehicles.length} cars`}
         </p>
       </div>
 
@@ -133,6 +171,12 @@ export function GaragePulse({
             <div className="min-w-0">
               <p className="text-[10px] tracking-widest uppercase text-leaf">
                 Cost per kilometre
+                <span className="text-ash/70 ml-2">
+                  ·{' '}
+                  {vehicles.length === 1
+                    ? 'your car'
+                    : `garage-wide, ${vehicles.length} cars`}
+                </span>
               </p>
               <p className="mt-3 leading-none">
                 <span className="text-[10px] tracking-widest uppercase text-ash align-top mr-1">
@@ -146,10 +190,12 @@ export function GaragePulse({
                 </span>
               </p>
               <p className="text-xs text-ash mt-3 leading-relaxed max-w-md">
-                What it actually costs to keep your{' '}
-                {vehicles.length === 1 ? 'car' : `${vehicles.length} cars`} on
-                the road — fuel and service combined, across every kilometre
-                you&apos;ve logged.
+                What it actually costs to keep{' '}
+                {vehicles.length === 1
+                  ? 'your car'
+                  : `all ${vehicles.length} cars`}{' '}
+                on the road — fuel and service combined, across every
+                kilometre you&apos;ve logged.
               </p>
             </div>
             <div className="text-right shrink-0">
@@ -168,6 +214,32 @@ export function GaragePulse({
               </p>
             </div>
           </div>
+
+          {/* Per-car cost/km breakdown — only when >1 car AND each has a
+              meaningful number. Answers "which car is the expensive one?" */}
+          {vehicles.length > 1 && perCarCostPerKm.length > 1 && (
+            <ul className="mt-5 grid sm:grid-cols-2 gap-2 pt-4 border-t border-seam">
+              {perCarCostPerKm.map((p) => (
+                <li
+                  key={p.vehicleId}
+                  className="flex items-baseline justify-between gap-3"
+                >
+                  <Link
+                    href={`/vehicles/${p.vehicleId}`}
+                    className="text-sm text-chalk truncate hover:text-leaf transition-colors"
+                  >
+                    {p.label}
+                  </Link>
+                  <span className="text-sm font-mono tabular-nums text-chalk shrink-0">
+                    AED {p.costPerKm.toFixed(2)}
+                    <span className="text-[10px] tracking-widest uppercase text-ash ml-1">
+                      / km
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
@@ -220,27 +292,55 @@ export function GaragePulse({
 
       {/* Service spend roll-up — open section, no card */}
       {totalServices > 0 && totalServiceSpend > 0 && (
-        <div className="mt-8 pt-6 border-t border-seam flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] tracking-widest uppercase text-ash">
-              Service spend
-            </p>
-            <p className="text-2xl md:text-3xl font-semibold text-chalk mt-2 leading-none font-mono tabular-nums">
-              AED {Math.round(totalServiceSpend).toLocaleString()}
-            </p>
-            <p className="text-[11px] text-ash mt-2">
-              Across {totalServices}{' '}
-              {totalServices === 1 ? 'entry' : 'entries'} ·{' '}
-              {documentsCount}{' '}
-              {documentsCount === 1 ? 'document' : 'documents'} on file
-            </p>
+        <div className="mt-8 pt-6 border-t border-seam">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] tracking-widest uppercase text-ash">
+                Service spend
+                <span className="text-ash/60 ml-2 normal-case tracking-normal">
+                  ·{' '}
+                  {vehicles.length === 1
+                    ? 'your car'
+                    : `all ${vehicles.length} cars combined`}
+                </span>
+              </p>
+              <p className="text-2xl md:text-3xl font-semibold text-chalk mt-2 leading-none font-mono tabular-nums">
+                AED {Math.round(totalServiceSpend).toLocaleString()}
+              </p>
+              <p className="text-[11px] text-ash mt-2">
+                Across {totalServices}{' '}
+                {totalServices === 1 ? 'entry' : 'entries'} ·{' '}
+                {documentsCount}{' '}
+                {documentsCount === 1 ? 'document' : 'documents'} on file
+              </p>
+            </div>
           </div>
-          <Link
-            href={`/vehicles/${vehicles[0]?.id ?? ''}#service`}
-            className="text-[11px] tracking-widest uppercase text-leaf shrink-0 hover:underline pt-1"
-          >
-            View →
-          </Link>
+
+          {/* Per-car service spend breakdown — only when >1 car. Shows
+              who's the expensive one + links into that car. */}
+          {vehicles.length > 1 && (
+            <ul className="mt-5 grid sm:grid-cols-2 gap-2 pt-4 border-t border-seam">
+              {perCarServiceSpend
+                .filter((p) => p.spend > 0)
+                .sort((a, b) => b.spend - a.spend)
+                .map((p) => (
+                  <li
+                    key={p.vehicleId}
+                    className="flex items-baseline justify-between gap-3"
+                  >
+                    <Link
+                      href={`/vehicles/${p.vehicleId}#service`}
+                      className="text-sm text-chalk truncate hover:text-leaf transition-colors"
+                    >
+                      {p.label}
+                    </Link>
+                    <span className="text-sm font-mono tabular-nums text-chalk shrink-0">
+                      AED {Math.round(p.spend).toLocaleString()}
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          )}
         </div>
       )}
 
