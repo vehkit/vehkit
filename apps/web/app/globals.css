@@ -22,7 +22,8 @@
      * #D4FF00 is held in reserve for a focused future rename pass. */
     --leaf: 33 192 122;
     --leaf-dk: 26 163 101;
-    --volt: 33 192 122; /* alias of --leaf during transition */
+    --leaf-50: 21 38 30; /* leaf-tinted dark — for tinted surfaces on dark theme */
+    --volt: 212 255 0; /* full electric volt — sparing accent */
     --wallet: 201 169 97; /* B04 premium — #C9A961 */
     --signal: 255 90 95;
     --selection-bg: 33 192 122 / 0.25;
@@ -32,21 +33,27 @@
   }
 
   .light {
-    --noir: 245 245 240; /* warm chalk page bg */
-    --carbon: 255 255 255;
-    --iron: 240 240 236;
-    --seam: 224 222 215;
-    --chalk: 10 10 11; /* near-black primary text */
-    --ash: 102 106 114;
-    --leaf: 26 163 101; /* leaf-dk shade for legibility on chalk */
-    --leaf-dk: 22 142 88;
-    --volt: 26 163 101; /* alias of --leaf during transition */
-    --wallet: 161 122 18;
+    /* Values match the Claude-designed canonical brand mock (index.html):
+     *   paper #FAFAF6 = page background ("noir" in semantic terms)
+     *   ink   #1A1A1C = primary text     ("chalk" in semantic terms)
+     *   mute  #5A5A5F = secondary text   ("ash" in semantic terms)
+     */
+    --noir: 250 250 246; /* paper — page background */
+    --carbon: 255 255 255; /* pure white card surface */
+    --iron: 245 245 240; /* chalk-warm card surface */
+    --seam: 26 26 28 / 0.10; /* ink @ 10% — the canonical line color */
+    --chalk: 26 26 28; /* ink — primary text */
+    --ash: 90 90 95; /* mute — secondary text */
+    --leaf: 33 192 122; /* full saturated leaf, matches dark theme */
+    --leaf-dk: 26 163 101;
+    --leaf-50: 233 250 241; /* leaf-tinted highlight bg, #E9FAF1 */
+    --volt: 212 255 0; /* electric accent, sparingly */
+    --wallet: 201 169 97;
     --signal: 200 38 41;
-    --selection-bg: 26 163 101 / 0.18;
-    --shadow-card: 0 1px 0 0 rgb(0 0 0 / 0.02) inset,
-      0 1px 2px 0 rgb(0 0 0 / 0.05),
-      0 8px 24px -12px rgb(0 0 0 / 0.08);
+    --selection-bg: 33 192 122 / 0.22;
+    --shadow-card: 0 1px 0 0 rgb(255 255 255 / 0.5) inset,
+      0 1px 2px 0 rgb(10 10 11 / 0.05),
+      0 8px 24px -12px rgb(10 10 11 / 0.12);
     color-scheme: light;
   }
 }

@@ -19,12 +19,23 @@ const config: Config = {
         // decisive flourish at a time, never the primary surface.
         leaf: 'rgb(var(--leaf) / <alpha-value>)',
         'leaf-dk': 'rgb(var(--leaf-dk) / <alpha-value>)',
+        'leaf-50': 'rgb(var(--leaf-50) / <alpha-value>)', // leaf-tinted highlight bg
         volt: 'rgb(var(--volt) / <alpha-value>)',
         wallet: 'rgb(var(--wallet) / <alpha-value>)', // premium accent
         signal: 'rgb(var(--signal) / <alpha-value>)', // alert / overdue
 
-        // Legacy tokens — kept stable across themes (only used in a couple places)
-        ink: '#0E1726',
+        // Editorial-light aliases — same CSS variables, more readable when
+        // writing light-theme marketing surfaces:
+        //   bg-paper   == bg-noir   (page background)
+        //   text-ink   == text-chalk (primary text)
+        //   text-mute  == text-ash  (secondary text)
+        // These let marketing pages read naturally without renaming the
+        // semantic tokens used app-wide.
+        paper: 'rgb(var(--noir) / <alpha-value>)',
+        ink: 'rgb(var(--chalk) / <alpha-value>)',
+        mute: 'rgb(var(--ash) / <alpha-value>)',
+
+        // Legacy
         verified: 'rgb(var(--leaf) / <alpha-value>)',
         cream: '#FAF7F2',
         mist: '#E8EAEE',

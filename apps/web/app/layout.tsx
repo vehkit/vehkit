@@ -3,6 +3,7 @@ import { Inter, Nunito } from 'next/font/google'
 import { cookies } from 'next/headers'
 import './globals.css'
 import { AppNav } from '@/components/AppNav'
+import { THEME_COLORS } from '@/lib/brand-colors'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -87,9 +88,13 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
+  // theme-color drives the browser chrome colour (Android URL bar, iOS PWA
+  // status bar, etc). Browser reads this BEFORE CSS loads, so it cannot
+  // use `var(--noir)` — must be raw hex. Sourced from the central brand
+  // module so palette changes only need editing in one place.
   themeColor: [
-    { media: '(prefers-color-scheme: dark)', color: '#0A0A0B' },
-    { media: '(prefers-color-scheme: light)', color: '#F5F5F0' },
+    { media: '(prefers-color-scheme: dark)', color: THEME_COLORS.dark },
+    { media: '(prefers-color-scheme: light)', color: THEME_COLORS.light },
   ],
   width: 'device-width',
   initialScale: 1,
