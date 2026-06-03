@@ -24,6 +24,14 @@ type Action = {
   global?: boolean
 }
 
+/**
+ * Two primary actions only — Add car and Add service.
+ *
+ * The other sub-actions (fuel, reminder, document) live INSIDE the
+ * vehicle profile where they're contextual. Tucked away from the global
+ * FAB so the empty/new user isn't drowning in 5 choices on their first
+ * tap. Power-users find them once they open a car.
+ */
 const ACTIONS: Action[] = [
   {
     key: 'car',
@@ -39,27 +47,6 @@ const ACTIONS: Action[] = [
     hint: 'Oil change, tyre, brakes, anything',
     icon: 'wrench',
     pathFor: (id) => `/vehicles/${id}/service/new`,
-  },
-  {
-    key: 'fuel',
-    label: 'Log a fill-up',
-    hint: 'Litres, total, station — done',
-    icon: 'fuel',
-    pathFor: (id) => `/vehicles/${id}/fuel/new`,
-  },
-  {
-    key: 'reminder',
-    label: 'Set a reminder',
-    hint: 'Renewal, service, anything date-based',
-    icon: 'bell',
-    pathFor: (id) => `/vehicles/${id}/reminders/new`,
-  },
-  {
-    key: 'document',
-    label: 'Add a document',
-    hint: 'Mulkiya, registration, NOC, contract',
-    icon: 'doc',
-    pathFor: (id) => `/vehicles/${id}/documents/new`,
   },
 ]
 

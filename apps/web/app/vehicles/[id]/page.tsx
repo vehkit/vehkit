@@ -198,41 +198,41 @@ export default async function VehiclePage({
       {/* Content container — padded on mobile, column-bound on desktop */}
       <div className="max-w-[1240px] mx-auto px-5 md:px-10">
 
-        {/* HEADLINE STRIP — score big number + odometer + plate */}
+        {/* HEADLINE STRIP — the CAR is the hero, not the score.
+            Title is the biggest text. Score appears as a small badge
+            inline next to the title only when it's meaningful. */}
         <section className="mt-6">
-          <div className="flex items-baseline gap-3 flex-wrap">
-            {scoreData?.score != null ? (
-              <p className="font-mono text-5xl md:text-6xl font-semibold text-volt tabular-nums tracking-tightest leading-none">
-                {scoreData.score}
-                <span className="text-ash text-lg font-normal ml-1">/100</span>
-              </p>
-            ) : (
-              <p className="font-mono text-5xl md:text-6xl font-semibold text-ash tabular-nums tracking-tightest leading-none">
-                —<span className="text-ash text-lg font-normal ml-1">/100</span>
-              </p>
-            )}
-            <p className="text-[10px] tracking-[0.3em] uppercase text-ash">
-              Vehkit score
-            </p>
-          </div>
-
-          <div className="mt-4">
-            <p className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter leading-tight">
+          <div className="flex items-end gap-3 flex-wrap">
+            <h1 className="text-3xl md:text-5xl font-semibold text-chalk tracking-tighter leading-tight">
               {vehicleTitle}
-            </p>
-            <p className="text-sm text-ash mt-1">
-              {[
-                vehicle.year && String(vehicle.year),
-                vehicle.color,
-                `${vehicle.make} ${vehicle.model}`,
-                vehicle.plate_emirate && vehicle.plate_number
-                  ? `${vehicle.plate_emirate} · ${vehicle.plate_number}`
-                  : vehicle.plate_number,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </p>
+            </h1>
+            {scoreData?.score != null && (
+              <Link
+                href="/score"
+                className="inline-flex items-baseline gap-1.5 px-3 py-1 rounded-pill bg-leaf/15 text-leaf hover:bg-leaf/20 transition-colors"
+                aria-label="Vehkit score"
+              >
+                <span className="font-mono text-base font-semibold tabular-nums tracking-tight leading-none">
+                  {scoreData.score}
+                </span>
+                <span className="text-[10px] tracking-widest uppercase font-medium">
+                  / 100
+                </span>
+              </Link>
+            )}
           </div>
+          <p className="text-sm md:text-base text-ash mt-2">
+            {[
+              vehicle.year && String(vehicle.year),
+              vehicle.color,
+              `${vehicle.make} ${vehicle.model}`,
+              vehicle.plate_emirate && vehicle.plate_number
+                ? `${vehicle.plate_emirate} · ${vehicle.plate_number}`
+                : vehicle.plate_number,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
         </section>
 
         {/* QUICK STATS ROW — PropertyFinder-style separator-divided */}
