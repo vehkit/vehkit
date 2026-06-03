@@ -1,6 +1,13 @@
 import Link from 'next/link'
 import { archiveVehicleDocument } from '@/app/actions/documents'
 
+export type VehicleDocumentFile = {
+  id: string
+  storage_path: string
+  file_type: string | null
+  position: number
+}
+
 export type VehicleDocumentRow = {
   id: string
   doc_type: string
@@ -11,6 +18,8 @@ export type VehicleDocumentRow = {
   issued_date: string | null
   expires_at: string | null
   created_at: string
+  /** Child files embedded by the supabase query. May be empty for legacy docs. */
+  files?: VehicleDocumentFile[] | null
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -136,24 +145,14 @@ export function VehicleDocumentsList({
                 </div>
                 <p className="text-xs text-ash mt-0.5 truncate">
                   <span className="text-chalk/90">{typeLabel}</span>
-                  {d.issued_date && (
+                  {/* File count — proudly surfaces multi-file documents.
+                      Falls back to single-file behaviour when files[] is
+                      missing or has just one entry. */}
+                  {(d.files?.length ?? 0) > 1 && (
                     <>
                       {' · '}
-                      <span>
-                        Issued{' '}
-                        {new Date(d.issued_date).toLocaleDateString('en-GB', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </span>
-                    </>
-                  )}
-                  {d.file_size_bytes != null && (
-                    <>
-                      {' · '}
-                      <span className="font-mono tabular-nums">
-                        {(d.file_size_bytes / 1024).toFixed(0)} KB
+                      <span className="text-chalk/90 font-medium">
+                        {d.files!.length} files
                       </span>
                     </>
                   )}

@@ -110,17 +110,22 @@ export default async function NewDocumentPage({
 
           <div>
             <label htmlFor="file" className="label">
-              File <span className="text-signal">*</span>
+              Files <span className="text-signal">*</span>
             </label>
             <input
               id="file"
               name="file"
               type="file"
               accept="application/pdf,image/*"
+              multiple
               required
               className="field file:mr-3 file:py-1.5 file:px-3 file:rounded-pill file:border-0 file:bg-iron file:text-chalk file:text-xs file:tracking-widest file:uppercase file:font-medium hover:file:bg-iron/70 file:cursor-pointer"
             />
-            <p className="text-[11px] text-ash/70 mt-1.5">PDF or image. Stays private to you.</p>
+            <p className="text-[11px] text-ash/70 mt-1.5">
+              Add front + back of the mulkiya, multi-page insurance, or
+              anything else that belongs together. PDF or image. Stays
+              private to you.
+            </p>
           </div>
 
           <div>

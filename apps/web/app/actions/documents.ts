@@ -21,8 +21,17 @@ const ALLOWED_DOC_TYPES = new Set([
 ])
 
 /**
- * Owner uploads a new vehicle document. File goes to the private
- * 'vehicle-docs' bucket; the row goes to vehicle_documents (RLS-checked).
+ * Owner uploads a new vehicle document. Accepts ONE OR MANY files in the
+ * same form post — front + back of a mulkiya, multi-page insurance, etc.
+ *
+ * Shape:
+ *   - Inserts ONE row into vehicle_documents (the logical document)
+ *   - Inserts N rows into vehicle_document_files (one per uploaded file)
+ *   - First file is also denormalised onto the parent row's storage_path
+ *     so legacy code paths that read the parent column still work.
+ *
+ * Failure modes: any upload or insert error rolls back any storage blobs
+ * we already wrote, so we don't leave orphans.
  */
 export async function createVehicleDocument(formData: FormData) {
   const supabase = await createClient()
@@ -38,44 +47,89 @@ export async function createVehicleDocument(formData: FormData) {
     redirect(`/vehicles/${vehicleId}/documents/new?error=Pick+a+document+type`)
   }
 
-  const file = formData.get('file')
-  if (!(file instanceof File) || file.size === 0) {
-    redirect(`/vehicles/${vehicleId}/documents/new?error=Pick+a+file`)
+  // Accept all files keyed under "file" — the input has `multiple`, so
+  // the browser submits multiple entries with the same name.
+  const fileEntries = formData
+    .getAll('file')
+    .filter((v): v is File => v instanceof File && v.size > 0)
+
+  if (fileEntries.length === 0) {
+    redirect(`/vehicles/${vehicleId}/documents/new?error=Pick+at+least+one+file`)
   }
 
   const label = strOrNull(formData.get('label'))
   const expiresAt = strOrNull(formData.get('expires_at'))
 
-  // Path convention: vehicles/{vehicleId}/docs/{ts}-{slug}.{ext}
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'pdf'
-  const path = `vehicles/${vehicleId}/docs/${Date.now()}-${docType}.${ext}`
+  // Upload all blobs first. Track paths so we can clean up on failure.
+  const uploadedPaths: string[] = []
+  const fileMeta: Array<{ path: string; type: string; size: number }> = []
 
-  const { error: upErr } = await supabase.storage
-    .from('vehicle-docs')
-    .upload(path, file, { contentType: file.type, upsert: false })
+  for (let i = 0; i < fileEntries.length; i++) {
+    const f = fileEntries[i]!
+    const ext = f.name.split('.').pop()?.toLowerCase() ?? 'pdf'
+    const path = `vehicles/${vehicleId}/docs/${Date.now()}-${docType}-${i}.${ext}`
+    const { error: upErr } = await supabase.storage
+      .from('vehicle-docs')
+      .upload(path, f, { contentType: f.type, upsert: false })
+    if (upErr) {
+      // Roll back any blobs we already wrote
+      if (uploadedPaths.length > 0) {
+        await supabase.storage.from('vehicle-docs').remove(uploadedPaths)
+      }
+      redirect(
+        `/vehicles/${vehicleId}/documents/new?error=${encodeURIComponent(`Upload failed: ${upErr.message}`)}`,
+      )
+    }
+    uploadedPaths.push(path)
+    fileMeta.push({ path, type: f.type, size: f.size })
+  }
 
-  if (upErr) {
+  // Insert the parent document row. First file's metadata is denormalised
+  // onto the parent for legacy callers; child rows hold the full set.
+  const primary = fileMeta[0]!
+  const { data: doc, error: insErr } = await supabase
+    .from('vehicle_documents')
+    .insert({
+      vehicle_id: vehicleId,
+      doc_type: docType,
+      label,
+      storage_path: primary.path,
+      file_type: primary.type,
+      file_size_bytes: primary.size,
+      expires_at: expiresAt,
+      uploaded_by: user.id,
+    })
+    .select('id')
+    .single()
+
+  if (insErr || !doc) {
+    await supabase.storage.from('vehicle-docs').remove(uploadedPaths)
     redirect(
-      `/vehicles/${vehicleId}/documents/new?error=${encodeURIComponent(`Upload failed: ${upErr.message}`)}`,
+      `/vehicles/${vehicleId}/documents/new?error=${encodeURIComponent(insErr?.message ?? 'Insert failed')}`,
     )
   }
 
-  const { error: insErr } = await supabase.from('vehicle_documents').insert({
+  // Insert all child file rows. Position 0 = first file (front, primary).
+  const fileRows = fileMeta.map((m, idx) => ({
+    document_id: doc.id,
     vehicle_id: vehicleId,
-    doc_type: docType,
-    label,
-    storage_path: path,
-    file_type: file.type,
-    file_size_bytes: file.size,
-    expires_at: expiresAt,
+    storage_path: m.path,
+    file_type: m.type,
+    file_size_bytes: m.size,
+    position: idx,
     uploaded_by: user.id,
-  })
+  }))
 
-  if (insErr) {
-    // Best-effort cleanup of the uploaded blob
-    await supabase.storage.from('vehicle-docs').remove([path])
+  const { error: childErr } = await supabase
+    .from('vehicle_document_files')
+    .insert(fileRows)
+
+  if (childErr) {
+    // Rollback: blobs + parent row
+    await supabase.storage.from('vehicle-docs').remove(uploadedPaths)
+    await supabase.from('vehicle_documents').delete().eq('id', doc.id)
     redirect(
-      `/vehicles/${vehicleId}/documents/new?error=${encodeURIComponent(insErr.message)}`,
+      `/vehicles/${vehicleId}/documents/new?error=${encodeURIComponent(childErr.message)}`,
     )
   }
 

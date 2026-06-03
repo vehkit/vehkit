@@ -60,7 +60,11 @@ export default async function VehiclePage({
       supabase
         .from('vehicle_documents')
         .select(
-          'id, doc_type, label, storage_path, file_type, file_size_bytes, issued_date, expires_at, created_at',
+          // Embed child file rows so the card can show "Front + Back · 2 files"
+          // without an extra round trip.
+          `id, doc_type, label, storage_path, file_type, file_size_bytes,
+           issued_date, expires_at, created_at,
+           files:vehicle_document_files(id, storage_path, file_type, position)`,
         )
         .eq('vehicle_id', id)
         .is('archived_at', null)
