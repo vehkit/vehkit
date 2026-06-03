@@ -123,35 +123,21 @@ export default async function NewDocumentPage({
             <p className="text-[11px] text-ash/70 mt-1.5">PDF or image. Stays private to you.</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="issued_date" className="label">
-                Issued <span className="text-ash/70">(optional)</span>
-              </label>
-              <input
-                id="issued_date"
-                name="issued_date"
-                type="date"
-                className="field"
-              />
-            </div>
-            <div>
-              <label htmlFor="expires_at" className="label">
-                Expires <span className="text-ash/70">(optional)</span>
-              </label>
-              <input
-                id="expires_at"
-                name="expires_at"
-                type="date"
-                className="field"
-              />
-            </div>
+          <div>
+            <label htmlFor="expires_at" className="label">
+              Expires <span className="text-ash/70">(optional)</span>
+            </label>
+            <input
+              id="expires_at"
+              name="expires_at"
+              type="date"
+              className="field"
+            />
+            <p className="text-[11px] text-ash/70 mt-1.5 leading-relaxed">
+              Add an expiry date and we&apos;ll remind you before it lapses. No
+              more calendar pings, sticky notes, or 11pm renewal panics.
+            </p>
           </div>
-
-          <p className="text-[11px] text-ash/70 leading-relaxed">
-            Add an expiry date and we&apos;ll remind you before it lapses. No more
-            calendar pings, sticky notes, or 11pm renewal panics.
-          </p>
 
           <div className="pt-2">
             <button type="submit" className="pill-primary block w-full text-center">

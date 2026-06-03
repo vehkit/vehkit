@@ -44,7 +44,6 @@ export async function createVehicleDocument(formData: FormData) {
   }
 
   const label = strOrNull(formData.get('label'))
-  const issuedDate = strOrNull(formData.get('issued_date'))
   const expiresAt = strOrNull(formData.get('expires_at'))
 
   // Path convention: vehicles/{vehicleId}/docs/{ts}-{slug}.{ext}
@@ -68,7 +67,6 @@ export async function createVehicleDocument(formData: FormData) {
     storage_path: path,
     file_type: file.type,
     file_size_bytes: file.size,
-    issued_date: issuedDate,
     expires_at: expiresAt,
     uploaded_by: user.id,
   })

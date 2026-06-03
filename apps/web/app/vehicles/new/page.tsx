@@ -38,7 +38,7 @@ export default async function NewVehiclePage({
         )}
 
         <form action={createVehicle} className="mt-8 space-y-4" id="vehicle-form">
-          <Field label="Make" name="make" placeholder="Toyota" required />
+          <Field label="Make" name="make" placeholder="Toyota" required autoFocus />
           <Field label="Model" name="model" placeholder="Land Cruiser" required />
 
           <div className="grid grid-cols-2 gap-3">
@@ -105,6 +105,8 @@ function Field({
   required,
   hint,
   inputMode,
+  enterKeyHint = 'next',
+  autoFocus,
 }: {
   label: string
   name: string
@@ -113,6 +115,14 @@ function Field({
   required?: boolean
   hint?: string
   inputMode?: 'text' | 'numeric' | 'decimal' | 'email' | 'tel' | 'url' | 'search'
+  /**
+   * Hints the mobile keyboard's action key. Defaults to "next" so most
+   * fields show a "Next" button that moves to the following input. The
+   * final field of a form should pass "done" so the soft keyboard offers
+   * a clear submit affordance.
+   */
+  enterKeyHint?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send'
+  autoFocus?: boolean
 }) {
   return (
     <div>
@@ -126,6 +136,8 @@ function Field({
         placeholder={placeholder}
         required={required}
         inputMode={inputMode}
+        enterKeyHint={enterKeyHint}
+        autoFocus={autoFocus}
         className="field"
       />
       {hint && <p className="text-xs text-ash mt-1.5">{hint}</p>}

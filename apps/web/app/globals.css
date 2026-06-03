@@ -124,6 +124,52 @@
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Loading feedback. The global FORM_GUARD_SCRIPT in layout.tsx sets
+   `aria-busy="true"` on buttons after their parent form submits. We pair
+   that with a CSS-only spinner: button label fades, a centered spinner
+   takes over, button is non-interactive. Works on every form submit
+   without per-component wiring.
+--------------------------------------------------------------------------- */
+
+@keyframes vk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+button[aria-busy='true'] {
+  position: relative;
+  cursor: wait !important;
+  pointer-events: none;
+}
+
+button[aria-busy='true'] > * {
+  visibility: hidden;
+}
+
+button[aria-busy='true']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: vk-spin 0.7s linear infinite;
+  visibility: visible;
+}
+
+/* Same treatment for <input type="submit"> just in case anyone uses it */
+input[type='submit'][aria-busy='true'] {
+  cursor: wait !important;
+  pointer-events: none;
+  position: relative;
+  color: transparent;
+}
+
 @layer components {
   .pill {
     @apply rounded-pill px-5 py-3 font-medium transition-colors active:scale-[0.98];
