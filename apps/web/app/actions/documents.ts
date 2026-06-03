@@ -62,20 +62,20 @@ export async function createVehicleDocument(formData: FormData) {
 
   // Upload all blobs first. Track paths so we can clean up on failure.
   //
-  // IMPORTANT: Supabase storage.upload() can return { error: null } even
-  // when the blob doesn't actually persist (intermittent network /
-  // edge-cache miss). We verify each upload by trying to sign a URL for
-  // the path immediately after — if sign fails, the file isn't there,
-  // even if upload claimed success. This catches the silent-failure case
-  // that produces orphan child rows pointing to missing storage objects.
+  // We don't verify with createSignedUrl after each upload — storage RLS
+  // requires a matching vehicle_documents row before a path becomes
+  // readable, and that row hasn't been inserted yet at this point. The
+  // legitimate failure case (storage.upload returns error) is caught
+  // below; the silent-persistence-failure case is rare enough that we
+  // accept it and rely on the user noticing if a file is missing on view.
   const uploadedPaths: string[] = []
   const fileMeta: Array<{ path: string; type: string; size: number }> = []
 
   for (let i = 0; i < fileEntries.length; i++) {
     const f = fileEntries[i]!
     const ext = f.name.split('.').pop()?.toLowerCase() ?? 'pdf'
-    // Add a random suffix to defend against the rare case where two
-    // iterations land on the same millisecond timestamp.
+    // Random suffix defeats the rare case of two iterations sharing a
+    // millisecond, which would collide with upsert: false.
     const rand = Math.random().toString(36).slice(2, 8)
     const path = `vehicles/${vehicleId}/docs/${Date.now()}-${rand}-${docType}-${i}.${ext}`
 
@@ -89,22 +89,6 @@ export async function createVehicleDocument(formData: FormData) {
       }
       redirect(
         `/vehicles/${vehicleId}/documents/new?error=${encodeURIComponent(`File ${i + 1}: ${upErr.message}`)}`,
-      )
-    }
-
-    // Verify the blob is actually retrievable. If Supabase silently
-    // dropped it, the sign call will return "Object not found" — and we
-    // want to fail loudly here instead of inserting an orphan child row.
-    const { error: verifyErr } = await supabase.storage
-      .from('vehicle-docs')
-      .createSignedUrl(path, 10)
-
-    if (verifyErr) {
-      if (uploadedPaths.length > 0) {
-        await supabase.storage.from('vehicle-docs').remove(uploadedPaths)
-      }
-      redirect(
-        `/vehicles/${vehicleId}/documents/new?error=${encodeURIComponent(`File ${i + 1} didn't persist: ${verifyErr.message}. Try uploading again.`)}`,
       )
     }
 
