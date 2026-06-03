@@ -174,14 +174,14 @@ export default async function WorkshopDashboardPage() {
         : 'text-ash'
 
   return (
-    <main className="max-w-5xl mx-auto px-6 pt-6 md:pt-8 pb-12">
+    <main className="max-w-[1240px] mx-auto px-6 md:px-10 pt-6 md:pt-8 pb-12">
       {/* Editorial header — kicker + tight title + supporting line +
           desktop stat strip with vertical dividers */}
       <header className="pb-6">
         <p className="nav-pill">vehkit · workshop</p>
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mt-3">
           <div>
-            <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none">
+            <h1 className="text-2xl md:text-4xl font-semibold text-chalk tracking-tighter leading-tight">
               {workshop.name}
             </h1>
             <p className="text-sm text-ash mt-2 leading-relaxed max-w-md">

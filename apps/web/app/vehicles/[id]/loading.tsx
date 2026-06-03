@@ -1,7 +1,7 @@
 export default function VehicleLoading() {
   return (
     <main className="min-h-[100svh] pb-32">
-      <div className="max-w-3xl mx-auto px-6 pt-10">
+      <div className="max-w-[1240px] mx-auto px-6 md:px-10 pt-10">
         <div className="h-3 w-16 bg-iron rounded animate-pulse" />
 
         {/* Hero photo skeleton */}

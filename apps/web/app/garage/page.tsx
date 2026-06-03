@@ -35,18 +35,18 @@ export default async function GaragePage() {
   return (
     <main className="min-h-[100svh] pb-24 md:pb-12">
       {/* Top bar — header on mobile only; desktop uses AppNav */}
-      <header className="px-6 pt-6 pb-2 md:hidden max-w-3xl mx-auto">
+      <header className="px-6 md:px-10 pt-6 pb-2 md:hidden max-w-[1240px] mx-auto">
         <p className="nav-pill">vehkit</p>
       </header>
 
       {/* Heading */}
-      <div className="px-6 pt-2 md:pt-8 pb-3 max-w-3xl mx-auto">
-        <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter">
+      <div className="px-6 md:px-10 pt-2 md:pt-8 pb-3 max-w-[1240px] mx-auto">
+        <h1 className="text-2xl md:text-4xl font-semibold text-chalk tracking-tighter leading-tight">
           My Cars
         </h1>
       </div>
 
-      <section className="px-6 max-w-3xl mx-auto">
+      <section className="px-6 md:px-10 max-w-[1240px] mx-auto">
         {vehicles && vehicles.length > 0 ? (
           <MyCarsList
             vehicles={vehicles}

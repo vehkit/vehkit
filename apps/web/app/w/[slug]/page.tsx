@@ -95,7 +95,7 @@ export default async function WorkshopPublicPage({
 
   return (
     <main className="min-h-[100svh] pb-24">
-      <div className="max-w-3xl mx-auto px-6 pt-6">
+      <div className="max-w-[1240px] mx-auto px-6 md:px-10 pt-6">
         <Link
           href="/workshops"
           className="nav-pill hover:text-chalk transition-colors"

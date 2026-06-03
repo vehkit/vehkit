@@ -5,7 +5,7 @@ export default function MyCarsLoading() {
         <p className="nav-pill">vehkit</p>
         <div className="h-9 w-32 bg-iron rounded-DEFAULT mt-1 animate-pulse" />
       </header>
-      <div className="max-w-3xl mx-auto px-6 space-y-3">
+      <div className="max-w-[1240px] mx-auto px-6 md:px-10 space-y-3">
         {[1, 2, 3].map((i) => (
           <div key={i} className="card p-5">
             <div className="flex justify-between gap-4">

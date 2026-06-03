@@ -69,7 +69,7 @@ export default async function AgentGrantPage({
 
   return (
     <main className="min-h-[100svh] pb-24 md:pb-12">
-      <div className="max-w-3xl mx-auto px-6 pt-6 md:pt-8">
+      <div className="max-w-[1240px] mx-auto px-6 md:px-10 pt-6 md:pt-8">
         <Link
           href="/agent"
           className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
@@ -79,7 +79,7 @@ export default async function AgentGrantPage({
 
         <div className="mt-4">
           <p className="nav-pill">vehkit · agent</p>
-          <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none mt-3">
+          <h1 className="text-2xl md:text-4xl font-semibold text-chalk tracking-tighter leading-tight mt-3">
             {vehicleData
               ? `${vehicleData.make} ${vehicleData.model}`
               : 'Customer vehicle'}

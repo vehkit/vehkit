@@ -174,7 +174,7 @@ export default async function VehiclePage({
       </div>
 
       {/* Desktop "← My cars" — top of column */}
-      <div className="hidden md:block max-w-3xl mx-auto px-6 pt-6">
+      <div className="hidden md:block max-w-[1240px] mx-auto px-6 md:px-10 pt-6">
         <Link
           href="/mycars"
           className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
@@ -184,7 +184,7 @@ export default async function VehiclePage({
       </div>
 
       {/* HERO — edge to edge mobile, column-bound desktop */}
-      <div className="md:max-w-3xl md:mx-auto md:mt-4 md:px-6">
+      <div className="md:max-w-[1240px] md:mx-auto md:mt-4 md:px-10">
         <VehicleHero
           vehicleId={id}
           currentUrl={vehicle.hero_image_url}
@@ -196,7 +196,7 @@ export default async function VehiclePage({
       </div>
 
       {/* Content container — padded on mobile, column-bound on desktop */}
-      <div className="max-w-3xl mx-auto px-5 md:px-6">
+      <div className="max-w-[1240px] mx-auto px-5 md:px-10">
 
         {/* HEADLINE STRIP — score big number + odometer + plate */}
         <section className="mt-6">

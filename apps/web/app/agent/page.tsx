@@ -74,12 +74,12 @@ export default async function AgentDashboardPage() {
 
   return (
     <main className="min-h-[100svh] pb-24 md:pb-12">
-      <div className="max-w-5xl mx-auto px-6 pt-6 md:pt-8">
+      <div className="max-w-[1240px] mx-auto px-6 md:px-10 pt-6 md:pt-8">
         {/* Editorial header */}
         <p className="nav-pill">vehkit · agent</p>
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mt-3">
           <div>
-            <h1 className="text-xl md:text-2xl font-semibold text-chalk tracking-tighter leading-none">
+            <h1 className="text-2xl md:text-4xl font-semibold text-chalk tracking-tighter leading-tight">
               {m.agents?.name ?? 'Agent'}
             </h1>
             <p className="text-sm text-ash mt-2 leading-relaxed max-w-md capitalize-first">

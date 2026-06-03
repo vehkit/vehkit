@@ -84,11 +84,11 @@ export default async function WorkshopReviewsPage({
   }
 
   return (
-    <main className="max-w-5xl mx-auto px-6 pt-6 pb-12">
+    <main className="max-w-[1240px] mx-auto px-6 md:px-10 pt-6 pb-12">
       <header className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <p className="text-[10px] tracking-widest uppercase text-ash">Workshop · Reviews</p>
-          <h1 className="text-2xl md:text-3xl font-semibold text-chalk tracking-tighter mt-1">
+          <h1 className="text-2xl md:text-4xl font-semibold text-chalk tracking-tighter mt-1">
             Reviews
           </h1>
           <p className="text-sm text-ash mt-0.5">
