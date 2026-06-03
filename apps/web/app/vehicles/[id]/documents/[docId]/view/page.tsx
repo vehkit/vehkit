@@ -5,9 +5,9 @@ import { createClient } from '@/lib/supabase/server'
 /**
  * Multi-file document viewer.
  *
- * Renders every file attached to the document — image thumbnails inline,
- * non-image files as cards with an "Open" button. Each file gets a fresh
- * 60-second signed URL minted server-side, so private bytes never leak.
+ * Renders every file attached to the document with an inline image
+ * thumbnail when the type is image/*, a PDF/file card otherwise. Each
+ * file gets a fresh 5-minute signed URL minted server-side.
  *
  * Path: /vehicles/[id]/documents/[docId]/view
  *
@@ -38,7 +38,7 @@ export default async function DocumentViewPage({
   if (!doc) notFound()
 
   // Fall back to the parent's single storage_path if the child table is
-  // empty (very early legacy rows). The parent path is always populated.
+  // empty (legacy single-file docs uploaded before the multi-file migration).
   type FileRow = {
     id: string
     storage_path: string
@@ -46,27 +46,33 @@ export default async function DocumentViewPage({
     file_size_bytes: number | null
     position: number
   }
-  const rawFiles: FileRow[] = doc.files && doc.files.length > 0
-    ? (doc.files as FileRow[])
-    : [
-        {
-          id: 'parent',
-          storage_path: doc.storage_path,
-          file_type: doc.file_type,
-          file_size_bytes: null,
-          position: 0,
-        },
-      ]
+  const rawFiles: FileRow[] =
+    doc.files && doc.files.length > 0
+      ? (doc.files as FileRow[])
+      : [
+          {
+            id: 'parent',
+            storage_path: doc.storage_path,
+            file_type: doc.file_type,
+            file_size_bytes: null,
+            position: 0,
+          },
+        ]
 
   const files = rawFiles.sort((a, b) => a.position - b.position)
 
-  // Mint signed URLs in parallel. 5 minutes is enough to render + click.
+  // Mint signed URLs in parallel; capture errors per-file so the tile can
+  // explain WHY it failed instead of a vague "could not generate link".
   const signed = await Promise.all(
     files.map(async (f) => {
-      const { data } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from('vehicle-docs')
         .createSignedUrl(f.storage_path, 300)
-      return { ...f, url: data?.signedUrl ?? null }
+      return {
+        ...f,
+        url: data?.signedUrl ?? null,
+        error: error?.message ?? null,
+      }
     }),
   )
 
@@ -84,7 +90,7 @@ export default async function DocumentViewPage({
 
   return (
     <main className="min-h-[100svh] pb-24 md:pb-12">
-      <div className="max-w-[1240px] mx-auto px-6 md:px-10 pt-6 md:pt-8">
+      <div className="max-w-[1240px] mx-auto px-5 md:px-10 pt-5 md:pt-8">
         <Link
           href={`/vehicles/${id}#documents`}
           className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
@@ -92,26 +98,29 @@ export default async function DocumentViewPage({
           ← Back to vehicle
         </Link>
 
-        <div className="mt-4 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-          <div>
-            <p className="nav-pill">{typeLabel}</p>
-            <h1 className="text-2xl md:text-4xl font-semibold text-chalk tracking-tighter leading-tight mt-2">
-              {title}
-            </h1>
-            <p className="text-sm text-ash mt-2">
-              {files.length} {files.length === 1 ? 'file' : 'files'}
-              {doc.expires_at && ` · Expires ${doc.expires_at}`}
-            </p>
-          </div>
+        <div className="mt-3 md:mt-4">
+          <p className="nav-pill">{typeLabel}</p>
+          <h1 className="text-xl md:text-4xl font-semibold text-chalk tracking-tighter leading-tight mt-2">
+            {title}
+          </h1>
+          <p className="text-sm text-ash mt-1.5">
+            {files.length} {files.length === 1 ? 'file' : 'files'}
+            {doc.expires_at && ` · Expires ${doc.expires_at}`}
+          </p>
         </div>
 
-        {/* File grid — images render inline, PDFs / other types render as
-            cards with an Open button. */}
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Mobile: stacked list of compact rows.
+            Desktop: 2/3-col grid of vertical tiles with bigger thumbnails. */}
+        <ul className="mt-6 md:mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           {signed.map((f, idx) => (
-            <FileTile key={f.id} file={f} positionLabel={positionLabel(idx, files.length)} />
+            <li key={f.id}>
+              <FileTile
+                file={f}
+                positionLabel={positionLabel(idx, files.length)}
+              />
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </main>
   )
@@ -119,45 +128,64 @@ export default async function DocumentViewPage({
 
 /**
  * Friendly labels for the position. "Front" / "Back" when there are
- * exactly two files (covers the mulkiya case). Otherwise numeric.
+ * exactly two files (mulkiya, driving licence, NOC); otherwise "Page N".
  */
 function positionLabel(idx: number, total: number): string {
+  if (total === 1) return 'File'
   if (total === 2) return idx === 0 ? 'Front' : 'Back'
   return `Page ${idx + 1}`
+}
+
+type SignedFile = {
+  id: string
+  storage_path: string
+  file_type: string | null
+  file_size_bytes: number | null
+  url: string | null
+  error: string | null
 }
 
 function FileTile({
   file,
   positionLabel,
 }: {
-  file: {
-    id: string
-    storage_path: string
-    file_type: string | null
-    file_size_bytes: number | null
-    url: string | null
-  }
+  file: SignedFile
   positionLabel: string
 }) {
   const isImage = file.file_type?.startsWith('image/')
   const isPdf = file.file_type === 'application/pdf'
 
+  // Error state — surface the actual problem instead of a vague label.
   if (!file.url) {
     return (
-      <div className="card p-4 text-sm text-signal">
-        Could not generate a link for this file.
+      <div className="card p-4 border border-signal/30 bg-signal/[0.04]">
+        <p className="text-[10px] tracking-widest uppercase text-signal">
+          {positionLabel} · Couldn&apos;t load
+        </p>
+        <p className="text-xs text-chalk mt-1.5 leading-snug break-words">
+          {file.error ?? 'Signed URL not generated.'}
+        </p>
+        <p className="text-[10px] text-ash/70 mt-2 font-mono break-all">
+          {file.storage_path}
+        </p>
       </div>
     )
   }
 
+  // Phone: compact horizontal row — 80px square thumb on left, info on right.
+  // Tablet+ : full vertical tile with large 3/4 thumbnail.
   return (
     <a
       href={file.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="card overflow-hidden hover:border-leaf/30 transition-colors group block"
+      className="card overflow-hidden hover:border-leaf/30 transition-colors group block flex flex-row sm:flex-col"
     >
-      <div className="relative w-full aspect-[3/4] bg-iron overflow-hidden">
+      {/* Thumbnail */}
+      <div
+        className="relative bg-iron overflow-hidden shrink-0
+                   w-24 h-24 sm:w-full sm:h-auto sm:aspect-[3/4]"
+      >
         {isImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -166,10 +194,10 @@ function FileTile({
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
           />
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-ash">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-ash">
             <svg
-              width="56"
-              height="56"
+              width="32"
+              height="32"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -177,26 +205,35 @@ function FileTile({
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden
+              className="sm:w-12 sm:h-12"
             >
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
             </svg>
-            <span className="text-[10px] tracking-widest uppercase">
+            <span className="text-[9px] tracking-widest uppercase">
               {isPdf ? 'PDF' : 'File'}
             </span>
           </div>
         )}
       </div>
-      <div className="p-4 flex items-center justify-between gap-3">
+
+      {/* Info */}
+      <div className="p-3 sm:p-4 flex items-center justify-between gap-3 flex-1 min-w-0">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-chalk leading-tight">
+          <p className="text-sm md:text-base font-semibold text-chalk leading-tight truncate">
             {positionLabel}
           </p>
-          {file.file_size_bytes != null && (
-            <p className="text-[11px] text-ash mt-0.5 font-mono tabular-nums">
-              {(file.file_size_bytes / 1024).toFixed(0)} KB
-            </p>
-          )}
+          <p className="text-[11px] text-ash mt-0.5">
+            {(isImage ? 'Image' : isPdf ? 'PDF' : 'File')}
+            {file.file_size_bytes != null && (
+              <>
+                {' · '}
+                <span className="font-mono tabular-nums">
+                  {(file.file_size_bytes / 1024).toFixed(0)} KB
+                </span>
+              </>
+            )}
+          </p>
         </div>
         <span className="text-xs tracking-widest uppercase text-leaf shrink-0 inline-flex items-center gap-1.5">
           Open
