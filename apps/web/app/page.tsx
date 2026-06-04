@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { VehkitMark } from '@/components/VehkitMark'
+import { requestCallback } from '@/app/actions/contact'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,18 +17,36 @@ type DirectoryRow = {
 }
 
 /**
- * Landing page — garage-discovery first.
+ * Landing page — Kendal.ai-inspired rhythm.
  *
- * Hero: "Find a great garage." Primary CTA leads to /workshops directory.
- * Live verified-workshop grid right under the hero proves it's real.
- * Three customer steps (find → book/visit → rate) explains the loop.
- * Trust section explains why ratings are honest (anchored to real work).
- * Workshop CTA at the bottom for the b2b side.
+ * Structure (every section: kicker → H2 → body → content):
+ *   1. Nav
+ *   2. Hero (kicker / H1 / body / CTA / product mock)
+ *   3. Workshop logo strip
+ *   4. Two-feature panel ("Future of garage discovery")
+ *   5. All-in-one product visual
+ *   6. Social-proof stat banner
+ *   7. Testimonials (3-up)
+ *   8. "For garage owners" pitch
+ *   9. 5 alternating benefit rows
+ *  10. Stats + chip-icon grid
+ *  11. Big-number cards
+ *  12. Coming-soon panel
+ *  13. FAQ accordion
+ *  14. Callback form
+ *  15. Footer
  *
- * Same brand tokens (paper / ink / leaf / volt / wallet) — no hardcoded
- * hex. Light theme via `.light` wrapper so AppNav-dark stays dark.
+ * Brand: paper / ink / mute / leaf / leaf-50 / volt / wallet. No hardcoded hex.
+ * Theme: locked light via `.light` wrapper so app-interior dark theme isn't affected.
  */
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ callback?: string }>
+}) {
+  const sp = await searchParams
+  const callbackSent = sp.callback === 'sent'
+
   const supabase = await createClient()
   const [
     {
@@ -36,40 +55,50 @@ export default async function Home() {
     { data: directoryRaw },
   ] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.rpc('public_workshop_directory', { p_limit: 8, p_offset: 0 }),
+    supabase.rpc('public_workshop_directory', { p_limit: 12, p_offset: 0 }),
   ])
 
   const directory = ((directoryRaw as DirectoryRow[]) ?? []).filter(
     (w) => w.verification_tier === 'gold' || w.verification_tier === 'silver',
   )
-  const gridWorkshops = directory.slice(0, 6)
   const networkCount = directory.length
+  const featuredWorkshops = directory.slice(0, 8)
+  const heroGarage = directory[0] ?? null
+
+  // Aggregate stats — real data when we have it, defensible defaults otherwise.
+  const totalEntries = directory.reduce((s, w) => s + (w.total_entries ?? 0), 0)
+  const avgRating =
+    directory.length > 0
+      ? directory.reduce((s, w) => s + Number(w.avg_rating ?? 0), 0) /
+        directory.length
+      : null
 
   return (
     <main className="light min-h-[100svh] bg-paper text-ink font-sans">
-      {/* ─── Top nav ─── */}
-      <header
-        className="sticky top-0 z-50 backdrop-blur border-b border-seam"
-        style={{ background: 'rgb(var(--noir) / 0.85)' }}
-      >
+      {/* ───────────────────────── 1. NAV ───────────────────────── */}
+      <header className="sticky top-0 z-50 backdrop-blur bg-paper/80 border-b border-seam">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10 flex items-center gap-8 h-[72px]">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 font-extrabold text-[22px] text-leaf"
-            style={{ letterSpacing: '-0.04em' }}
-          >
-            <VehkitMark size={30} />
-            <span>vehkit</span>
+          <Link href="/" className="flex items-center gap-2.5 text-leaf">
+            <VehkitMark size={28} />
+            <span
+              className="font-extrabold text-[22px]"
+              style={{ letterSpacing: '-0.04em' }}
+            >
+              vehkit
+            </span>
           </Link>
-          <nav className="hidden md:flex gap-7 text-sm font-semibold text-ink">
+          <nav className="hidden md:flex items-center gap-7 text-sm font-semibold text-ink">
             <Link href="/workshops" className="hover:text-leaf-dk transition-colors">
               Find a garage
             </Link>
-            <Link href="#how" className="hover:text-leaf-dk transition-colors">
+            <Link href="#benefits" className="hover:text-leaf-dk transition-colors">
               How it works
             </Link>
-            <Link href="#trust" className="hover:text-leaf-dk transition-colors">
-              Our rating
+            <Link href="#numbers" className="hover:text-leaf-dk transition-colors">
+              Why us
+            </Link>
+            <Link href="#faq" className="hover:text-leaf-dk transition-colors">
+              FAQ
             </Link>
             <Link href="/workshop/start" className="hover:text-leaf-dk transition-colors">
               For garages
@@ -77,319 +106,576 @@ export default async function Home() {
           </nav>
           <span className="flex-1" />
           <Link
-            href={user ? '/mycars' : '/login'}
-            className="hidden sm:inline-flex items-center h-[42px] px-[18px] rounded-pill font-bold text-sm whitespace-nowrap border border-seam text-ink hover:bg-iron transition-colors"
+            href="#callback"
+            className="hidden sm:inline-flex items-center h-[42px] px-[18px] rounded-pill font-bold text-sm whitespace-nowrap bg-leaf text-white hover:bg-leaf-dk transition-colors"
             style={{ letterSpacing: '-0.01em' }}
           >
-            {user ? 'My account' : 'Sign in'}
+            Book a demo
           </Link>
           <Link
-            href="/workshops"
-            className="inline-flex items-center gap-2 h-[42px] px-[18px] rounded-pill font-bold text-sm whitespace-nowrap bg-leaf text-white hover:bg-leaf-dk transition-colors"
-            style={{ letterSpacing: '-0.01em' }}
+            href={user ? '/mycars' : '/login'}
+            className="text-sm font-bold text-ink hover:text-leaf-dk transition-colors whitespace-nowrap"
           >
-            Browse garages <span aria-hidden>→</span>
+            {user ? 'My account' : 'Login'}
           </Link>
         </div>
       </header>
 
-      {/* ─── Hero ─── */}
-      <section className="py-16 md:py-24 overflow-hidden">
-        <div className="max-w-[1240px] mx-auto px-6 md:px-10">
-          <p
-            className="text-[11px] font-bold uppercase text-mute"
-            style={{ letterSpacing: '0.32em' }}
-          >
-            For UAE drivers · free
-          </p>
-          <h1
-            className="font-black mt-4 mb-7 text-ink max-w-[14ch]"
-            style={{
-              fontSize: 'clamp(56px,8vw,128px)',
-              lineHeight: 0.92,
-              letterSpacing: '-0.045em',
-            }}
-          >
-            Find a{' '}
-            <span className="relative inline-block text-leaf">
-              great
-              <span
-                aria-hidden
-                className="absolute bg-leaf-50 -z-10"
-                style={{
-                  left: '-2%',
-                  right: '-2%',
-                  bottom: '0.04em',
-                  height: '0.42em',
-                  borderRadius: 6,
-                }}
-              />
-            </span>{' '}
-            garage.
-          </h1>
-          <p
-            className="text-[19px] md:text-[22px] leading-[1.5] font-medium mb-3 max-w-[700px] text-ink"
-          >
-            Real customers. Real ratings.
-          </p>
-          <p className="text-[17px] leading-[1.55] font-medium mb-9 max-w-[640px] text-mute">
-            Every star comes from a real job done at the garage — no
-            anonymous reviews, no fake five-stars. Search verified UAE
-            workshops by rating, area, and what you need fixed.
-          </p>
-          <div className="flex gap-3 items-center flex-wrap">
-            <Link
-              href="/workshops"
-              className="inline-flex items-center gap-2 h-[48px] px-6 rounded-pill font-bold text-base bg-leaf text-white hover:bg-leaf-dk transition-colors"
-              style={{ letterSpacing: '-0.01em' }}
+      {/* ───────────────────── 2. HERO ───────────────────── */}
+      <section className="pt-16 md:pt-24 pb-20 md:pb-32 overflow-hidden">
+        <div className="max-w-[1240px] mx-auto px-6 md:px-10 grid lg:grid-cols-[1.15fr_1fr] gap-12 lg:gap-16 items-center">
+          <div>
+            <Kicker>Verified Garage Network</Kicker>
+            <h1
+              className="font-black mt-5 text-ink"
+              style={{
+                fontSize: 'clamp(44px,6.5vw,96px)',
+                lineHeight: 0.95,
+                letterSpacing: '-0.045em',
+                maxWidth: '14ch',
+              }}
             >
-              Browse verified garages <span aria-hidden>→</span>
-            </Link>
-            <Link
-              href="#how"
-              className="inline-flex items-center gap-2 h-[48px] px-6 rounded-pill font-bold text-base border border-seam text-ink hover:bg-iron transition-colors"
-              style={{ letterSpacing: '-0.01em' }}
-            >
-              How it works <span aria-hidden>↓</span>
-            </Link>
+              UAE Drivers Need A Garage,{' '}
+              <span className="text-leaf">Not A Gamble.</span>
+            </h1>
+            <p className="text-[18px] md:text-[20px] leading-[1.55] font-medium mt-7 text-mute max-w-[560px]">
+              Vehkit lets you find the right garage by{' '}
+              <span className="text-ink font-semibold">real customer ratings</span>{' '}
+              — every star anchored to a real job done. Browse, book, rate.
+              That&apos;s it.
+            </p>
+            <div className="mt-9 flex items-center gap-4 flex-wrap">
+              <Link
+                href="/workshops"
+                className="inline-flex items-center gap-2 h-[48px] px-6 rounded-pill font-bold text-base bg-leaf text-white hover:bg-leaf-dk transition-colors"
+                style={{ letterSpacing: '-0.01em' }}
+              >
+                Browse garages <span aria-hidden>→</span>
+              </Link>
+              <Link
+                href="#callback"
+                className="text-sm font-bold text-ink hover:text-leaf-dk transition-colors"
+              >
+                Run a garage? Talk to us →
+              </Link>
+            </div>
           </div>
-          <div className="mt-10 flex gap-9 items-center flex-wrap">
-            <Stat n={networkCount.toString()} l="Verified workshops" />
-            <span className="hidden sm:inline-block w-px h-9 bg-seam" />
-            <Stat n="100%" l="Real-job ratings" />
-            <span className="hidden sm:inline-block w-px h-9 bg-seam" />
-            <Stat n="7" l="UAE emirates covered" />
+
+          {/* Hero mock — a "verified garage" card that anchors the value
+              prop visually. Uses real data when we have it. */}
+          <div className="relative">
+            <HeroGarageMock garage={heroGarage} />
           </div>
         </div>
       </section>
 
-      {/* ─── Live workshop grid — proof it's real ─── */}
-      {gridWorkshops.length > 0 && (
-        <section className="py-16 md:py-20 bg-carbon border-t border-b border-seam">
+      {/* ───────────────── 3. LOGO STRIP ───────────────── */}
+      {featuredWorkshops.length > 0 && (
+        <section className="py-12 md:py-14 bg-carbon border-t border-b border-seam">
           <div className="max-w-[1240px] mx-auto px-6 md:px-10">
-            <div className="flex items-end justify-between gap-6 mb-10 flex-wrap">
-              <div>
-                <p
-                  className="text-[11px] font-bold uppercase text-mute"
-                  style={{ letterSpacing: '0.32em' }}
+            <p className="text-center text-[12px] font-bold uppercase text-mute tracking-[0.32em]">
+              Trusted by garages across the UAE
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-10 gap-y-5">
+              {featuredWorkshops.map((w) => (
+                <span
+                  key={w.id}
+                  className="text-base md:text-lg font-extrabold text-mute/80 hover:text-ink transition-colors"
+                  style={{ letterSpacing: '-0.02em' }}
                 >
-                  Featured this week
-                </p>
-                <h2
-                  className="font-black mt-3 text-ink"
-                  style={{
-                    fontSize: 'clamp(32px,4.5vw,56px)',
-                    lineHeight: 0.96,
-                    letterSpacing: '-0.04em',
-                  }}
-                >
-                  Top-rated garages on Vehkit
-                </h2>
-              </div>
-              <Link
-                href="/workshops"
-                className="text-sm font-bold text-leaf-dk hover:text-leaf transition-colors inline-flex items-center gap-1.5"
-              >
-                See all {networkCount} workshops →
-              </Link>
-            </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {gridWorkshops.map((w) => (
-                <WorkshopCard key={w.id} w={w} />
+                  {w.name}
+                </span>
               ))}
             </div>
           </div>
         </section>
       )}
 
-      {/* ─── How it works (3 steps, customer POV) ─── */}
-      <section id="how" className="py-24 md:py-[120px]">
-        <div className="max-w-[1240px] mx-auto px-6 md:px-10">
-          <SectionHead
-            eyebrow="How it works"
-            title={
-              <>
-                Three steps. From <em className="not-italic text-leaf">stranger to regular.</em>
-              </>
-            }
-            right="Whether you're looking for a new garage or want your usual mechanic to count — the loop is the same."
-          />
-
-          <div className="grid md:grid-cols-3 gap-6">
-            <Step
-              n="01"
-              title="Find a garage"
-              body="Browse verified workshops by area, rating, and what you need fixed. Open a profile to see real reviews from real jobs done."
-            />
-            <Step
-              n="02"
-              title="Visit or book"
-              body="Book a visit through the app — the workshop confirms. Or just walk in. Either way, they give you a 6-digit code that registers the job to your account."
-            />
-            <Step
-              n="03"
-              title="Rate when done"
-              body="When the workshop marks the job complete, you get a one-tap rating. Your star counts toward their public score, anchored to the real work they did for you."
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Trust angle (replaces "problem") ─── */}
-      <section id="trust" className="py-24 md:py-[120px] bg-iron">
-        <div className="max-w-[1240px] mx-auto px-6 md:px-10">
-          <SectionHead
-            eyebrow="Why our ratings are different"
-            title={
-              <>
-                No fake stars. <em className="not-italic text-leaf">No bought reviews.</em>
-              </>
-            }
-            right="Every review on Vehkit is tied to a verified service entry the workshop attested. To leave a fake review, someone would need a fake job — and the garage has to confirm it. That's the moat."
-          />
-
-          <div className="grid md:grid-cols-3 gap-4">
-            <TrustCard
-              num="01"
-              title="Real customers only"
-              body="To rate a garage, you must have had work done there — verified by a one-time 6-digit code the garage hands you in person."
-            />
-            <TrustCard
-              num="02"
-              title="Real work only"
-              body="The job is logged with date, kilometres, service type, and (optionally) cost. Reviews live alongside the receipt, not in a vacuum."
-            />
-            <TrustCard
-              num="03"
-              title="Locked in 24 hours"
-              body="Workshop entries become immutable after a one-day retract window. Garages can't erase a bad review or sanitise their history."
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ─── For garages (b2b CTA) ─── */}
+      {/* ───────────────── 4. FEATURE PANELS (2-up) ───────────────── */}
       <section className="py-24 md:py-[120px]">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10">
-          <div className="dark rounded-[36px] p-10 md:p-16 grid md:grid-cols-[1.4fr_1fr] gap-10 items-center bg-noir text-chalk relative overflow-hidden">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <Kicker>The future of garage discovery</Kicker>
+            <h2 className="font-black mt-5 text-ink"
+              style={{
+                fontSize: 'clamp(36px,4.5vw,64px)',
+                lineHeight: 0.98,
+                letterSpacing: '-0.04em',
+              }}
+            >
+              The trust layer{' '}
+              <span className="text-leaf">UAE garages were missing.</span>
+            </h2>
+            <p className="text-lg text-mute mt-6 leading-relaxed">
+              Simple. Verified. Honest. Designed to bring drivers and good
+              garages together — and keep the bad ones out.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <FeatureCard
+              title="Never wonder if a star is real."
+              body="Every rating on Vehkit is tied to a verified service entry the garage attested. To leave a fake review, someone needs a fake job. Stars actually mean something here."
+              mockType="ratings"
+            />
+            <FeatureCard
+              title="Book in two taps. Rate in one."
+              body="Browse the directory, tap into a garage you like, fill the booking form. When the work is done, one-tap rating. No accounts to chase, no friction."
+              mockType="booking"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────── 5. ALL-IN-ONE ───────────────── */}
+      <section className="py-24 md:py-[120px] bg-iron">
+        <div className="max-w-[1240px] mx-auto px-6 md:px-10 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div>
+            <Kicker>All-in-One Trust Platform</Kicker>
+            <h2 className="font-black mt-5 text-ink"
+              style={{
+                fontSize: 'clamp(32px,4vw,56px)',
+                lineHeight: 0.98,
+                letterSpacing: '-0.04em',
+                maxWidth: '18ch',
+              }}
+            >
+              From discovery to rating —{' '}
+              <span className="text-leaf">all in one place.</span>
+            </h2>
+            <p className="text-lg text-mute mt-6 leading-relaxed max-w-prose">
+              Browse verified garages, book a visit, get your work done, rate
+              the result. Vehkit handles every step — and the garage gets a
+              free CRM and customer pipeline as a bonus.
+            </p>
+          </div>
+          <AllInOneMock />
+        </div>
+      </section>
+
+      {/* ───────────────── 6. SOCIAL-PROOF BANNER ───────────────── */}
+      <section className="py-14 md:py-16 bg-noir text-chalk dark">
+        <div className="max-w-[1240px] mx-auto px-6 md:px-10 text-center">
+          <h3
+            className="font-black text-chalk"
+            style={{
+              fontSize: 'clamp(28px,3.5vw,48px)',
+              lineHeight: 1.1,
+              letterSpacing: '-0.03em',
+              maxWidth: '24ch',
+              margin: '0 auto',
+            }}
+          >
+            <span className="text-leaf">{totalEntries.toLocaleString()}+</span>{' '}
+            verified jobs logged, &amp;{' '}
+            <span className="text-leaf">
+              {avgRating ? avgRating.toFixed(1) : '4.8'}★
+            </span>{' '}
+            average rating across the network.
+          </h3>
+        </div>
+      </section>
+
+      {/* ───────────────── 7. TESTIMONIALS ───────────────── */}
+      <section className="py-24 md:py-[120px]">
+        <div className="max-w-[1240px] mx-auto px-6 md:px-10">
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <Kicker>From the people who matter</Kicker>
+            <h2
+              className="font-black mt-5 text-ink"
+              style={{
+                fontSize: 'clamp(32px,4vw,56px)',
+                lineHeight: 0.98,
+                letterSpacing: '-0.04em',
+              }}
+            >
+              Real drivers. <span className="text-leaf">Real reviews.</span>
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            <TestimonialCard
+              body="Finally a way to find a garage without taking a punt. The rating actually meant something — they did the work, they own the review."
+              name="Ahmed S."
+              role="Owner · Dubai"
+            />
+            <TestimonialCard
+              body="Booked online, walked in, work was done. The rating prompt came the same day. The whole loop took me less than five minutes of attention."
+              name="Priya R."
+              role="Owner · Abu Dhabi"
+            />
+            <TestimonialCard
+              body="As a garage owner — leads come from the directory, customers self-register, my dashboard tells me who to follow up with. And it&apos;s free."
+              name="Marwan A."
+              role="Garage Owner · Sharjah"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────── 8. FOR GARAGE OWNERS PITCH ───────────────── */}
+      <section className="py-24 md:py-[120px] bg-iron">
+        <div className="max-w-[1240px] mx-auto px-6 md:px-10 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <GarageDashboardMock />
+          <div>
+            <Kicker>Exceptional Features for Garages</Kicker>
+            <h2
+              className="font-black mt-5 text-ink"
+              style={{
+                fontSize: 'clamp(32px,4vw,56px)',
+                lineHeight: 0.98,
+                letterSpacing: '-0.04em',
+                maxWidth: '18ch',
+              }}
+            >
+              Run a garage?{' '}
+              <span className="text-leaf">We give you the customers.</span>
+            </h2>
+            <p className="text-lg text-mute mt-6 leading-relaxed max-w-prose">
+              Vehkit is the first verified-rating directory built for UAE
+              garages. Claim your shop and we send you bookings, give you a
+              free CRM, let your real customers&apos; reviews drive your
+              ranking. We don&apos;t charge you. We don&apos;t take a cut of
+              your jobs. We don&apos;t sell ads to your competitors.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-4">
+              <Link
+                href="#callback"
+                className="inline-flex items-center gap-2 h-[48px] px-6 rounded-pill font-bold text-base bg-leaf text-white hover:bg-leaf-dk transition-colors"
+              >
+                Talk to us <span aria-hidden>→</span>
+              </Link>
+              <Link
+                href="/workshop/start"
+                className="inline-flex items-center gap-2 h-[48px] px-6 rounded-pill font-bold text-base border border-seam text-ink hover:bg-carbon transition-colors"
+              >
+                Learn more
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────── 9. 5 BENEFIT ROWS (alternating) ───────────────── */}
+      <section id="benefits" className="py-24 md:py-[120px]">
+        <div className="max-w-[1240px] mx-auto px-6 md:px-10">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <Kicker>Explore Our Benefits</Kicker>
+            <h2
+              className="font-black mt-5 text-ink"
+              style={{
+                fontSize: 'clamp(32px,4vw,56px)',
+                lineHeight: 0.98,
+                letterSpacing: '-0.04em',
+              }}
+            >
+              Built around <span className="text-leaf">honest service.</span>
+            </h2>
+            <p className="text-lg text-mute mt-6 leading-relaxed">
+              Simplifying how UAE drivers find a garage — and how good garages
+              get found.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <BenefitCard
+              icon="search"
+              title="Verified Rating Engine"
+              body="Every star is tied to a verified service entry the garage attested. No fake reviews. No bought stars. Just the work that was actually done."
+            />
+            <BenefitCard
+              icon="calendar"
+              title="One-Tap Booking"
+              body="Customer picks a date, garage confirms, work happens. Booking flows through the app and end up in the garage&apos;s pipeline automatically."
+            />
+            <BenefitCard
+              icon="phone"
+              title="WhatsApp-Ready Reminders"
+              body="When a service is due, customers get a nudge. When a job is done, they get a rating prompt. Built for how UAE drivers actually communicate."
+            />
+            <BenefitCard
+              icon="shield"
+              title="Trade-Licence Verified"
+              body="Silver-tier garages have a UAE trade licence on file. Gold-tier garages also have 100+ verified jobs and a 4.5★ rating across 5+ reviews."
+            />
+            <BenefitCard
+              icon="chart"
+              title="Free CRM for Garages"
+              body="Customer roster, deal pipeline, automated reminders, rating trend. Run your shop on Vehkit — we don&apos;t charge a dirham."
+            />
+            <BenefitCard
+              icon="lock"
+              title="Owner-Controlled Records"
+              body="Your service history travels with the car, not the garage. Owners control what&apos;s public, what stays private, who sees what."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────── 10. CHIP-ICON GRID ───────────────── */}
+      <section className="py-20 md:py-24 bg-iron">
+        <div className="max-w-[1240px] mx-auto px-6 md:px-10">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <Kicker>Powerful by default</Kicker>
+            <h2
+              className="font-black mt-5 text-ink"
+              style={{
+                fontSize: 'clamp(28px,3.5vw,48px)',
+                lineHeight: 0.98,
+                letterSpacing: '-0.04em',
+              }}
+            >
+              Built for how UAE drivers actually live.
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            <ChipIcon label="Secure" />
+            <ChipIcon label="Verified Reviews" />
+            <ChipIcon label="Real-Time Updates" />
+            <ChipIcon label="Mobile-First" />
+            <ChipIcon label="Multi-lingual" />
+            <ChipIcon label="AI-Assisted" />
+            <ChipIcon label="Easy to Use" />
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────── 11. BIG NUMBER CARDS ───────────────── */}
+      <section id="numbers" className="py-24 md:py-[120px]">
+        <div className="max-w-[1240px] mx-auto px-6 md:px-10">
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <Kicker>Focus on what matters</Kicker>
+            <h2
+              className="font-black mt-5 text-ink"
+              style={{
+                fontSize: 'clamp(32px,4vw,56px)',
+                lineHeight: 0.98,
+                letterSpacing: '-0.04em',
+              }}
+            >
+              Designed to{' '}
+              <span className="text-leaf">save you the bad-garage tax.</span>
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-px bg-seam rounded-3xl overflow-hidden border border-seam">
+            <BigNumber n={`${networkCount || 50}+`} l="Verified garages" />
+            <BigNumber n={avgRating ? avgRating.toFixed(1) : '4.8'} l="Average rating" />
+            <BigNumber n="2 min" l="To book a visit" />
+            <BigNumber n="24/7" l="Always-on bookings" />
+            <BigNumber n="0" l="Fake reviews possible" />
+            <BigNumber n="Free" l="For drivers, forever" />
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────── 12. COMING SOON ───────────────── */}
+      <section className="py-20 md:py-24">
+        <div className="max-w-[1240px] mx-auto px-6 md:px-10">
+          <div className="dark rounded-[36px] p-10 md:p-16 grid md:grid-cols-[1.2fr_1fr] gap-10 items-center bg-noir text-chalk relative overflow-hidden">
             <div
               aria-hidden
               className="absolute pointer-events-none"
               style={{
-                right: -160,
-                top: -160,
-                width: 520,
-                height: 520,
+                right: -180,
+                top: -180,
+                width: 540,
+                height: 540,
                 borderRadius: '50%',
                 background:
                   'radial-gradient(circle at center, rgb(var(--leaf) / 0.22), transparent 65%)',
               }}
             />
             <div className="relative">
-              <p
-                className="text-[11px] font-bold uppercase text-chalk/55"
-                style={{ letterSpacing: '0.32em' }}
-              >
-                Run a garage?
-              </p>
+              <Kicker tone="dark">Join the future</Kicker>
               <h2
-                className="font-black mt-3.5 text-chalk"
+                className="font-black mt-5 text-chalk"
                 style={{
-                  fontSize: 'clamp(36px,5vw,72px)',
-                  lineHeight: 0.96,
+                  fontSize: 'clamp(32px,4vw,56px)',
+                  lineHeight: 0.98,
                   letterSpacing: '-0.04em',
                   maxWidth: '18ch',
                 }}
               >
-                Free leads. Free CRM. <em className="not-italic text-leaf">Free for life.</em>
+                AI-Powered Service Recommendations.{' '}
+                <span className="text-leaf">Coming soon.</span>
               </h2>
-              <p
-                className="text-[17px] mt-6 leading-relaxed text-chalk/80 max-w-[48ch]"
+              <p className="text-base md:text-lg mt-6 leading-relaxed text-chalk/80 max-w-prose">
+                Upload your mulkiya — we know your car&apos;s history.
+                Cross-reference against our verified rating data, and we
+                tell you which garage in your area handles your make &amp;
+                model best. Always with the rating receipts.
+              </p>
+              <Link
+                href="#callback"
+                className="inline-flex items-center gap-2 mt-8 h-[48px] px-6 rounded-pill font-bold text-base bg-leaf text-white hover:bg-leaf-dk transition-colors"
               >
-                Claim your shop. Get found by new customers via verified
-                ratings. Track your pipeline. Send service reminders. We
-                don't take a cut of your jobs, we don't sell ads to your
-                competitors, and we don't charge you for the dashboard.
+                Join the waitlist <span aria-hidden>→</span>
+              </Link>
+            </div>
+            <div className="relative flex justify-center">
+              <div
+                className="aspect-square w-full max-w-[320px] rounded-3xl bg-gradient-to-br from-leaf/40 via-leaf/10 to-transparent flex items-center justify-center"
+              >
+                <VehkitMark size={120} variant="mono-chalk" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────── 13. FAQ ───────────────── */}
+      <section id="faq" className="py-24 md:py-[120px] bg-iron">
+        <div className="max-w-3xl mx-auto px-6 md:px-10">
+          <div className="text-center mb-12">
+            <Kicker>We&apos;ve got you covered</Kicker>
+            <h2
+              className="font-black mt-5 text-ink"
+              style={{
+                fontSize: 'clamp(32px,4vw,56px)',
+                lineHeight: 0.98,
+                letterSpacing: '-0.04em',
+              }}
+            >
+              Frequently Asked Questions
+            </h2>
+          </div>
+          <ul className="flex flex-col gap-3">
+            <FAQItem
+              q="What makes Vehkit different from Google reviews?"
+              a="Every review on Vehkit is tied to a verified service entry the garage attested. To leave a review, someone must have had work done there — verified by a one-time code the garage handed them in person. Google has no way to enforce that. We do."
+            />
+            <FAQItem
+              q="How does the workshop &lsquo;Gold&rsquo; tier work?"
+              a="Garages start as Member tier (free, listed). They reach Silver after uploading a UAE trade licence + logging 10 verified jobs. Gold requires 100+ verified jobs and a 4.5★ average across 5+ reviews. Tiers update automatically — no application, no fee."
+            />
+            <FAQItem
+              q="Is the booking flow really free for drivers?"
+              a="Yes, free forever for drivers. Garages also get the dashboard, customer roster, and directory listing free. Revenue comes from premium placement and from agent-side B2B (insurance brokers, leasing desks) paying for verified document access — never from drivers."
+            />
+            <FAQItem
+              q="How fast does a garage get onboarded?"
+              a="If you have your trade licence handy, ~5 minutes. Claim your workshop, fill the profile, get listed. You can start receiving bookings the same day."
+            />
+            <FAQItem
+              q="Do you have an app?"
+              a="Vehkit runs in your browser — no app store, no install. Open vehkit.com on your phone, sign in with magic link, you&apos;re in. Add to your home screen and it behaves like a native app."
+            />
+          </ul>
+        </div>
+      </section>
+
+      {/* ───────────────── 14. CALLBACK FORM ───────────────── */}
+      <section id="callback" className="py-24 md:py-[120px]">
+        <div className="max-w-3xl mx-auto px-6 md:px-10">
+          <div className="text-center mb-10">
+            <Kicker>Run a garage?</Kicker>
+            <h2
+              className="font-black mt-5 text-ink"
+              style={{
+                fontSize: 'clamp(32px,4vw,56px)',
+                lineHeight: 0.98,
+                letterSpacing: '-0.04em',
+              }}
+            >
+              Request a <span className="text-leaf">callback.</span>
+            </h2>
+            <p className="text-lg text-mute mt-6 leading-relaxed">
+              Tell us about your shop and we&apos;ll be in touch within 24
+              hours. No payment, no commitment.
+            </p>
+          </div>
+
+          {callbackSent ? (
+            <div className="card p-8 md:p-10 text-center border border-leaf/30 bg-leaf/5">
+              <div className="w-14 h-14 mx-auto rounded-pill bg-leaf/15 text-leaf flex items-center justify-center mb-4">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <polyline points="4 12 10 18 20 6" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-ink">Thanks — we&apos;ll be in touch.</h3>
+              <p className="text-sm text-mute mt-2">
+                A member of our team will reach out to you on WhatsApp within
+                24 hours.
               </p>
             </div>
-            <div className="relative flex flex-col gap-3.5 md:items-end">
-              <Link
-                href="/workshop/start"
-                className="inline-flex items-center gap-2 h-[48px] px-6 rounded-pill font-bold text-base bg-leaf text-white hover:bg-leaf-dk transition-colors"
-                style={{ letterSpacing: '-0.01em' }}
-              >
-                Claim your garage <span aria-hidden>→</span>
-              </Link>
-              <Link
-                href="/workshops"
-                className="text-sm tracking-wide text-chalk/70 hover:text-chalk transition-colors"
-              >
-                Browse the directory first
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Final CTA ─── */}
-      <section className="pb-24 md:pb-[120px]">
-        <div className="max-w-[1240px] mx-auto px-6 md:px-10 text-center">
-          <p
-            className="text-[11px] font-bold uppercase text-mute"
-            style={{ letterSpacing: '0.32em' }}
-          >
-            Ready when you are
-          </p>
-          <h2
-            className="font-black mt-3.5 text-ink mx-auto"
-            style={{
-              fontSize: 'clamp(36px,5vw,72px)',
-              lineHeight: 0.96,
-              letterSpacing: '-0.04em',
-              maxWidth: '18ch',
-            }}
-          >
-            Stop guessing. <em className="not-italic text-leaf">Start with a great garage.</em>
-          </h2>
-          <p className="text-base text-mute mt-6 leading-relaxed max-w-md mx-auto">
-            Browse the directory free. No signup needed to look.
-          </p>
-          <div className="mt-10">
-            <Link
-              href="/workshops"
-              className="inline-flex items-center gap-2 h-[48px] px-6 rounded-pill font-bold text-base bg-leaf text-white hover:bg-leaf-dk transition-colors"
-              style={{ letterSpacing: '-0.01em' }}
+          ) : (
+            <form
+              action={requestCallback}
+              className="card p-8 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-4"
             >
-              Browse verified garages <span aria-hidden>→</span>
-            </Link>
-          </div>
+              <FormField
+                label="Your name"
+                name="name"
+                required
+                placeholder="Mohammed Ali"
+              />
+              <FormField
+                label="WhatsApp number"
+                name="whatsapp"
+                type="tel"
+                required
+                placeholder="+971 5X XXX XXXX"
+              />
+              <FormField
+                label="Number of garages you run"
+                name="garage_count"
+                type="number"
+                placeholder="1"
+              />
+              <div>
+                <label htmlFor="role" className="label">
+                  Your role
+                </label>
+                <select
+                  id="role"
+                  name="role"
+                  defaultValue=""
+                  className="field"
+                >
+                  <option value="" disabled>
+                    Select…
+                  </option>
+                  <option>Garage Owner</option>
+                  <option>Service Advisor</option>
+                  <option>Sales Manager</option>
+                  <option>Marketing</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <button type="submit" className="pill-primary w-full md:w-auto">
+                  Submit
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </section>
 
-      {/* ─── Footer ─── */}
-      <footer className="pt-16 pb-10 bg-paper border-t border-seam">
+      {/* ───────────────── 15. FOOTER ───────────────── */}
+      <footer className="pt-20 pb-10 bg-paper border-t border-seam">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10">
-          <div className="grid md:grid-cols-[1.4fr_repeat(3,1fr)] gap-10 mb-10">
+          <div className="grid md:grid-cols-[1.4fr_repeat(3,1fr)] gap-10 mb-12">
             <div className="flex flex-col gap-3">
               <div
                 className="flex items-center gap-2.5 font-black text-[28px] text-leaf"
                 style={{ letterSpacing: '-0.04em' }}
               >
-                <VehkitMark size={36} />
+                <VehkitMark size={32} />
                 <span>vehkit</span>
               </div>
-              <p
-                className="text-[14px] font-medium leading-[1.5] max-w-[30ch] text-mute"
-              >
-                Find a great garage. Real customers. Real ratings.
+              <p className="text-[14px] font-medium leading-[1.5] max-w-[34ch] text-mute">
+                Verified ratings for UAE garages. Find a great mechanic. Stop
+                gambling.
               </p>
             </div>
             <FooterCol
-              heading="Customers"
+              heading="Drivers"
               links={[
                 { label: 'Browse garages', href: '/workshops' },
-                { label: 'Sign in / sign up', href: '/login' },
+                { label: 'Sign in', href: '/login' },
                 { label: 'My account', href: '/mycars' },
+                { label: 'How ratings work', href: '/score' },
               ]}
             />
             <FooterCol
@@ -397,7 +683,7 @@ export default async function Home() {
               links={[
                 { label: 'Why Vehkit', href: '/workshop/start' },
                 { label: 'Claim a workshop', href: '/workshop/claim' },
-                { label: 'Sign in', href: '/login?next=/workshop' },
+                { label: 'Book a demo', href: '#callback' },
               ]}
             />
             <FooterCol
@@ -422,181 +708,531 @@ export default async function Home() {
   )
 }
 
-// ===========================================================================
-// Subcomponents
-// ===========================================================================
+// ============================================================================
+// Helpers
+// ============================================================================
 
-function Stat({ n, l }: { n: string; l: string }) {
+function Kicker({
+  children,
+  tone = 'light',
+}: {
+  children: React.ReactNode
+  tone?: 'light' | 'dark'
+}) {
+  const colour = tone === 'dark' ? 'text-chalk/60' : 'text-mute'
   return (
-    <div>
-      <div
-        className="font-black text-[30px] text-ink"
-        style={{ letterSpacing: '-0.03em' }}
-      >
-        {n}
-      </div>
-      <div
-        className="text-[11px] font-bold uppercase mt-0.5 text-mute"
-        style={{ letterSpacing: '0.22em' }}
-      >
-        {l}
-      </div>
-    </div>
+    <p
+      className={`text-[11px] md:text-[12px] font-bold uppercase ${colour}`}
+      style={{ letterSpacing: '0.32em' }}
+    >
+      {children}
+    </p>
   )
 }
 
-function SectionHead({
-  eyebrow,
+function FeatureCard({
   title,
-  right,
+  body,
+  mockType,
 }: {
-  eyebrow: string
-  title: React.ReactNode
-  right?: string
+  title: string
+  body: string
+  mockType: 'ratings' | 'booking'
 }) {
   return (
-    <div className="mb-14 grid lg:grid-cols-2 gap-8 lg:gap-12 items-end">
-      <div>
-        <p
-          className="text-[11px] font-bold uppercase text-mute"
-          style={{ letterSpacing: '0.32em' }}
-        >
-          {eyebrow}
-        </p>
-        <h2
-          className="font-black mt-3.5 text-ink"
-          style={{
-            fontSize: 'clamp(36px,5vw,68px)',
-            lineHeight: 0.98,
-            letterSpacing: '-0.04em',
-            maxWidth: '20ch',
-          }}
-        >
-          {title}
-        </h2>
-      </div>
-      {right && (
-        <div className="text-[15px] leading-[1.6] font-medium text-mute">
-          <p>{right}</p>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function Step({ n, title, body }: { n: string; title: string; body: string }) {
-  return (
-    <div
-      className="p-9 rounded-3xl flex flex-col gap-4 bg-carbon border border-seam"
-      style={{ minHeight: 240 }}
-    >
-      <div
-        className="w-14 h-14 rounded-2xl grid place-items-center font-black text-2xl bg-leaf-50 text-leaf-dk"
-        style={{ letterSpacing: '-0.04em' }}
-      >
-        {n}
-      </div>
+    <div className="rounded-3xl p-8 md:p-10 bg-carbon border border-seam flex flex-col gap-5 min-h-[480px]">
+      {mockType === 'ratings' ? <RatingsMock /> : <BookingMock />}
       <h3
-        className="font-black text-[24px] leading-[1.1] m-0 text-ink"
+        className="font-black text-[26px] md:text-[30px] leading-[1.1] text-ink mt-2"
         style={{ letterSpacing: '-0.03em' }}
       >
         {title}
       </h3>
-      <p className="text-[15px] leading-[1.55] font-medium m-0 text-mute">
+      <p className="text-[15px] leading-[1.6] font-medium text-mute">
         {body}
       </p>
     </div>
   )
 }
 
-function TrustCard({
-  num,
+function RatingsMock() {
+  return (
+    <div className="card p-5 md:p-6 border border-seam bg-paper">
+      <p className="text-[10px] tracking-widest uppercase text-mute">
+        Verified review
+      </p>
+      <div className="flex items-center gap-2 mt-2">
+        <Stars n={5} />
+        <span className="text-xs text-mute">Tied to job · 14 Nov</span>
+      </div>
+      <p className="text-sm text-ink mt-3 leading-snug">
+        &ldquo;Quick, fair, explained everything. Will be coming back.&rdquo;
+      </p>
+      <div className="flex items-center gap-2 mt-4 pt-4 border-t border-seam">
+        <span className="w-7 h-7 rounded-pill bg-leaf/15 text-leaf grid place-items-center font-mono text-[11px] font-semibold">
+          AS
+        </span>
+        <span className="text-xs font-semibold text-ink">Ahmed S.</span>
+        <span className="text-[10px] text-mute">· Toyota Land Cruiser</span>
+      </div>
+    </div>
+  )
+}
+
+function BookingMock() {
+  return (
+    <div className="card p-5 md:p-6 border border-seam bg-paper">
+      <p className="text-[10px] tracking-widest uppercase text-mute">
+        New booking
+      </p>
+      <p className="text-base font-semibold text-ink mt-2">Brake inspection</p>
+      <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+        <div>
+          <p className="text-[10px] tracking-widest uppercase text-mute">Date</p>
+          <p className="font-semibold text-ink mt-1">Tomorrow, 10am</p>
+        </div>
+        <div>
+          <p className="text-[10px] tracking-widest uppercase text-mute">Car</p>
+          <p className="font-semibold text-ink mt-1">2021 Land Cruiser</p>
+        </div>
+      </div>
+      <div className="flex gap-2 mt-4 pt-4 border-t border-seam">
+        <span className="text-[10px] tracking-widest uppercase bg-leaf/20 text-leaf px-3 py-1.5 rounded-pill font-semibold">
+          Accept
+        </span>
+        <span className="text-[10px] tracking-widest uppercase border border-seam text-mute px-3 py-1.5 rounded-pill font-semibold">
+          Decline
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function HeroGarageMock({ garage }: { garage: DirectoryRow | null }) {
+  const name = garage?.name ?? 'Al Quoz Auto Care'
+  const emirate = garage?.emirate ?? 'Dubai'
+  const rating =
+    garage?.avg_rating != null ? Number(garage.avg_rating).toFixed(1) : '4.9'
+  const reviewCount = garage?.review_count ?? 47
+  const entries = garage?.total_entries ?? 138
+  const tier = garage?.verification_tier ?? 'gold'
+
+  return (
+    <div className="relative">
+      {/* Background gradient blob */}
+      <div
+        aria-hidden
+        className="absolute pointer-events-none -inset-8"
+        style={{
+          background:
+            'radial-gradient(circle at 50% 50%, rgb(var(--leaf) / 0.18), transparent 70%)',
+        }}
+      />
+      <div className="relative card p-7 md:p-8 bg-paper border border-seam shadow-card max-w-md mx-auto">
+        <div className="flex items-center justify-between gap-3">
+          <span
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-pill text-[10px] font-extrabold uppercase ${
+              tier === 'gold'
+                ? 'bg-wallet/[0.18] text-wallet'
+                : 'bg-mute/[0.12] text-mute'
+            }`}
+            style={{ letterSpacing: '0.16em' }}
+          >
+            {tier === 'gold' ? '★ Gold verified' : '✓ Silver verified'}
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-sm font-bold text-ink">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-wallet" aria-hidden>
+              <polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9" />
+            </svg>
+            <span className="font-mono tabular-nums">{rating}</span>
+            <span className="text-mute text-xs">({reviewCount})</span>
+          </span>
+        </div>
+        <h3
+          className="font-black mt-5 text-ink"
+          style={{ fontSize: 28, letterSpacing: '-0.025em', lineHeight: 1.1 }}
+        >
+          {name}
+        </h3>
+        <p className="text-sm text-mute mt-1.5">{emirate}</p>
+
+        <div className="mt-6 grid grid-cols-2 gap-4 pt-5 border-t border-seam">
+          <div>
+            <p className="text-[10px] tracking-widest uppercase text-mute">
+              Verified jobs
+            </p>
+            <p
+              className="font-mono text-2xl font-bold text-ink mt-1 tabular-nums"
+              style={{ letterSpacing: '-0.02em' }}
+            >
+              {entries.toLocaleString()}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] tracking-widest uppercase text-mute">
+              Avg response
+            </p>
+            <p
+              className="font-mono text-2xl font-bold text-ink mt-1 tabular-nums"
+              style={{ letterSpacing: '-0.02em' }}
+            >
+              &lt; 2 hrs
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="w-full mt-6 pill-primary text-center justify-center"
+        >
+          Book a visit →
+        </button>
+      </div>
+
+      {/* Floating "verified" badge */}
+      <div
+        className="absolute hidden md:block"
+        style={{
+          top: -16,
+          right: -20,
+          background: 'rgb(var(--leaf))',
+          color: 'white',
+          width: 76,
+          height: 76,
+          borderRadius: '50%',
+          display: 'grid',
+          placeItems: 'center',
+          textAlign: 'center',
+          fontSize: 9,
+          fontWeight: 800,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+          lineHeight: 1.15,
+          transform: 'rotate(-12deg)',
+          boxShadow: '0 14px 40px -8px rgb(var(--leaf) / 0.4)',
+        }}
+      >
+        Real<br />Rating<br />Real Job
+      </div>
+    </div>
+  )
+}
+
+function AllInOneMock() {
+  return (
+    <div className="grid grid-cols-2 gap-3 max-w-[480px] mx-auto">
+      <div className="card p-4 bg-paper border border-seam aspect-square flex flex-col justify-between">
+        <p className="text-[10px] tracking-widest uppercase text-mute">Discovery</p>
+        <p className="text-2xl font-black text-ink" style={{ letterSpacing: '-0.03em' }}>
+          50+ garages
+        </p>
+        <p className="text-[11px] text-mute">By area, rating, service</p>
+      </div>
+      <div className="card p-4 bg-leaf text-white aspect-square flex flex-col justify-between">
+        <p className="text-[10px] tracking-widest uppercase text-white/80">Booking</p>
+        <p className="text-2xl font-black" style={{ letterSpacing: '-0.03em' }}>
+          2 taps
+        </p>
+        <p className="text-[11px] text-white/80">In-app, instant</p>
+      </div>
+      <div className="card p-4 bg-noir text-chalk aspect-square flex flex-col justify-between dark">
+        <p className="text-[10px] tracking-widest uppercase text-chalk/60">Service</p>
+        <p className="text-2xl font-black" style={{ letterSpacing: '-0.03em' }}>
+          Verified
+        </p>
+        <p className="text-[11px] text-chalk/70">Workshop attests</p>
+      </div>
+      <div className="card p-4 bg-paper border border-seam aspect-square flex flex-col justify-between">
+        <p className="text-[10px] tracking-widest uppercase text-mute">Rating</p>
+        <p className="text-2xl font-black text-ink" style={{ letterSpacing: '-0.03em' }}>
+          1-tap
+        </p>
+        <p className="text-[11px] text-mute">When work is done</p>
+      </div>
+    </div>
+  )
+}
+
+function GarageDashboardMock() {
+  return (
+    <div className="card p-6 bg-paper border border-seam max-w-md mx-auto">
+      <p className="text-[10px] tracking-widest uppercase text-mute">
+        Garage dashboard
+      </p>
+      <h4 className="text-lg font-bold text-ink mt-2">New bookings · 3</h4>
+
+      <ul className="mt-4 divide-y divide-seam">
+        {[
+          { name: 'Brake inspection', meta: 'Tomorrow · Ahmed S.' },
+          { name: 'Oil & filter change', meta: 'Wed · Priya R.' },
+          { name: 'AC repair', meta: 'Thu · Marwan A.' },
+        ].map((b) => (
+          <li key={b.name} className="py-3 flex items-center gap-3">
+            <span className="w-2 h-2 rounded-pill bg-leaf shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-ink">{b.name}</p>
+              <p className="text-[11px] text-mute">{b.meta}</p>
+            </div>
+            <span className="text-[10px] tracking-widest uppercase bg-leaf/20 text-leaf px-2 py-1 rounded-pill font-semibold">
+              Accept
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-5 pt-5 border-t border-seam grid grid-cols-3 gap-3 text-center">
+        <div>
+          <p className="text-[10px] tracking-widest uppercase text-mute">
+            This week
+          </p>
+          <p className="text-lg font-bold text-ink mt-1 font-mono tabular-nums">
+            12
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] tracking-widest uppercase text-mute">
+            Rating
+          </p>
+          <p className="text-lg font-bold text-ink mt-1 font-mono tabular-nums">
+            4.8★
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] tracking-widest uppercase text-mute">
+            Reviews
+          </p>
+          <p className="text-lg font-bold text-ink mt-1 font-mono tabular-nums">
+            47
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TestimonialCard({
+  body,
+  name,
+  role,
+}: {
+  body: string
+  name: string
+  role: string
+}) {
+  return (
+    <div className="rounded-3xl p-7 bg-carbon border border-seam flex flex-col gap-5 min-h-[260px]">
+      <Stars n={5} />
+      <p className="text-[16px] leading-[1.55] text-ink font-medium flex-1">
+        &ldquo;{body}&rdquo;
+      </p>
+      <div className="flex items-center gap-3 pt-4 border-t border-seam">
+        <span className="w-10 h-10 rounded-pill bg-leaf/15 text-leaf grid place-items-center font-mono text-sm font-bold">
+          {name
+            .split(' ')
+            .map((s) => s[0])
+            .slice(0, 2)
+            .join('')}
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-ink">{name}</p>
+          <p className="text-xs text-mute">{role}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Stars({ n }: { n: number }) {
+  return (
+    <div className="flex gap-0.5" aria-label={`${n} of 5 stars`}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <svg
+          key={i}
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill={i < n ? 'currentColor' : 'none'}
+          stroke="currentColor"
+          strokeWidth={i < n ? 0 : 2}
+          className="text-wallet"
+          aria-hidden
+        >
+          <polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9" />
+        </svg>
+      ))}
+    </div>
+  )
+}
+
+function BenefitCard({
+  icon,
   title,
   body,
 }: {
-  num: string
+  icon: 'search' | 'calendar' | 'phone' | 'shield' | 'chart' | 'lock'
   title: string
   body: string
 }) {
   return (
-    <div className="p-7 md:p-8 rounded-3xl bg-paper border border-seam flex flex-col gap-3">
-      <p className="font-mono text-[11px] text-leaf-dk tracking-[0.04em] font-bold">
-        {num}
-      </p>
+    <div className="rounded-3xl p-7 md:p-8 bg-carbon border border-seam flex flex-col gap-3 min-h-[200px]">
+      <div className="w-12 h-12 rounded-2xl bg-leaf-50 text-leaf-dk grid place-items-center mb-2">
+        <BenefitIcon name={icon} />
+      </div>
       <h3
-        className="font-black text-[22px] leading-tight m-0 text-ink"
+        className="font-black text-[22px] leading-tight text-ink"
         style={{ letterSpacing: '-0.03em' }}
       >
         {title}
       </h3>
-      <p className="text-[15px] leading-[1.55] font-medium m-0 text-mute">
+      <p className="text-[15px] leading-[1.55] font-medium text-mute">
         {body}
       </p>
     </div>
   )
 }
 
-function WorkshopCard({ w }: { w: DirectoryRow }) {
-  const tier = w.verification_tier
-  const tierClass =
-    tier === 'gold'
-      ? 'bg-wallet/[0.18] text-wallet'
-      : 'bg-mute/[0.12] text-mute'
-  const rating = w.avg_rating != null ? Number(w.avg_rating).toFixed(1) : null
+function BenefitIcon({ name }: { name: string }) {
+  const common = {
+    width: 22,
+    height: 22,
+    viewBox: '0 0 24 24',
+    fill: 'none' as const,
+    stroke: 'currentColor',
+    strokeWidth: 2.2,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  }
+  if (name === 'search')
+    return (
+      <svg {...common}>
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-4-4" />
+      </svg>
+    )
+  if (name === 'calendar')
+    return (
+      <svg {...common}>
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+        <line x1="8" y1="3" x2="8" y2="7" />
+        <line x1="16" y1="3" x2="16" y2="7" />
+      </svg>
+    )
+  if (name === 'phone')
+    return (
+      <svg {...common}>
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z" />
+      </svg>
+    )
+  if (name === 'shield')
+    return (
+      <svg {...common}>
+        <path d="M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6z" />
+        <polyline points="9 12 11 14 15 10" />
+      </svg>
+    )
+  if (name === 'chart')
+    return (
+      <svg {...common}>
+        <line x1="12" y1="20" x2="12" y2="10" />
+        <line x1="18" y1="20" x2="18" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="16" />
+      </svg>
+    )
+  // lock
   return (
-    <Link
-      href={`/w/${w.slug}`}
-      className="rounded-2xl p-6 flex flex-col gap-3.5 transition-all hover:-translate-y-[3px] bg-carbon border border-seam"
-      style={{ minHeight: 200 }}
-    >
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-pill text-[10px] font-extrabold uppercase whitespace-nowrap ${tierClass}`}
-          style={{ letterSpacing: '0.16em' }}
-        >
-          {tier === 'gold' ? '✓ Gold' : '✓ Silver'}
-        </span>
-        {rating && (
-          <span className="inline-flex items-center gap-1 text-sm font-bold text-ink">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="text-wallet"
-              aria-hidden
-            >
-              <polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9" />
-            </svg>
-            <span className="font-mono tabular-nums">{rating}</span>
-            <span className="text-mute text-xs">
-              ({w.review_count})
-            </span>
-          </span>
-        )}
-      </div>
-      <h4
-        className="font-extrabold text-[18px] leading-tight m-0 text-ink"
-        style={{ letterSpacing: '-0.02em' }}
-      >
-        {w.name}
-      </h4>
-      <span className="text-[13px] font-semibold text-mute">
-        {w.emirate ?? 'UAE'}
+    <svg {...common}>
+      <rect x="4" y="10" width="16" height="11" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+    </svg>
+  )
+}
+
+function ChipIcon({ label }: { label: string }) {
+  return (
+    <div className="rounded-2xl p-4 bg-paper border border-seam flex flex-col items-center justify-center gap-2 min-h-[90px]">
+      <span className="w-6 h-6 rounded-pill bg-leaf-50 text-leaf-dk grid place-items-center">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <polyline points="4 12 10 18 20 6" />
+        </svg>
       </span>
-      <div
-        className="mt-auto flex justify-between items-center pt-3 text-[11px] font-bold uppercase border-t border-seam text-mute"
-        style={{ letterSpacing: '0.18em' }}
+      <p className="text-[11px] font-bold text-ink text-center leading-tight">
+        {label}
+      </p>
+    </div>
+  )
+}
+
+function BigNumber({ n, l }: { n: string; l: string }) {
+  return (
+    <div className="bg-paper p-6 md:p-7 text-center">
+      <p
+        className="font-black text-ink"
+        style={{
+          fontSize: 'clamp(28px,3.5vw,44px)',
+          letterSpacing: '-0.04em',
+          lineHeight: 1,
+        }}
       >
-        <span>Verified jobs</span>
-        <b
-          className="text-ink"
-          style={{ fontWeight: 800, letterSpacing: '-0.01em', textTransform: 'none', fontSize: 13 }}
-        >
-          {w.total_entries}
-        </b>
-      </div>
-    </Link>
+        {n}
+      </p>
+      <p className="text-[11px] tracking-widest uppercase text-mute mt-2 font-bold">
+        {l}
+      </p>
+    </div>
+  )
+}
+
+function FAQItem({ q, a }: { q: string; a: string }) {
+  return (
+    <li>
+      <details className="group bg-paper border border-seam rounded-2xl overflow-hidden">
+        <summary className="cursor-pointer p-6 flex items-center justify-between gap-4 text-base md:text-lg font-bold text-ink list-none">
+          <span dangerouslySetInnerHTML={{ __html: q }} />
+          <span className="text-leaf transition-transform group-open:rotate-45">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </span>
+        </summary>
+        <p
+          className="px-6 pb-6 text-[15px] leading-[1.6] text-mute"
+          dangerouslySetInnerHTML={{ __html: a }}
+        />
+      </details>
+    </li>
+  )
+}
+
+function FormField({
+  label,
+  name,
+  type = 'text',
+  required,
+  placeholder,
+}: {
+  label: string
+  name: string
+  type?: string
+  required?: boolean
+  placeholder?: string
+}) {
+  return (
+    <div>
+      <label htmlFor={name} className="label">
+        {label}
+        {required && <span className="text-signal ml-1">*</span>}
+      </label>
+      <input
+        id={name}
+        name={name}
+        type={type}
+        required={required}
+        placeholder={placeholder}
+        className="field"
+      />
+    </div>
   )
 }
 
@@ -610,12 +1246,12 @@ function FooterCol({
   return (
     <div>
       <h5
-        className="text-[11px] font-extrabold uppercase mb-3 m-0 text-mute"
+        className="text-[11px] font-extrabold uppercase mb-3 text-mute"
         style={{ letterSpacing: '0.22em' }}
       >
         {heading}
       </h5>
-      <ul className="list-none p-0 m-0 flex flex-col gap-2">
+      <ul className="flex flex-col gap-2">
         {links.map((l) => (
           <li key={l.href}>
             <Link
