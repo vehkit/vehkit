@@ -235,8 +235,9 @@ export default async function Home({
       </section>
 
       {/* ───────────────── 5. ALL-IN-ONE (dark) ───────────────── */}
-      <section className="dark py-24 md:py-[120px] bg-noir text-chalk">
-        <div className="max-w-[1240px] mx-auto px-6 md:px-10 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+      <section className="dark py-24 md:py-[120px] bg-noir text-chalk relative overflow-hidden">
+        <AmbientGradient placement="left-right" />
+        <div className="relative max-w-[1240px] mx-auto px-6 md:px-10 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <Reveal variant="left">
             <Kicker tone="dark">All-in-One Trust Platform</Kicker>
             <h2 className="font-black mt-5 text-chalk"
@@ -271,8 +272,9 @@ export default async function Home({
       </section>
 
       {/* ───────────────── 6. SOCIAL-PROOF BANNER ───────────────── */}
-      <section className="py-14 md:py-16 bg-noir text-chalk dark">
-        <Reveal variant="scale" duration={0.8} className="max-w-[1240px] mx-auto px-6 md:px-10 text-center">
+      <section className="py-14 md:py-16 bg-noir text-chalk dark relative overflow-hidden">
+        <AmbientGradient placement="banner" />
+        <Reveal variant="scale" duration={0.8} className="relative max-w-[1240px] mx-auto px-6 md:px-10 text-center">
           <h3
             className="font-black text-chalk"
             style={{
@@ -412,8 +414,9 @@ export default async function Home({
       </section>
 
       {/* ───────────────── 10. CHIP-ICON GRID (dark) ───────────────── */}
-      <section className="dark py-20 md:py-24 bg-noir text-chalk">
-        <div className="max-w-[1240px] mx-auto px-6 md:px-10">
+      <section className="dark py-20 md:py-24 bg-noir text-chalk relative overflow-hidden">
+        <AmbientGradient placement="right-left" />
+        <div className="relative max-w-[1240px] mx-auto px-6 md:px-10">
           <Reveal variant="up" className="text-center max-w-2xl mx-auto mb-12">
             <Kicker tone="dark">Powerful by default</Kicker>
             <h2
@@ -472,19 +475,16 @@ export default async function Home({
       <section className="py-20 md:py-24">
         <Reveal variant="up" duration={0.8} className="max-w-[1240px] mx-auto px-6 md:px-10">
           <div className="dark rounded-[36px] p-10 md:p-16 grid md:grid-cols-[1.2fr_1fr] gap-10 items-center bg-noir text-chalk relative overflow-hidden">
-            {/* Subtle wallet-gold glow instead of bright leaf — feels more
-                "premium beta" than "promotional" */}
+            {/* Dual ambient gradient blobs — leaf + wallet at opposing
+                corners. Same treatment as Kendal's hero / panel paint. */}
             <div
               aria-hidden
-              className="absolute pointer-events-none"
+              className="absolute inset-0 pointer-events-none"
               style={{
-                right: -200,
-                top: -200,
-                width: 520,
-                height: 520,
-                borderRadius: '50%',
-                background:
-                  'radial-gradient(circle at center, rgb(var(--wallet) / 0.10), transparent 60%)',
+                background: `
+                  radial-gradient(ellipse 700px 500px at 20% 30%, rgb(var(--leaf) / 0.14), transparent 65%),
+                  radial-gradient(ellipse 600px 420px at 90% 80%, rgb(var(--wallet) / 0.10), transparent 60%)
+                `,
               }}
             />
             <div className="relative">
@@ -741,6 +741,53 @@ function Kicker({
     >
       {children}
     </p>
+  )
+}
+
+/**
+ * Subtle "ambient paint" gradient for dark sections — two low-opacity
+ * radial blobs that give the noir surface depth without the flat-black
+ * feel. Kendal.ai uses the same treatment in every dark panel.
+ *
+ * Placements:
+ *   left-right — leaf blob from top-left, wallet blob from bottom-right
+ *   right-left — mirrored (leaf top-right, wallet bottom-left)
+ *   banner     — leaf-only, low and wide, for thin banner sections
+ */
+function AmbientGradient({
+  placement,
+}: {
+  placement: 'left-right' | 'right-left' | 'banner'
+}) {
+  if (placement === 'banner') {
+    return (
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(ellipse 900px 200px at 20% 100%, rgb(var(--leaf) / 0.10), transparent 70%),
+            radial-gradient(ellipse 700px 180px at 80% 0%, rgb(var(--wallet) / 0.06), transparent 70%)
+          `,
+        }}
+      />
+    )
+  }
+
+  const leafX = placement === 'left-right' ? '12%' : '88%'
+  const walletX = placement === 'left-right' ? '88%' : '12%'
+
+  return (
+    <div
+      aria-hidden
+      className="absolute inset-0 pointer-events-none"
+      style={{
+        background: `
+          radial-gradient(ellipse 700px 500px at ${leafX} 20%, rgb(var(--leaf) / 0.11), transparent 65%),
+          radial-gradient(ellipse 600px 420px at ${walletX} 90%, rgb(var(--wallet) / 0.07), transparent 65%)
+        `,
+      }}
+    />
   )
 }
 
