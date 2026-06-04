@@ -299,7 +299,7 @@ export default async function WorkshopDashboardPage() {
             <SectionHeader
               title={`New bookings · ${bookings.length}`}
               hint="Customers want to visit you"
-              tone="leaf"
+              tone="volt"
             />
             <ul className="card divide-y divide-seam">
               {bookings.map((b) => (
