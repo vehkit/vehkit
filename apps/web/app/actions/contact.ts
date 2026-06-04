@@ -9,21 +9,27 @@ function strOrNull(v: FormDataEntryValue | null): string | null {
 }
 
 /**
- * Landing-page callback form submission.
+ * Landing-page contact form submission.
  *
- * For now this just emails the team via Resend; once we have real
- * inbound volume we'll persist to a contact_requests table + assign to
- * a sales rep. Keeping it simple for the initial launch.
+ * Universal "let's talk" — works for drivers, garage owners, investors,
+ * press, partners. The `who` field tells us which inbox / playbook to
+ * route to once we wire that up.
+ *
+ * For now we just email the team via Resend; later we'll persist to a
+ * contact_requests table and route by `who`.
  */
 export async function requestCallback(formData: FormData) {
   const name = strOrNull(formData.get('name')) ?? '—'
   const whatsapp = strOrNull(formData.get('whatsapp')) ?? '—'
-  const garageCount = strOrNull(formData.get('garage_count')) ?? '—'
-  const role = strOrNull(formData.get('role')) ?? '—'
+  const who = strOrNull(formData.get('who')) ?? '—'
+  const message = strOrNull(formData.get('message')) ?? '—'
 
   const apiKey = process.env.RESEND_API_KEY
   const from = process.env.RESEND_FROM ?? 'Vehkit <hello@vehkit.com>'
   const to = process.env.CONTACT_INBOX ?? 'hello@vehkit.com'
+
+  // Subject prefix tells you at a glance who's writing — easy mail sort.
+  const subjectTag = who === '—' ? 'contact' : who.toLowerCase()
 
   if (apiKey) {
     try {
@@ -36,12 +42,14 @@ export async function requestCallback(formData: FormData) {
         body: JSON.stringify({
           from,
           to: [to],
-          subject: `Vehkit callback request — ${name}`,
+          subject: `Vehkit [${subjectTag}] — ${name}`,
           text: [
+            `Who: ${who}`,
             `Name: ${name}`,
             `WhatsApp: ${whatsapp}`,
-            `Garages: ${garageCount}`,
-            `Role: ${role}`,
+            '',
+            'Message:',
+            message,
           ].join('\n'),
         }),
       })
@@ -51,7 +59,7 @@ export async function requestCallback(formData: FormData) {
     }
   } else {
     // Useful in dev when no Resend key is set.
-    console.log('[requestCallback]', { name, whatsapp, garageCount, role })
+    console.log('[requestCallback]', { who, name, whatsapp, message })
   }
 
   redirect('/?callback=sent#callback')

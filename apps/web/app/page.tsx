@@ -566,7 +566,7 @@ export default async function Home({
       <section id="callback" className="py-24 md:py-[120px]">
         <div className="max-w-3xl mx-auto px-6 md:px-10">
           <Reveal variant="up" className="text-center mb-10">
-            <Kicker>Run a garage?</Kicker>
+            <Kicker>Let&apos;s talk</Kicker>
             <h2
               className="font-black mt-5 text-ink"
               style={{
@@ -575,11 +575,11 @@ export default async function Home({
                 letterSpacing: '-0.04em',
               }}
             >
-              Request a <span className="italic font-light">callback.</span>
+              Get in <span className="italic font-light">touch.</span>
             </h2>
             <p className="text-lg text-mute mt-6 leading-relaxed">
-              Tell us about your shop and we&apos;ll be in touch within 24
-              hours. No payment, no commitment.
+              Driver, garage owner, investor, journalist — whoever you are,
+              tell us who and what, and we&apos;ll be in touch within 24 hours.
             </p>
           </Reveal>
 
@@ -614,35 +614,44 @@ export default async function Home({
                 required
                 placeholder="+971 5X XXX XXXX"
               />
-              <FormField
-                label="Number of garages you run"
-                name="garage_count"
-                type="number"
-                placeholder="1"
-              />
-              <div>
-                <label htmlFor="role" className="label">
-                  Your role
+              <div className="md:col-span-2">
+                <label htmlFor="who" className="label">
+                  I am a… <span className="text-signal ml-1">*</span>
                 </label>
                 <select
-                  id="role"
-                  name="role"
+                  id="who"
+                  name="who"
+                  required
                   defaultValue=""
                   className="field"
                 >
                   <option value="" disabled>
-                    Select…
+                    Pick the closest fit…
                   </option>
-                  <option>Garage Owner</option>
-                  <option>Service Advisor</option>
-                  <option>Sales Manager</option>
-                  <option>Marketing</option>
-                  <option>Other</option>
+                  <option>Driver looking for a garage</option>
+                  <option>Garage owner / manager</option>
+                  <option>Investor</option>
+                  <option>Journalist / press</option>
+                  <option>Partner / supplier</option>
+                  <option>Just curious</option>
                 </select>
               </div>
               <div className="md:col-span-2">
+                <label htmlFor="message" className="label">
+                  Anything you want us to know?{' '}
+                  <span className="text-ash/70">(optional)</span>
+                </label>
+                <textarea
+                  id="message"
+                  name="message"
+                  rows={3}
+                  placeholder="One sentence is enough."
+                  className="field resize-none"
+                />
+              </div>
+              <div className="md:col-span-2">
                 <button type="submit" className="pill-primary w-full md:w-auto">
-                  Submit
+                  Send
                 </button>
               </div>
             </form>
