@@ -234,12 +234,12 @@ export default async function Home({
         </div>
       </section>
 
-      {/* ───────────────── 5. ALL-IN-ONE ───────────────── */}
-      <section className="py-24 md:py-[120px] bg-iron">
+      {/* ───────────────── 5. ALL-IN-ONE (dark) ───────────────── */}
+      <section className="dark py-24 md:py-[120px] bg-noir text-chalk">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <Reveal variant="left">
-            <Kicker>All-in-One Trust Platform</Kicker>
-            <h2 className="font-black mt-5 text-ink"
+            <Kicker tone="dark">All-in-One Trust Platform</Kicker>
+            <h2 className="font-black mt-5 text-chalk"
               style={{
                 fontSize: 'clamp(32px,4vw,56px)',
                 lineHeight: 0.98,
@@ -250,14 +250,22 @@ export default async function Home({
               From discovery to rating —{' '}
               <span className="italic font-light">all in one place.</span>
             </h2>
-            <p className="text-lg text-mute mt-6 leading-relaxed max-w-prose">
+            <p className="text-lg text-chalk/70 mt-6 leading-relaxed max-w-prose">
               Browse verified garages, book a visit, get your work done, rate
               the result. Vehkit handles every step — and the garage gets a
               free CRM and customer pipeline as a bonus.
             </p>
           </Reveal>
           <Reveal variant="right" delay={0.1}>
-            <AllInOneMock />
+            {/* Dark-mode hero photo — a workshop in action */}
+            <div className="aspect-[4/3] rounded-3xl overflow-hidden border border-chalk/10 bg-iron">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://images.unsplash.com/photo-1486754735734-325b5831c3ad?w=900&q=80&auto=format&fit=crop"
+                alt="Modern garage workshop"
+                className="w-full h-full object-cover"
+              />
+            </div>
           </Reveal>
         </div>
       </section>
@@ -404,13 +412,13 @@ export default async function Home({
         </div>
       </section>
 
-      {/* ───────────────── 10. CHIP-ICON GRID ───────────────── */}
-      <section className="py-20 md:py-24 bg-iron">
+      {/* ───────────────── 10. CHIP-ICON GRID (dark) ───────────────── */}
+      <section className="dark py-20 md:py-24 bg-noir text-chalk">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10">
           <Reveal variant="up" className="text-center max-w-2xl mx-auto mb-12">
-            <Kicker>Powerful by default</Kicker>
+            <Kicker tone="dark">Powerful by default</Kicker>
             <h2
-              className="font-black mt-5 text-ink"
+              className="font-black mt-5 text-chalk"
               style={{
                 fontSize: 'clamp(28px,3.5vw,48px)',
                 lineHeight: 0.98,
@@ -1112,14 +1120,16 @@ function BenefitIcon({ name }: { name: string }) {
 }
 
 function ChipIcon({ label }: { label: string }) {
+  // Rendered inside a .dark section — uses semi-transparent chalk surface
+  // for a glassy contrast on the noir background.
   return (
-    <div className="rounded-2xl p-4 bg-paper border border-seam flex flex-col items-center justify-center gap-2 min-h-[90px]">
-      <span className="w-6 h-6 rounded-pill bg-leaf-50 text-leaf-dk grid place-items-center">
+    <div className="rounded-2xl p-4 bg-chalk/[0.04] border border-chalk/10 flex flex-col items-center justify-center gap-2 min-h-[90px] backdrop-blur-sm">
+      <span className="w-6 h-6 rounded-pill bg-leaf/20 text-leaf grid place-items-center">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <polyline points="4 12 10 18 20 6" />
         </svg>
       </span>
-      <p className="text-[11px] font-bold text-ink text-center leading-tight">
+      <p className="text-[11px] font-bold text-chalk text-center leading-tight">
         {label}
       </p>
     </div>
