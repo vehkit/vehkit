@@ -137,7 +137,7 @@ export default async function Home({
               }}
             >
               UAE Drivers Need A Garage,{' '}
-              <span className="text-leaf">Not A Gamble.</span>
+              <span className="italic font-light">Not A Gamble.</span>
             </h1>
             <p className="text-[18px] md:text-[20px] leading-[1.55] font-medium mt-7 text-mute max-w-[560px]">
               Vehkit lets you find the right garage by{' '}
@@ -207,7 +207,7 @@ export default async function Home({
               }}
             >
               The trust layer{' '}
-              <span className="text-leaf">UAE garages were missing.</span>
+              <span className="italic font-light">UAE garages were missing.</span>
             </h2>
             <p className="text-lg text-mute mt-6 leading-relaxed">
               Simple. Verified. Honest. Designed to bring drivers and good
@@ -248,7 +248,7 @@ export default async function Home({
               }}
             >
               From discovery to rating —{' '}
-              <span className="text-leaf">all in one place.</span>
+              <span className="italic font-light">all in one place.</span>
             </h2>
             <p className="text-lg text-mute mt-6 leading-relaxed max-w-prose">
               Browse verified garages, book a visit, get your work done, rate
@@ -275,9 +275,9 @@ export default async function Home({
               margin: '0 auto',
             }}
           >
-            <span className="text-leaf">{totalEntries.toLocaleString()}+</span>{' '}
+            <span className="text-wallet">{totalEntries.toLocaleString()}+</span>{' '}
             verified jobs logged, &amp;{' '}
-            <span className="text-leaf">
+            <span className="text-wallet">
               {avgRating ? avgRating.toFixed(1) : '4.8'}★
             </span>{' '}
             average rating across the network.
@@ -298,7 +298,7 @@ export default async function Home({
                 letterSpacing: '-0.04em',
               }}
             >
-              Real drivers. <span className="text-leaf">Real reviews.</span>
+              Real drivers. <span className="italic font-light">Real reviews.</span>
             </h2>
           </Reveal>
           <Reveal stagger className="grid md:grid-cols-3 gap-4">
@@ -345,7 +345,7 @@ export default async function Home({
               }}
             >
               Run a garage?{' '}
-              <span className="text-leaf">We give you the customers.</span>
+              <span className="italic font-light">We give you the customers.</span>
             </h2>
             <p className="text-lg text-mute mt-6 leading-relaxed max-w-prose">
               Vehkit is the first verified-rating directory built for UAE
@@ -385,7 +385,7 @@ export default async function Home({
                 letterSpacing: '-0.04em',
               }}
             >
-              Built around <span className="text-leaf">honest service.</span>
+              Built around <span className="italic font-light">honest service.</span>
             </h2>
             <p className="text-lg text-mute mt-6 leading-relaxed">
               Simplifying how UAE drivers find a garage — and how good garages
@@ -446,7 +446,7 @@ export default async function Home({
               }}
             >
               Designed to{' '}
-              <span className="text-leaf">save you the bad-garage tax.</span>
+              <span className="italic font-light">save you the bad-garage tax.</span>
             </h2>
           </Reveal>
 
@@ -465,17 +465,19 @@ export default async function Home({
       <section className="py-20 md:py-24">
         <Reveal variant="up" duration={0.8} className="max-w-[1240px] mx-auto px-6 md:px-10">
           <div className="dark rounded-[36px] p-10 md:p-16 grid md:grid-cols-[1.2fr_1fr] gap-10 items-center bg-noir text-chalk relative overflow-hidden">
+            {/* Subtle wallet-gold glow instead of bright leaf — feels more
+                "premium beta" than "promotional" */}
             <div
               aria-hidden
               className="absolute pointer-events-none"
               style={{
-                right: -180,
-                top: -180,
-                width: 540,
-                height: 540,
+                right: -200,
+                top: -200,
+                width: 520,
+                height: 520,
                 borderRadius: '50%',
                 background:
-                  'radial-gradient(circle at center, rgb(var(--leaf) / 0.22), transparent 65%)',
+                  'radial-gradient(circle at center, rgb(var(--wallet) / 0.10), transparent 60%)',
               }}
             />
             <div className="relative">
@@ -490,7 +492,7 @@ export default async function Home({
                 }}
               >
                 AI-Powered Service Recommendations.{' '}
-                <span className="text-leaf">Coming soon.</span>
+                <span className="text-wallet">Coming soon.</span>
               </h2>
               <p className="text-base md:text-lg mt-6 leading-relaxed text-chalk/80 max-w-prose">
                 Upload your mulkiya — we know your car&apos;s history.
@@ -506,10 +508,13 @@ export default async function Home({
               </Link>
             </div>
             <div className="relative flex justify-center">
-              <div
-                className="aspect-square w-full max-w-[320px] rounded-3xl bg-gradient-to-br from-leaf/40 via-leaf/10 to-transparent flex items-center justify-center"
-              >
-                <VehkitMark size={120} variant="mono-chalk" />
+              <div className="aspect-square w-full max-w-[340px] rounded-3xl overflow-hidden border border-chalk/10 bg-iron">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=700&q=80&auto=format&fit=crop"
+                  alt="Car detail"
+                  className="w-full h-full object-cover opacity-90"
+                />
               </div>
             </div>
           </div>
@@ -570,7 +575,7 @@ export default async function Home({
                 letterSpacing: '-0.04em',
               }}
             >
-              Request a <span className="text-leaf">callback.</span>
+              Request a <span className="italic font-light">callback.</span>
             </h2>
             <p className="text-lg text-mute mt-6 leading-relaxed">
               Tell us about your shop and we&apos;ll be in touch within 24
@@ -807,105 +812,61 @@ function HeroGarageMock({ garage }: { garage: DirectoryRow | null }) {
   const rating =
     garage?.avg_rating != null ? Number(garage.avg_rating).toFixed(1) : '4.9'
   const reviewCount = garage?.review_count ?? 47
-  const entries = garage?.total_entries ?? 138
   const tier = garage?.verification_tier ?? 'gold'
 
   return (
     <div className="relative">
-      {/* Background gradient blob */}
+      {/* Hero photo — real garage. Unsplash CDN, served with width hint. */}
       <div
-        aria-hidden
-        className="absolute pointer-events-none -inset-8"
-        style={{
-          background:
-            'radial-gradient(circle at 50% 50%, rgb(var(--leaf) / 0.18), transparent 70%)',
-        }}
-      />
-      <div className="relative card p-7 md:p-8 bg-paper border border-seam shadow-card max-w-md mx-auto">
-        <div className="flex items-center justify-between gap-3">
-          <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-pill text-[10px] font-extrabold uppercase ${
-              tier === 'gold'
-                ? 'bg-wallet/[0.18] text-wallet'
-                : 'bg-mute/[0.12] text-mute'
-            }`}
-            style={{ letterSpacing: '0.16em' }}
-          >
-            {tier === 'gold' ? '★ Gold verified' : '✓ Silver verified'}
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-sm font-bold text-ink">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-wallet" aria-hidden>
-              <polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9" />
-            </svg>
-            <span className="font-mono tabular-nums">{rating}</span>
-            <span className="text-mute text-xs">({reviewCount})</span>
-          </span>
-        </div>
-        <h3
-          className="font-black mt-5 text-ink"
-          style={{ fontSize: 28, letterSpacing: '-0.025em', lineHeight: 1.1 }}
-        >
-          {name}
-        </h3>
-        <p className="text-sm text-mute mt-1.5">{emirate}</p>
-
-        <div className="mt-6 grid grid-cols-2 gap-4 pt-5 border-t border-seam">
-          <div>
-            <p className="text-[10px] tracking-widest uppercase text-mute">
-              Verified jobs
-            </p>
-            <p
-              className="font-mono text-2xl font-bold text-ink mt-1 tabular-nums"
-              style={{ letterSpacing: '-0.02em' }}
-            >
-              {entries.toLocaleString()}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] tracking-widest uppercase text-mute">
-              Avg response
-            </p>
-            <p
-              className="font-mono text-2xl font-bold text-ink mt-1 tabular-nums"
-              style={{ letterSpacing: '-0.02em' }}
-            >
-              &lt; 2 hrs
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          className="w-full mt-6 pill-primary text-center justify-center"
-        >
-          Book a visit →
-        </button>
-      </div>
-
-      {/* Floating "verified" badge */}
-      <div
-        className="absolute hidden md:block"
-        style={{
-          top: -16,
-          right: -20,
-          background: 'rgb(var(--leaf))',
-          color: 'white',
-          width: 76,
-          height: 76,
-          borderRadius: '50%',
-          display: 'grid',
-          placeItems: 'center',
-          textAlign: 'center',
-          fontSize: 9,
-          fontWeight: 800,
-          letterSpacing: '0.18em',
-          textTransform: 'uppercase',
-          lineHeight: 1.15,
-          transform: 'rotate(-12deg)',
-          boxShadow: '0 14px 40px -8px rgb(var(--leaf) / 0.4)',
-        }}
+        className="relative aspect-[4/5] rounded-3xl overflow-hidden bg-iron"
       >
-        Real<br />Rating<br />Real Job
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=900&q=80&auto=format&fit=crop"
+          alt="Mechanic working on a car in a workshop"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        {/* Soft bottom gradient so the floating card is readable */}
+        <div
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 h-2/3 pointer-events-none"
+          style={{
+            background:
+              'linear-gradient(to top, rgb(10 10 11 / 0.7) 10%, transparent 90%)',
+          }}
+        />
+
+        {/* Floating verified-garage card overlaying the photo bottom */}
+        <div className="absolute left-4 right-4 bottom-4 md:left-5 md:right-5 md:bottom-5">
+          <div className="card p-4 md:p-5 bg-paper border border-seam shadow-card">
+            <div className="flex items-center justify-between gap-3">
+              <span
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-pill text-[10px] font-extrabold uppercase ${
+                  tier === 'gold'
+                    ? 'bg-wallet/[0.18] text-wallet'
+                    : 'bg-mute/[0.12] text-mute'
+                }`}
+                style={{ letterSpacing: '0.16em' }}
+              >
+                {tier === 'gold' ? '★ Gold verified' : '✓ Silver verified'}
+              </span>
+              <span className="inline-flex items-center gap-1 text-sm font-bold text-ink">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-wallet" aria-hidden>
+                  <polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9" />
+                </svg>
+                <span className="font-mono tabular-nums">{rating}</span>
+                <span className="text-mute text-xs">({reviewCount})</span>
+              </span>
+            </div>
+            <h3
+              className="font-black mt-3 text-ink"
+              style={{ fontSize: 20, letterSpacing: '-0.025em', lineHeight: 1.15 }}
+            >
+              {name}
+            </h3>
+            <p className="text-xs text-mute mt-1">{emirate}</p>
+          </div>
+        </div>
       </div>
     </div>
   )
