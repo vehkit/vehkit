@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { VehkitMark } from '@/components/VehkitMark'
+import { Reveal } from '@/components/Reveal'
 import { requestCallback } from '@/app/actions/contact'
 
 export const dynamic = 'force-dynamic'
@@ -124,7 +125,7 @@ export default async function Home({
       {/* ───────────────────── 2. HERO ───────────────────── */}
       <section className="pt-16 md:pt-24 pb-20 md:pb-32 overflow-hidden">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10 grid lg:grid-cols-[1.15fr_1fr] gap-12 lg:gap-16 items-center">
-          <div>
+          <Reveal variant="left" duration={0.8}>
             <Kicker>Verified Garage Network</Kicker>
             <h1
               className="font-black mt-5 text-ink"
@@ -159,19 +160,21 @@ export default async function Home({
                 Run a garage? Talk to us →
               </Link>
             </div>
-          </div>
+          </Reveal>
 
           {/* Hero mock — a "verified garage" card that anchors the value
               prop visually. Uses real data when we have it. */}
-          <div className="relative">
-            <HeroGarageMock garage={heroGarage} />
-          </div>
+          <Reveal variant="right" duration={0.9} delay={0.15}>
+            <div className="relative">
+              <HeroGarageMock garage={heroGarage} />
+            </div>
+          </Reveal>
         </div>
       </section>
 
       {/* ───────────────── 3. LOGO STRIP ───────────────── */}
       {featuredWorkshops.length > 0 && (
-        <section className="py-12 md:py-14 bg-carbon border-t border-b border-seam">
+        <Reveal as="section" variant="fade" duration={0.8} className="py-12 md:py-14 bg-carbon border-t border-b border-seam">
           <div className="max-w-[1240px] mx-auto px-6 md:px-10">
             <p className="text-center text-[12px] font-bold uppercase text-mute tracking-[0.32em]">
               Trusted by garages across the UAE
@@ -188,13 +191,13 @@ export default async function Home({
               ))}
             </div>
           </div>
-        </section>
+        </Reveal>
       )}
 
       {/* ───────────────── 4. FEATURE PANELS (2-up) ───────────────── */}
       <section className="py-24 md:py-[120px]">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10">
-          <div className="text-center max-w-2xl mx-auto mb-16">
+          <Reveal variant="up" className="text-center max-w-2xl mx-auto mb-16">
             <Kicker>The future of garage discovery</Kicker>
             <h2 className="font-black mt-5 text-ink"
               style={{
@@ -210,27 +213,31 @@ export default async function Home({
               Simple. Verified. Honest. Designed to bring drivers and good
               garages together — and keep the bad ones out.
             </p>
-          </div>
+          </Reveal>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <FeatureCard
-              title="Never wonder if a star is real."
-              body="Every rating on Vehkit is tied to a verified service entry the garage attested. To leave a fake review, someone needs a fake job. Stars actually mean something here."
-              mockType="ratings"
-            />
-            <FeatureCard
-              title="Book in two taps. Rate in one."
-              body="Browse the directory, tap into a garage you like, fill the booking form. When the work is done, one-tap rating. No accounts to chase, no friction."
-              mockType="booking"
-            />
-          </div>
+          <Reveal stagger className="grid md:grid-cols-2 gap-6">
+            <Reveal variant="up">
+              <FeatureCard
+                title="Never wonder if a star is real."
+                body="Every rating on Vehkit is tied to a verified service entry the garage attested. To leave a fake review, someone needs a fake job. Stars actually mean something here."
+                mockType="ratings"
+              />
+            </Reveal>
+            <Reveal variant="up">
+              <FeatureCard
+                title="Book in two taps. Rate in one."
+                body="Browse the directory, tap into a garage you like, fill the booking form. When the work is done, one-tap rating. No accounts to chase, no friction."
+                mockType="booking"
+              />
+            </Reveal>
+          </Reveal>
         </div>
       </section>
 
       {/* ───────────────── 5. ALL-IN-ONE ───────────────── */}
       <section className="py-24 md:py-[120px] bg-iron">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          <div>
+          <Reveal variant="left">
             <Kicker>All-in-One Trust Platform</Kicker>
             <h2 className="font-black mt-5 text-ink"
               style={{
@@ -248,14 +255,16 @@ export default async function Home({
               the result. Vehkit handles every step — and the garage gets a
               free CRM and customer pipeline as a bonus.
             </p>
-          </div>
-          <AllInOneMock />
+          </Reveal>
+          <Reveal variant="right" delay={0.1}>
+            <AllInOneMock />
+          </Reveal>
         </div>
       </section>
 
       {/* ───────────────── 6. SOCIAL-PROOF BANNER ───────────────── */}
       <section className="py-14 md:py-16 bg-noir text-chalk dark">
-        <div className="max-w-[1240px] mx-auto px-6 md:px-10 text-center">
+        <Reveal variant="scale" duration={0.8} className="max-w-[1240px] mx-auto px-6 md:px-10 text-center">
           <h3
             className="font-black text-chalk"
             style={{
@@ -273,13 +282,13 @@ export default async function Home({
             </span>{' '}
             average rating across the network.
           </h3>
-        </div>
+        </Reveal>
       </section>
 
       {/* ───────────────── 7. TESTIMONIALS ───────────────── */}
       <section className="py-24 md:py-[120px]">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10">
-          <div className="text-center max-w-2xl mx-auto mb-14">
+          <Reveal variant="up" className="text-center max-w-2xl mx-auto mb-14">
             <Kicker>From the people who matter</Kicker>
             <h2
               className="font-black mt-5 text-ink"
@@ -291,32 +300,40 @@ export default async function Home({
             >
               Real drivers. <span className="text-leaf">Real reviews.</span>
             </h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-4">
-            <TestimonialCard
-              body="Finally a way to find a garage without taking a punt. The rating actually meant something — they did the work, they own the review."
-              name="Ahmed S."
-              role="Owner · Dubai"
-            />
-            <TestimonialCard
-              body="Booked online, walked in, work was done. The rating prompt came the same day. The whole loop took me less than five minutes of attention."
-              name="Priya R."
-              role="Owner · Abu Dhabi"
-            />
-            <TestimonialCard
-              body="As a garage owner — leads come from the directory, customers self-register, my dashboard tells me who to follow up with. And it&apos;s free."
-              name="Marwan A."
-              role="Garage Owner · Sharjah"
-            />
-          </div>
+          </Reveal>
+          <Reveal stagger className="grid md:grid-cols-3 gap-4">
+            <Reveal variant="up">
+              <TestimonialCard
+                body="Finally a way to find a garage without taking a punt. The rating actually meant something — they did the work, they own the review."
+                name="Ahmed S."
+                role="Owner · Dubai"
+              />
+            </Reveal>
+            <Reveal variant="up">
+              <TestimonialCard
+                body="Booked online, walked in, work was done. The rating prompt came the same day. The whole loop took me less than five minutes of attention."
+                name="Priya R."
+                role="Owner · Abu Dhabi"
+              />
+            </Reveal>
+            <Reveal variant="up">
+              <TestimonialCard
+                body="As a garage owner — leads come from the directory, customers self-register, my dashboard tells me who to follow up with. And it&apos;s free."
+                name="Marwan A."
+                role="Garage Owner · Sharjah"
+              />
+            </Reveal>
+          </Reveal>
         </div>
       </section>
 
       {/* ───────────────── 8. FOR GARAGE OWNERS PITCH ───────────────── */}
       <section className="py-24 md:py-[120px] bg-iron">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          <GarageDashboardMock />
-          <div>
+          <Reveal variant="left">
+            <GarageDashboardMock />
+          </Reveal>
+          <Reveal variant="right" delay={0.1}>
             <Kicker>Exceptional Features for Garages</Kicker>
             <h2
               className="font-black mt-5 text-ink"
@@ -351,14 +368,14 @@ export default async function Home({
                 Learn more
               </Link>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* ───────────────── 9. 5 BENEFIT ROWS (alternating) ───────────────── */}
       <section id="benefits" className="py-24 md:py-[120px]">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10">
-          <div className="text-center max-w-2xl mx-auto mb-16">
+          <Reveal variant="up" className="text-center max-w-2xl mx-auto mb-16">
             <Kicker>Explore Our Benefits</Kicker>
             <h2
               className="font-black mt-5 text-ink"
@@ -374,47 +391,23 @@ export default async function Home({
               Simplifying how UAE drivers find a garage — and how good garages
               get found.
             </p>
-          </div>
+          </Reveal>
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <BenefitCard
-              icon="search"
-              title="Verified Rating Engine"
-              body="Every star is tied to a verified service entry the garage attested. No fake reviews. No bought stars. Just the work that was actually done."
-            />
-            <BenefitCard
-              icon="calendar"
-              title="One-Tap Booking"
-              body="Customer picks a date, garage confirms, work happens. Booking flows through the app and end up in the garage&apos;s pipeline automatically."
-            />
-            <BenefitCard
-              icon="phone"
-              title="WhatsApp-Ready Reminders"
-              body="When a service is due, customers get a nudge. When a job is done, they get a rating prompt. Built for how UAE drivers actually communicate."
-            />
-            <BenefitCard
-              icon="shield"
-              title="Trade-Licence Verified"
-              body="Silver-tier garages have a UAE trade licence on file. Gold-tier garages also have 100+ verified jobs and a 4.5★ rating across 5+ reviews."
-            />
-            <BenefitCard
-              icon="chart"
-              title="Free CRM for Garages"
-              body="Customer roster, deal pipeline, automated reminders, rating trend. Run your shop on Vehkit — we don&apos;t charge a dirham."
-            />
-            <BenefitCard
-              icon="lock"
-              title="Owner-Controlled Records"
-              body="Your service history travels with the car, not the garage. Owners control what&apos;s public, what stays private, who sees what."
-            />
-          </div>
+          <Reveal stagger className="grid md:grid-cols-2 gap-4">
+            <Reveal variant="up"><BenefitCard icon="search" title="Verified Rating Engine" body="Every star is tied to a verified service entry the garage attested. No fake reviews. No bought stars. Just the work that was actually done." /></Reveal>
+            <Reveal variant="up"><BenefitCard icon="calendar" title="One-Tap Booking" body="Customer picks a date, garage confirms, work happens. Booking flows through the app and end up in the garage&apos;s pipeline automatically." /></Reveal>
+            <Reveal variant="up"><BenefitCard icon="phone" title="WhatsApp-Ready Reminders" body="When a service is due, customers get a nudge. When a job is done, they get a rating prompt. Built for how UAE drivers actually communicate." /></Reveal>
+            <Reveal variant="up"><BenefitCard icon="shield" title="Trade-Licence Verified" body="Silver-tier garages have a UAE trade licence on file. Gold-tier garages also have 100+ verified jobs and a 4.5★ rating across 5+ reviews." /></Reveal>
+            <Reveal variant="up"><BenefitCard icon="chart" title="Free CRM for Garages" body="Customer roster, deal pipeline, automated reminders, rating trend. Run your shop on Vehkit — we don&apos;t charge a dirham." /></Reveal>
+            <Reveal variant="up"><BenefitCard icon="lock" title="Owner-Controlled Records" body="Your service history travels with the car, not the garage. Owners control what&apos;s public, what stays private, who sees what." /></Reveal>
+          </Reveal>
         </div>
       </section>
 
       {/* ───────────────── 10. CHIP-ICON GRID ───────────────── */}
       <section className="py-20 md:py-24 bg-iron">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10">
-          <div className="text-center max-w-2xl mx-auto mb-12">
+          <Reveal variant="up" className="text-center max-w-2xl mx-auto mb-12">
             <Kicker>Powerful by default</Kicker>
             <h2
               className="font-black mt-5 text-ink"
@@ -426,23 +419,23 @@ export default async function Home({
             >
               Built for how UAE drivers actually live.
             </h2>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
-            <ChipIcon label="Secure" />
-            <ChipIcon label="Verified Reviews" />
-            <ChipIcon label="Real-Time Updates" />
-            <ChipIcon label="Mobile-First" />
-            <ChipIcon label="Multi-lingual" />
-            <ChipIcon label="AI-Assisted" />
-            <ChipIcon label="Easy to Use" />
-          </div>
+          </Reveal>
+          <Reveal stagger className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            <Reveal variant="scale"><ChipIcon label="Secure" /></Reveal>
+            <Reveal variant="scale"><ChipIcon label="Verified Reviews" /></Reveal>
+            <Reveal variant="scale"><ChipIcon label="Real-Time Updates" /></Reveal>
+            <Reveal variant="scale"><ChipIcon label="Mobile-First" /></Reveal>
+            <Reveal variant="scale"><ChipIcon label="Multi-lingual" /></Reveal>
+            <Reveal variant="scale"><ChipIcon label="AI-Assisted" /></Reveal>
+            <Reveal variant="scale"><ChipIcon label="Easy to Use" /></Reveal>
+          </Reveal>
         </div>
       </section>
 
       {/* ───────────────── 11. BIG NUMBER CARDS ───────────────── */}
       <section id="numbers" className="py-24 md:py-[120px]">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10">
-          <div className="text-center max-w-2xl mx-auto mb-14">
+          <Reveal variant="up" className="text-center max-w-2xl mx-auto mb-14">
             <Kicker>Focus on what matters</Kicker>
             <h2
               className="font-black mt-5 text-ink"
@@ -455,22 +448,22 @@ export default async function Home({
               Designed to{' '}
               <span className="text-leaf">save you the bad-garage tax.</span>
             </h2>
-          </div>
+          </Reveal>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-px bg-seam rounded-3xl overflow-hidden border border-seam">
-            <BigNumber n={`${networkCount || 50}+`} l="Verified garages" />
-            <BigNumber n={avgRating ? avgRating.toFixed(1) : '4.8'} l="Average rating" />
-            <BigNumber n="2 min" l="To book a visit" />
-            <BigNumber n="24/7" l="Always-on bookings" />
-            <BigNumber n="0" l="Fake reviews possible" />
-            <BigNumber n="Free" l="For drivers, forever" />
-          </div>
+          <Reveal stagger className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-px bg-seam rounded-3xl overflow-hidden border border-seam">
+            <Reveal variant="scale"><BigNumber n={`${networkCount || 50}+`} l="Verified garages" /></Reveal>
+            <Reveal variant="scale"><BigNumber n={avgRating ? avgRating.toFixed(1) : '4.8'} l="Average rating" /></Reveal>
+            <Reveal variant="scale"><BigNumber n="2 min" l="To book a visit" /></Reveal>
+            <Reveal variant="scale"><BigNumber n="24/7" l="Always-on bookings" /></Reveal>
+            <Reveal variant="scale"><BigNumber n="0" l="Fake reviews possible" /></Reveal>
+            <Reveal variant="scale"><BigNumber n="Free" l="For drivers, forever" /></Reveal>
+          </Reveal>
         </div>
       </section>
 
       {/* ───────────────── 12. COMING SOON ───────────────── */}
       <section className="py-20 md:py-24">
-        <div className="max-w-[1240px] mx-auto px-6 md:px-10">
+        <Reveal variant="up" duration={0.8} className="max-w-[1240px] mx-auto px-6 md:px-10">
           <div className="dark rounded-[36px] p-10 md:p-16 grid md:grid-cols-[1.2fr_1fr] gap-10 items-center bg-noir text-chalk relative overflow-hidden">
             <div
               aria-hidden
@@ -520,13 +513,13 @@ export default async function Home({
               </div>
             </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* ───────────────── 13. FAQ ───────────────── */}
       <section id="faq" className="py-24 md:py-[120px] bg-iron">
         <div className="max-w-3xl mx-auto px-6 md:px-10">
-          <div className="text-center mb-12">
+          <Reveal variant="up" className="text-center mb-12">
             <Kicker>We&apos;ve got you covered</Kicker>
             <h2
               className="font-black mt-5 text-ink"
@@ -538,8 +531,8 @@ export default async function Home({
             >
               Frequently Asked Questions
             </h2>
-          </div>
-          <ul className="flex flex-col gap-3">
+          </Reveal>
+          <Reveal stagger as="ul" className="flex flex-col gap-3">
             <FAQItem
               q="What makes Vehkit different from Google reviews?"
               a="Every review on Vehkit is tied to a verified service entry the garage attested. To leave a review, someone must have had work done there — verified by a one-time code the garage handed them in person. Google has no way to enforce that. We do."
@@ -560,14 +553,14 @@ export default async function Home({
               q="Do you have an app?"
               a="Vehkit runs in your browser — no app store, no install. Open vehkit.com on your phone, sign in with magic link, you&apos;re in. Add to your home screen and it behaves like a native app."
             />
-          </ul>
+          </Reveal>
         </div>
       </section>
 
       {/* ───────────────── 14. CALLBACK FORM ───────────────── */}
       <section id="callback" className="py-24 md:py-[120px]">
         <div className="max-w-3xl mx-auto px-6 md:px-10">
-          <div className="text-center mb-10">
+          <Reveal variant="up" className="text-center mb-10">
             <Kicker>Run a garage?</Kicker>
             <h2
               className="font-black mt-5 text-ink"
@@ -583,7 +576,7 @@ export default async function Home({
               Tell us about your shop and we&apos;ll be in touch within 24
               hours. No payment, no commitment.
             </p>
-          </div>
+          </Reveal>
 
           {callbackSent ? (
             <div className="card p-8 md:p-10 text-center border border-leaf/30 bg-leaf/5">
