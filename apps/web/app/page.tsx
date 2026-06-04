@@ -136,14 +136,14 @@ export default async function Home({
                 maxWidth: '14ch',
               }}
             >
-              UAE Drivers Need A Garage,{' '}
-              <span className="italic font-light">Not A Gamble.</span>
+              Find a Garage{' '}
+              <span className="italic font-light">You Can Trust.</span>
             </h1>
             <p className="text-[18px] md:text-[20px] leading-[1.55] font-medium mt-7 text-mute max-w-[560px]">
-              Vehkit lets you find the right garage by{' '}
-              <span className="text-ink font-semibold">real customer ratings</span>{' '}
-              — every star anchored to a real job done. Browse, book, rate.
-              That&apos;s it.
+              Vehkit helps you discover trusted garages through{' '}
+              <span className="text-ink font-semibold">verified customer reviews</span>
+              . Every rating is linked to a completed service — so you can
+              book with confidence.
             </p>
             <div className="mt-9 flex items-center gap-4 flex-wrap">
               <Link
@@ -206,27 +206,27 @@ export default async function Home({
                 letterSpacing: '-0.04em',
               }}
             >
-              The trust layer{' '}
-              <span className="italic font-light">UAE garages were missing.</span>
+              A more reliable way to{' '}
+              <span className="italic font-light">choose a garage.</span>
             </h2>
             <p className="text-lg text-mute mt-6 leading-relaxed">
-              Simple. Verified. Honest. Designed to bring drivers and good
-              garages together — and keep the bad ones out.
+              Simple. Verified. Transparent. Designed to help drivers find
+              the right garage and help good garages get discovered.
             </p>
           </Reveal>
 
           <Reveal stagger className="grid md:grid-cols-2 gap-6">
             <Reveal variant="up">
               <FeatureCard
-                title="Never wonder if a star is real."
-                body="Every rating on Vehkit is tied to a verified service entry the garage attested. To leave a fake review, someone needs a fake job. Stars actually mean something here."
+                title="Every review is verified."
+                body="Each rating on Vehkit is tied to a completed service entry the garage attested. Every star reflects a real customer experience — no anonymous reviews, no incentives."
                 mockType="ratings"
               />
             </Reveal>
             <Reveal variant="up">
               <FeatureCard
-                title="Book in two taps. Rate in one."
-                body="Browse the directory, tap into a garage you like, fill the booking form. When the work is done, one-tap rating. No accounts to chase, no friction."
+                title="Simple booking. Honest feedback."
+                body="Browse the directory, open a garage profile, book a visit. After the work is done, share your experience. A straightforward review process designed for busy drivers."
                 mockType="booking"
               />
             </Reveal>
@@ -312,7 +312,7 @@ export default async function Home({
           <Reveal stagger className="grid md:grid-cols-3 gap-4">
             <Reveal variant="up">
               <TestimonialCard
-                body="Finally a way to find a garage without taking a punt. The rating actually meant something — they did the work, they own the review."
+                body="Finally a way to choose a garage with confidence. The rating reflects real work — the garage logs the job, the customer rates the result."
                 name="Ahmed S."
                 role="Owner · Dubai"
               />
@@ -342,7 +342,7 @@ export default async function Home({
             <GarageDashboardMock />
           </Reveal>
           <Reveal variant="right" delay={0.1}>
-            <Kicker>Exceptional Features for Garages</Kicker>
+            <Kicker>For garage owners</Kicker>
             <h2
               className="font-black mt-5 text-ink"
               style={{
@@ -352,15 +352,14 @@ export default async function Home({
                 maxWidth: '18ch',
               }}
             >
-              Run a garage?{' '}
-              <span className="italic font-light">We give you the customers.</span>
+              Grow your garage with{' '}
+              <span className="italic font-light">verified leads.</span>
             </h2>
             <p className="text-lg text-mute mt-6 leading-relaxed max-w-prose">
-              Vehkit is the first verified-rating directory built for UAE
-              garages. Claim your shop and we send you bookings, give you a
-              free CRM, let your real customers&apos; reviews drive your
-              ranking. We don&apos;t charge you. We don&apos;t take a cut of
-              your jobs. We don&apos;t sell ads to your competitors.
+              Vehkit is a verified-rating directory built for UAE garages.
+              Join the directory, manage bookings, and build your reputation
+              through real customer reviews — all without commission fees or
+              advertising costs.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link
@@ -393,7 +392,7 @@ export default async function Home({
                 letterSpacing: '-0.04em',
               }}
             >
-              Built around <span className="italic font-light">honest service.</span>
+              Designed for drivers <span className="italic font-light">and garages.</span>
             </h2>
             <p className="text-lg text-mute mt-6 leading-relaxed">
               Simplifying how UAE drivers find a garage — and how good garages
@@ -402,12 +401,12 @@ export default async function Home({
           </Reveal>
 
           <Reveal stagger className="grid md:grid-cols-2 gap-4">
-            <Reveal variant="up"><BenefitCard icon="search" title="Verified Rating Engine" body="Every star is tied to a verified service entry the garage attested. No fake reviews. No bought stars. Just the work that was actually done." /></Reveal>
-            <Reveal variant="up"><BenefitCard icon="calendar" title="One-Tap Booking" body="Customer picks a date, garage confirms, work happens. Booking flows through the app and end up in the garage&apos;s pipeline automatically." /></Reveal>
-            <Reveal variant="up"><BenefitCard icon="phone" title="WhatsApp-Ready Reminders" body="When a service is due, customers get a nudge. When a job is done, they get a rating prompt. Built for how UAE drivers actually communicate." /></Reveal>
-            <Reveal variant="up"><BenefitCard icon="shield" title="Trade-Licence Verified" body="Silver-tier garages have a UAE trade licence on file. Gold-tier garages also have 100+ verified jobs and a 4.5★ rating across 5+ reviews." /></Reveal>
-            <Reveal variant="up"><BenefitCard icon="chart" title="Free CRM for Garages" body="Customer roster, deal pipeline, automated reminders, rating trend. Run your shop on Vehkit — we don&apos;t charge a dirham." /></Reveal>
-            <Reveal variant="up"><BenefitCard icon="lock" title="Owner-Controlled Records" body="Your service history travels with the car, not the garage. Owners control what&apos;s public, what stays private, who sees what." /></Reveal>
+            <Reveal variant="up"><BenefitCard icon="search" title="Verified Reviews" body="Every rating is linked to a completed service the garage logged. Each star reflects a real customer experience — backed by service records, not anonymous opinions." /></Reveal>
+            <Reveal variant="up"><BenefitCard icon="calendar" title="Simple Online Booking" body="Choose a date, the garage confirms, the work happens. Bookings flow directly into the garage&apos;s pipeline — no phone tag, no missed appointments." /></Reveal>
+            <Reveal variant="up"><BenefitCard icon="phone" title="Service Reminders on WhatsApp" body="Reminders for upcoming service and rating prompts after completed work, delivered through the channels UAE drivers already use." /></Reveal>
+            <Reveal variant="up"><BenefitCard icon="shield" title="Trade-Licence Verified" body="Silver-tier garages have a UAE trade licence on file. Gold-tier garages also have 100+ completed services and a 4.5★ average across 5+ reviews." /></Reveal>
+            <Reveal variant="up"><BenefitCard icon="chart" title="Free Tools for Garages" body="Customer database, booking pipeline, service reminders, and review analytics — included at no cost, with no commission on jobs." /></Reveal>
+            <Reveal variant="up"><BenefitCard icon="lock" title="Owner-Controlled Records" body="Service history travels with the car. Owners decide what stays private and what gets shared — with full transparency." /></Reveal>
           </Reveal>
         </div>
       </section>
@@ -453,8 +452,8 @@ export default async function Home({
                 letterSpacing: '-0.04em',
               }}
             >
-              Designed to{' '}
-              <span className="italic font-light">save you the bad-garage tax.</span>
+              Helping drivers{' '}
+              <span className="italic font-light">make better decisions.</span>
             </h2>
           </Reveal>
 
@@ -463,8 +462,8 @@ export default async function Home({
             <Reveal variant="scale"><BigNumber n={avgRating ? avgRating.toFixed(1) : '4.8'} l="Average rating" /></Reveal>
             <Reveal variant="scale"><BigNumber n="2 min" l="To book a visit" /></Reveal>
             <Reveal variant="scale"><BigNumber n="24/7" l="Always-on bookings" /></Reveal>
-            <Reveal variant="scale"><BigNumber n="0" l="Fake reviews possible" /></Reveal>
-            <Reveal variant="scale"><BigNumber n="Free" l="For drivers, forever" /></Reveal>
+            <Reveal variant="scale"><BigNumber n="100%" l="Verified reviews" /></Reveal>
+            <Reveal variant="scale"><BigNumber n="Free" l="For drivers, always" /></Reveal>
           </Reveal>
         </div>
       </section>
@@ -503,10 +502,10 @@ export default async function Home({
                 <span className="text-wallet">Coming soon.</span>
               </h2>
               <p className="text-base md:text-lg mt-6 leading-relaxed text-chalk/80 max-w-prose">
-                Upload your mulkiya — we know your car&apos;s history.
-                Cross-reference against our verified rating data, and we
-                tell you which garage in your area handles your make &amp;
-                model best. Always with the rating receipts.
+                Upload your vehicle registration details and receive
+                recommendations based on your vehicle type, service history,
+                and verified customer feedback. Backed by real service
+                records — not opinions.
               </p>
               <Link
                 href="#callback"
@@ -680,8 +679,8 @@ export default async function Home({
                 <span>vehkit</span>
               </div>
               <p className="text-[14px] font-medium leading-[1.5] max-w-[34ch] text-mute">
-                Verified ratings for UAE garages. Find a great mechanic. Stop
-                gambling.
+                Verified garages. Verified reviews. Helping UAE drivers
+                choose with confidence.
               </p>
             </div>
             <FooterCol
@@ -715,7 +714,7 @@ export default async function Home({
             style={{ letterSpacing: '0.18em' }}
           >
             <span>© {new Date().getFullYear()} Vehkit</span>
-            <span>Real customers. Real ratings.</span>
+            <span>Verified garages. Verified reviews.</span>
           </div>
         </div>
       </footer>
