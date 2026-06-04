@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { applyExtractedToVehicle } from '@/app/actions/documents'
+import type { ExtractedMulkiya } from '@/lib/extract-mulkiya'
 
 /**
  * Multi-file document viewer.
@@ -28,6 +30,7 @@ export default async function DocumentViewPage({
     .from('vehicle_documents')
     .select(
       `id, doc_type, label, storage_path, file_type, expires_at, created_at,
+       extracted_data, extraction_status, extraction_error,
        files:vehicle_document_files(id, storage_path, file_type, file_size_bytes, position)`,
     )
     .eq('id', docId)
@@ -108,6 +111,19 @@ export default async function DocumentViewPage({
             {doc.expires_at && ` · Expires ${doc.expires_at}`}
           </p>
         </div>
+
+        {/* Extraction status / extracted-fields card (mulkiya only) */}
+        {doc.doc_type === 'mulkiya' && (
+          <ExtractionCard
+            vehicleId={id}
+            docId={doc.id}
+            status={doc.extraction_status}
+            error={doc.extraction_error}
+            extracted={
+              doc.extracted_data as ExtractedMulkiya | null
+            }
+          />
+        )}
 
         {/* Mobile: stacked list of compact rows.
             Desktop: 2/3-col grid of vertical tiles with bigger thumbnails. */}
@@ -254,5 +270,130 @@ function FileTile({
         </span>
       </div>
     </a>
+  )
+}
+
+/**
+ * Mulkiya extraction surface — shows pending / ready / failed / applied
+ * state. When ready, lists the fields Claude pulled and offers to apply
+ * them to the vehicle profile.
+ */
+function ExtractionCard({
+  vehicleId,
+  docId,
+  status,
+  error,
+  extracted,
+}: {
+  vehicleId: string
+  docId: string
+  status: 'pending' | 'ready' | 'failed' | 'applied' | null
+  error: string | null
+  extracted: ExtractedMulkiya | null
+}) {
+  if (!status) return null
+
+  if (status === 'pending') {
+    return (
+      <div className="mt-6 card p-5 border border-leaf/30 bg-leaf/5">
+        <div className="flex items-center gap-3">
+          <span
+            className="w-5 h-5 rounded-full border-2 border-leaf/40 border-t-leaf animate-spin shrink-0"
+            aria-hidden
+          />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-chalk">
+              Reading your mulkiya…
+            </p>
+            <p className="text-xs text-ash mt-0.5">
+              We&apos;re pulling the plate, VIN, make &amp; model, and expiry.
+              Refresh in a few seconds.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (status === 'failed') {
+    return (
+      <div className="mt-6 card p-5 border border-signal/30 bg-signal/[0.04]">
+        <p className="text-xs tracking-widest uppercase text-signal">
+          Couldn&apos;t read this mulkiya
+        </p>
+        <p className="text-sm text-chalk mt-2 leading-snug">
+          {error ?? 'Try a clearer photo with all four corners visible.'}
+        </p>
+      </div>
+    )
+  }
+
+  if (status === 'applied') {
+    return (
+      <div className="mt-6 card p-5 border border-leaf/30 bg-leaf/5">
+        <p className="text-xs tracking-widest uppercase text-leaf">
+          ✓ Applied to your car
+        </p>
+        <p className="text-xs text-ash mt-2 leading-snug">
+          The details from this mulkiya have been added to the vehicle.
+        </p>
+      </div>
+    )
+  }
+
+  // status === 'ready'
+  if (!extracted) return null
+
+  const fields: Array<{ label: string; value: string | number | null }> = [
+    { label: 'Make', value: extracted.vehicle_make },
+    { label: 'Model', value: extracted.vehicle_model },
+    { label: 'Year', value: extracted.year },
+    { label: 'Plate', value: extracted.plate_number },
+    { label: 'Emirate', value: extracted.plate_emirate },
+    { label: 'VIN', value: extracted.vin },
+    { label: 'Expires', value: extracted.expires_at },
+  ]
+  const populated = fields.filter((f) => f.value != null && f.value !== '')
+
+  if (populated.length === 0) return null
+
+  return (
+    <div className="mt-6 card p-5 md:p-6 border border-leaf/40 bg-leaf/5">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="min-w-0">
+          <p className="text-[10px] tracking-widest uppercase text-leaf">
+            ✨ We found these details
+          </p>
+          <h3 className="text-lg md:text-xl font-semibold text-chalk mt-1 leading-tight">
+            Apply them to your car?
+          </h3>
+          <p className="text-xs text-ash mt-2 leading-relaxed max-w-md">
+            Read straight from your mulkiya. We only fill in blanks — anything
+            you&apos;ve already typed stays as you set it.
+          </p>
+        </div>
+      </div>
+
+      <dl className="mt-5 grid grid-cols-2 md:grid-cols-3 gap-3">
+        {populated.map((f) => (
+          <div key={f.label} className="min-w-0">
+            <dt className="text-[10px] tracking-widest uppercase text-ash">
+              {f.label}
+            </dt>
+            <dd className="text-sm md:text-base font-semibold text-chalk mt-1 font-mono tabular-nums tracking-tight truncate">
+              {String(f.value)}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      <form action={applyExtractedToVehicle} className="mt-5">
+        <input type="hidden" name="document_id" value={docId} />
+        <input type="hidden" name="vehicle_id" value={vehicleId} />
+        <button type="submit" className="pill-primary inline-flex items-center gap-2">
+          Apply to my car <span aria-hidden>→</span>
+        </button>
+      </form>
+    </div>
   )
 }

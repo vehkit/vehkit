@@ -21,10 +21,11 @@ export const dynamic = 'force-dynamic'
 export default async function WorkshopDirectoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ emirate?: string }>
+  searchParams: Promise<{ emirate?: string; q?: string }>
 }) {
   const sp = await searchParams
   const emirate = sp.emirate ?? null
+  const query = (sp.q ?? '').trim().toLowerCase()
 
   const supabase = await createClient()
   const { data: rows } = await supabase.rpc('public_workshop_directory', {
@@ -33,7 +34,16 @@ export default async function WorkshopDirectoryPage({
     p_offset: 0,
   })
 
-  const workshops = (rows ?? []) as DirectoryRow[]
+  let workshops = (rows ?? []) as DirectoryRow[]
+
+  // Text filter client-side over the directory RPC result. Faster than
+  // adding a search index on the RPC for now; we can promote to DB-side
+  // filtering if the directory grows past a few hundred shops.
+  if (query) {
+    workshops = workshops.filter((w) =>
+      `${w.name} ${w.emirate ?? ''}`.toLowerCase().includes(query),
+    )
+  }
 
   // Garage-wide stats for the editorial header
   const totalWorkshops = workshops.length
@@ -110,8 +120,41 @@ export default async function WorkshopDirectoryPage({
           )}
         </div>
 
+        {/* Search box — text filter for workshop name */}
+        <form className="mt-6 mb-3" method="get">
+          {emirate && (
+            <input type="hidden" name="emirate" value={emirate} />
+          )}
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ash pointer-events-none">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-4-4" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              name="q"
+              defaultValue={query}
+              placeholder="Search by garage name or area…"
+              className="field pl-11 w-full"
+              autoComplete="off"
+            />
+          </div>
+        </form>
+
         {/* Emirate filter chips */}
-        <form className="mt-6 mb-4 flex gap-2 flex-wrap">
+        <form className="mb-4 flex gap-2 flex-wrap">
           <FilterPill
             href="/workshops"
             label="All"

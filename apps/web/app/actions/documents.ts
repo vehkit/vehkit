@@ -3,6 +3,10 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import {
+  extractMulkiyaFromImage,
+  type ExtractedMulkiya,
+} from '@/lib/extract-mulkiya'
 
 function strOrNull(v: FormDataEntryValue | null): string | null {
   if (v === null) return null
@@ -144,6 +148,163 @@ export async function createVehicleDocument(formData: FormData) {
       `/vehicles/${vehicleId}/documents/new?error=${encodeURIComponent(childErr.message)}`,
     )
   }
+
+  // Mulkiya only — fire-and-forget extraction so the user redirect isn't
+  // blocked on Claude's response. The extraction writes back to the doc
+  // row when done; the UI polls via revalidation when user lands on the
+  // doc view.
+  if (docType === 'mulkiya' && fileEntries[0]) {
+    await supabase
+      .from('vehicle_documents')
+      .update({ extraction_status: 'pending' })
+      .eq('id', doc.id)
+
+    // Fire async; don't await the redirect on it. Errors logged inside.
+    void runMulkiyaExtraction(doc.id, fileEntries[0], vehicleId)
+  }
+
+  revalidatePath(`/vehicles/${vehicleId}`)
+  redirect(`/vehicles/${vehicleId}#documents`)
+}
+
+/**
+ * Send the mulkiya image to Claude, parse the structured response, and
+ * write it back to the document row. Runs out-of-band of the user's
+ * redirect; the doc-view page reads the result.
+ *
+ * Designed to NEVER throw — we always end with a status the UI can read.
+ */
+async function runMulkiyaExtraction(
+  docId: string,
+  file: File,
+  vehicleId: string,
+): Promise<void> {
+  try {
+    // Only photos for now. PDFs need a different content shape — we'll
+    // mark them failed with a friendly error rather than crashing.
+    if (!file.type.startsWith('image/')) {
+      const supabase = await createClient()
+      await supabase
+        .from('vehicle_documents')
+        .update({
+          extraction_status: 'failed',
+          extraction_error: 'PDF extraction not supported yet — try a photo.',
+        })
+        .eq('id', docId)
+      return
+    }
+
+    // Convert file to base64
+    const buf = await file.arrayBuffer()
+    const b64 = Buffer.from(buf).toString('base64')
+
+    const extracted = await extractMulkiyaFromImage(b64, file.type)
+
+    const supabase = await createClient()
+
+    if (!extracted) {
+      await supabase
+        .from('vehicle_documents')
+        .update({
+          extraction_status: 'failed',
+          extraction_error:
+            'Could not read the mulkiya. Try a clearer photo with all four corners visible.',
+          extracted_at: new Date().toISOString(),
+        })
+        .eq('id', docId)
+      return
+    }
+
+    // Promote the expires_at from the extracted data onto the parent row
+    // — that's what fires the renewal reminder cron. The other fields
+    // wait for the user to click "Apply to my car."
+    const updates: Record<string, unknown> = {
+      extracted_data: extracted,
+      extraction_status: 'ready',
+      extracted_at: new Date().toISOString(),
+    }
+    if (extracted.expires_at) {
+      updates.expires_at = extracted.expires_at
+    }
+
+    await supabase.from('vehicle_documents').update(updates).eq('id', docId)
+    // Revalidate the vehicle page so when the user navigates back, the
+    // freshly extracted data is visible.
+    revalidatePath(`/vehicles/${vehicleId}`)
+  } catch (err) {
+    console.error('[runMulkiyaExtraction] failed', err)
+    try {
+      const supabase = await createClient()
+      await supabase
+        .from('vehicle_documents')
+        .update({
+          extraction_status: 'failed',
+          extraction_error: 'Unexpected error during extraction.',
+          extracted_at: new Date().toISOString(),
+        })
+        .eq('id', docId)
+    } catch {
+      // Last-ditch — silently give up rather than throw out of an async branch
+    }
+  }
+}
+
+/**
+ * Owner clicks "Apply to my car" on the extracted-fields card.
+ * Writes the extracted fields back to the vehicle row (only filling
+ * blanks unless the user opted to overwrite — for now, blanks only).
+ */
+export async function applyExtractedToVehicle(formData: FormData) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const docId = strOrNull(formData.get('document_id'))
+  const vehicleId = strOrNull(formData.get('vehicle_id'))
+  if (!docId || !vehicleId) redirect('/mycars')
+
+  const { data: doc } = await supabase
+    .from('vehicle_documents')
+    .select('extracted_data, extraction_status')
+    .eq('id', docId)
+    .maybeSingle()
+
+  if (!doc || doc.extraction_status !== 'ready' || !doc.extracted_data) {
+    redirect(`/vehicles/${vehicleId}#documents`)
+  }
+
+  const e = doc.extracted_data as ExtractedMulkiya
+
+  // Fetch current vehicle so we only fill in blank fields — never
+  // overwrite something the user has typed in.
+  const { data: vehicle } = await supabase
+    .from('vehicles')
+    .select('make, model, year, plate_number, plate_emirate, vin')
+    .eq('id', vehicleId)
+    .maybeSingle()
+
+  if (!vehicle) redirect(`/vehicles/${vehicleId}#documents`)
+
+  const updates: Record<string, unknown> = {}
+  if (!vehicle.make && e.vehicle_make) updates.make = e.vehicle_make
+  if (!vehicle.model && e.vehicle_model) updates.model = e.vehicle_model
+  if (!vehicle.year && e.year) updates.year = e.year
+  if (!vehicle.plate_number && e.plate_number)
+    updates.plate_number = e.plate_number
+  if (!vehicle.plate_emirate && e.plate_emirate)
+    updates.plate_emirate = e.plate_emirate
+  if (!vehicle.vin && e.vin) updates.vin = e.vin
+
+  if (Object.keys(updates).length > 0) {
+    await supabase.from('vehicles').update(updates).eq('id', vehicleId)
+  }
+
+  await supabase
+    .from('vehicle_documents')
+    .update({ extraction_status: 'applied' })
+    .eq('id', docId)
 
   revalidatePath(`/vehicles/${vehicleId}`)
   redirect(`/vehicles/${vehicleId}#documents`)

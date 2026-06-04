@@ -166,29 +166,35 @@ export default async function WorkshopPublicPage({
             <p className="text-xs text-ash/70 mt-1">Member since {memberSince}</p>
           </div>
 
-          {/* Contact pills */}
-          {(w.phone || w.email) && (
-            <div className="flex flex-wrap gap-2 mt-4">
-              {w.phone && (
-                <a
-                  href={`tel:${w.phone}`}
-                  className="pill-outline text-xs flex items-center gap-2"
-                >
-                  <span className="text-ash">📞</span>
-                  <span className="font-mono">{w.phone}</span>
-                </a>
-              )}
-              {w.email && (
-                <a
-                  href={`mailto:${w.email}`}
-                  className="pill-outline text-xs flex items-center gap-2"
-                >
-                  <span className="text-ash">✉</span>
-                  <span className="font-mono">{w.email}</span>
-                </a>
-              )}
-            </div>
-          )}
+          {/* PRIMARY CTA — Book a visit. Conversion page hero action.
+              Always shown so customers can act immediately; the booking
+              flow itself handles auth (redirects to /login if needed). */}
+          <div className="mt-5 flex flex-wrap gap-2 items-center">
+            <Link
+              href={`/w/${w.slug}/book`}
+              className="pill-primary inline-flex items-center gap-2"
+            >
+              Book a visit <span aria-hidden>→</span>
+            </Link>
+            {w.phone && (
+              <a
+                href={`tel:${w.phone}`}
+                className="pill-outline text-xs flex items-center gap-2"
+              >
+                <span className="text-ash">📞</span>
+                <span className="font-mono">{w.phone}</span>
+              </a>
+            )}
+            {w.email && (
+              <a
+                href={`mailto:${w.email}`}
+                className="pill-outline text-xs flex items-center gap-2"
+              >
+                <span className="text-ash">✉</span>
+                <span className="font-mono">{w.email}</span>
+              </a>
+            )}
+          </div>
         </header>
 
         {/* Multi-axis rating breakdown (only shown when at least one axis has data) */}

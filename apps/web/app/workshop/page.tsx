@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { StarRating } from '@/components/StarRating'
+import { acceptBooking, declineBooking } from '@/app/actions/bookings'
 
 export const dynamic = 'force-dynamic'
 
@@ -142,6 +143,7 @@ export default async function WorkshopDashboardPage() {
     reviewsRes,
     pendingRes,
     upcomingRes,
+    bookingsRes,
   ] = await Promise.all([
     supabase.rpc('workshop_full_stats', { p_workshop_id: workshopId }),
     supabase.rpc('workshop_weekly_series', { p_workshop_id: workshopId, p_weeks: 12 }),
@@ -150,6 +152,14 @@ export default async function WorkshopDashboardPage() {
     supabase.rpc('workshop_recent_reviews', { p_workshop_id: workshopId, p_limit: 5 }),
     supabase.rpc('workshop_pending_entries', { p_workshop_id: workshopId }),
     supabase.rpc('workshop_upcoming_visits', { p_workshop_id: workshopId, p_days_ahead: 30 }),
+    supabase
+      .from('booking_requests')
+      .select(
+        'id, service_category, preferred_date, message, contact_phone, status, created_at',
+      )
+      .eq('workshop_id', workshopId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true }),
   ])
 
   const stats = (statsRes.data as FullStats) ?? null
@@ -159,6 +169,15 @@ export default async function WorkshopDashboardPage() {
   const reviews = (reviewsRes.data as ReviewRow[]) ?? []
   const pending = (pendingRes.data as PendingRow[]) ?? []
   const upcoming = (upcomingRes.data as UpcomingRow[]) ?? []
+  const bookings = (bookingsRes.data ?? []) as Array<{
+    id: string
+    service_category: string
+    preferred_date: string | null
+    message: string | null
+    contact_phone: string | null
+    status: string
+    created_at: string
+  }>
 
   const tierLabel =
     workshop.verification_tier === 'gold'
@@ -271,6 +290,62 @@ export default async function WorkshopDashboardPage() {
             }
           />
         </section>
+
+        {/* NEW BOOKINGS — customers requesting to visit. The "free leads"
+            pitch made real. Accept → flips status to confirmed, customer
+            is notified. */}
+        {bookings.length > 0 && (
+          <section className="mt-8">
+            <SectionHeader
+              title={`New bookings · ${bookings.length}`}
+              hint="Customers want to visit you"
+              tone="leaf"
+            />
+            <ul className="card divide-y divide-seam">
+              {bookings.map((b) => (
+                <li key={b.id} className="px-4 py-4 flex items-start gap-3">
+                  <div className="w-2 h-2 rounded-full bg-leaf shrink-0 mt-2" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-chalk">
+                      {b.service_category}
+                    </p>
+                    <p className="text-xs text-ash mt-1">
+                      {b.preferred_date
+                        ? `Wants ${new Date(b.preferred_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+                        : 'No date specified'}
+                      {b.contact_phone && ` · ${b.contact_phone}`}
+                    </p>
+                    {b.message && (
+                      <p className="text-xs text-chalk/80 mt-1.5 leading-snug max-w-prose">
+                        &ldquo;{b.message}&rdquo;
+                      </p>
+                    )}
+                    <div className="mt-3 flex gap-2">
+                      <form action={acceptBooking} className="inline">
+                        <input type="hidden" name="booking_id" value={b.id} />
+                        <button
+                          type="submit"
+                          className="text-[11px] tracking-widest uppercase bg-leaf/20 text-leaf hover:bg-leaf/30 transition-colors px-3 py-1.5 rounded-pill font-medium"
+                        >
+                          Accept
+                        </button>
+                      </form>
+                      <form action={declineBooking} className="inline">
+                        <input type="hidden" name="booking_id" value={b.id} />
+                        <button
+                          type="submit"
+                          className="text-[11px] tracking-widest uppercase text-ash hover:text-chalk transition-colors px-3 py-1.5 rounded-pill border border-seam font-medium"
+                        >
+                          Decline
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* Pending — within 24h retract window */}
         {pending.length > 0 && (
