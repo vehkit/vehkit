@@ -41,7 +41,11 @@ export async function updateSession(request: NextRequest) {
     '/fleet',
     '/profile',
   ]
-  const isWorkshopArea = path.startsWith('/workshop')
+  // CRITICAL: distinguish '/workshop' (singular — the workshop owner's
+  // dashboard, protected) from '/workshops' (plural — the public
+  // directory, anyone can browse). startsWith('/workshop') matched both.
+  const isWorkshopArea =
+    path === '/workshop' || path.startsWith('/workshop/')
   const isPublicWorkshopPath =
     path.startsWith('/workshop/claim') || path.startsWith('/workshop/start')
   const requiresAuth =
