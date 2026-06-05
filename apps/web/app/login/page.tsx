@@ -131,9 +131,11 @@ function contextLabel(next: string): {
       sub: "Click the link in your email — you'll land in the fleet dashboard.",
     }
   }
+  // Default case — same page handles both first-time sign-up and
+  // returning sign-in (magic link auth), so the copy stays neutral.
   return {
-    eyebrow: 'Sign in',
-    heading: 'Welcome back',
-    sub: "We'll email you a magic link. No password to remember.",
+    eyebrow: 'Sign in or create account',
+    heading: 'Welcome to Vehkit',
+    sub: "Enter your email — we'll send you a magic link. No password to remember, no separate sign-up.",
   }
 }
