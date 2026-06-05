@@ -241,8 +241,13 @@ export default async function MyCarsPage() {
     .filter((s) => s.confirmed_at || s.attestation === 'owner')
     .slice(0, 5)
 
-  const firstName = (user.email ?? 'there').split('@')[0].split('.')[0]
-  const greetingName = firstName.charAt(0).toUpperCase() + firstName.slice(1)
+  // user.email is optional on Supabase users; tolerate undefined at each step.
+  const emailLocal = (user.email ?? 'there').split('@')[0] ?? 'there'
+  const firstName = emailLocal.split('.')[0] ?? emailLocal
+  const greetingName =
+    firstName.length > 0
+      ? firstName.charAt(0).toUpperCase() + firstName.slice(1)
+      : 'there'
 
   // ── empty state ──────────────────────────────────────────────────
   if (vehicles.length === 0) {
