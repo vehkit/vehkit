@@ -71,9 +71,37 @@ async function detectPrimaryRoleDestination(userId: string): Promise<string> {
   return '/mycars'
 }
 
+type OtpType =
+  | 'magiclink'
+  | 'signup'
+  | 'invite'
+  | 'recovery'
+  | 'email_change'
+  | 'email'
+
+const ALLOWED_OTP_TYPES: ReadonlySet<OtpType> = new Set<OtpType>([
+  'magiclink',
+  'signup',
+  'invite',
+  'recovery',
+  'email_change',
+  'email',
+])
+
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
+  // Two parallel flows are tolerated here:
+  //   1. `?code=` — OAuth / older magic-link flow → exchangeCodeForSession
+  //      (requires the PKCE verifier cookie set when signInWithOtp ran).
+  //   2. `?token_hash=&type=` — Supabase's SSR-recommended magic-link
+  //      flow → verifyOtp. NO PKCE verifier needed, so this survives
+  //      cross-browser / cross-device magic-link clicks that strand the
+  //      code flow.
+  // Production should be on token_hash (Email Template uses it). The
+  // code branch stays as a fallback for OAuth providers we may add.
   const code = searchParams.get('code')
+  const tokenHash = searchParams.get('token_hash')
+  const typeRaw = searchParams.get('type')
 
   // Read both sources up front so we can clear the cookie regardless of path.
   const c = await cookies()
@@ -82,21 +110,37 @@ export async function GET(request: NextRequest) {
   // Single-use cookie — clear after read.
   c.set('vehkit-auth-next', '', { path: '/', maxAge: 0 })
 
-  // Sanitize each source independently. Cookie takes priority because it's
-  // httpOnly and harder to spoof; falls back to the URL param (which now
-  // carries the value across device hops).
   const explicitNext = sanitizeNext(cookieRaw) ?? sanitizeNext(queryRaw)
 
-  if (!code) {
+  if (!code && !tokenHash) {
     return NextResponse.redirect(`${origin}/login?error=auth_failed`)
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.exchangeCodeForSession(code)
-  if (error) {
-    return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent(error.message)}`,
-    )
+
+  if (tokenHash) {
+    const type = (typeRaw ?? 'email') as OtpType
+    if (!ALLOWED_OTP_TYPES.has(type)) {
+      return NextResponse.redirect(
+        `${origin}/login?error=${encodeURIComponent('Unknown OTP type: ' + type)}`,
+      )
+    }
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type,
+    })
+    if (error) {
+      return NextResponse.redirect(
+        `${origin}/login?error=${encodeURIComponent(error.message)}`,
+      )
+    }
+  } else if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (error) {
+      return NextResponse.redirect(
+        `${origin}/login?error=${encodeURIComponent(error.message)}`,
+      )
+    }
   }
 
   // Resolve final destination.
