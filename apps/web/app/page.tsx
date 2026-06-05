@@ -75,7 +75,11 @@ export default async function Home({
       : null
 
   return (
-    <main className="light min-h-[100svh] bg-paper text-ink font-sans">
+    <main className="light relative min-h-[100svh] bg-paper text-ink font-sans">
+      {/* Ambient page paint — soft leaf + wallet blobs behind everything.
+          Dark sections cover it; paper sections let it bleed through. */}
+      <PaperAtmosphere />
+
       {/* ───────────────────────── 1. NAV ───────────────────────── */}
       <header className="sticky top-0 z-50 backdrop-blur bg-paper/80 border-b border-seam">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10 flex items-center gap-8 h-[72px]">
@@ -767,6 +771,28 @@ function Kicker({
  *   right-left — mirrored (leaf top-right, wallet bottom-left)
  *   banner     — leaf-only, low and wide, for thin banner sections
  */
+/**
+ * PaperAtmosphere — page-level ambient gradient blobs that paint the
+ * cream-paper background subtly. Fixed so it stays in view as you
+ * scroll; -z-10 so any opaque (dark/carbon) section fully occludes it.
+ * Only paper-bg sections let it bleed through.
+ */
+function PaperAtmosphere() {
+  return (
+    <div
+      aria-hidden
+      className="fixed inset-0 pointer-events-none -z-10"
+      style={{
+        background: `
+          radial-gradient(ellipse 900px 700px at 12% 8%, rgb(var(--leaf) / 0.14), transparent 60%),
+          radial-gradient(ellipse 800px 600px at 88% 35%, rgb(var(--wallet) / 0.12), transparent 60%),
+          radial-gradient(ellipse 1000px 700px at 50% 95%, rgb(var(--leaf) / 0.10), transparent 65%)
+        `,
+      }}
+    />
+  )
+}
+
 function AmbientGradient({
   placement,
 }: {
