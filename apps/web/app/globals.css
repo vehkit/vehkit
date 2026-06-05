@@ -74,8 +74,19 @@
     background: rgb(var(--noir));
     color: rgb(var(--chalk));
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior-y: auto;
+    letter-spacing: -0.011em;
+    line-height: 1.55;
+    font-feature-settings: 'ss01', 'cv11';
+  }
+
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.035em;
+    line-height: 1.05;
   }
 
   ::selection {

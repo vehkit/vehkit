@@ -1,13 +1,19 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Nunito } from 'next/font/google'
+import { Plus_Jakarta_Sans, Nunito } from 'next/font/google'
 import { cookies } from 'next/headers'
 import './globals.css'
 import { AppNav } from '@/components/AppNav'
 import { THEME_COLORS } from '@/lib/brand-colors'
 
-const inter = Inter({
+// Plus Jakarta Sans — Kendal-style display font. Full weight
+// range + italics so headings, body, and italic emphases share
+// one geometric family. CSS-var name stays --font-inter so
+// Tailwind's font-sans token doesn't need rewiring.
+const inter = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-inter',
+  weight: ['200', '300', '400', '500', '600', '700', '800'],
+  style: ['normal', 'italic'],
   display: 'swap',
 })
 
