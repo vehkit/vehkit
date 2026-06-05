@@ -726,6 +726,18 @@ export default async function Home({
 // Helpers
 // ============================================================================
 
+/**
+ * Subtle inside-card paint. Soft leaf wash from top-right + wallet hint
+ * from bottom-left, layered over the carbon surface. Gives every card
+ * the same "lit from within" feel Kendal uses — depth without colour
+ * shouting. Applied via inline style on card components.
+ */
+const SUBTLE_CARD_GRADIENT = `
+  radial-gradient(ellipse 420px 320px at 100% 0%, rgb(var(--leaf) / 0.07), transparent 60%),
+  radial-gradient(ellipse 340px 260px at 0% 100%, rgb(var(--wallet) / 0.05), transparent 60%),
+  rgb(var(--carbon))
+`
+
 function Kicker({
   children,
   tone = 'light',
@@ -801,15 +813,18 @@ function FeatureCard({
   mockType: 'ratings' | 'booking'
 }) {
   return (
-    <div className="rounded-3xl p-8 md:p-10 bg-carbon border border-seam flex flex-col gap-5 min-h-[480px]">
+    <div
+      className="rounded-3xl p-8 md:p-10 border border-seam flex flex-col gap-5 min-h-[480px] relative overflow-hidden"
+      style={{ background: SUBTLE_CARD_GRADIENT }}
+    >
       {mockType === 'ratings' ? <RatingsMock /> : <BookingMock />}
       <h3
-        className="font-black text-[26px] md:text-[30px] leading-[1.1] text-ink mt-2"
+        className="font-black text-[26px] md:text-[30px] leading-[1.1] text-ink mt-2 relative"
         style={{ letterSpacing: '-0.03em' }}
       >
         {title}
       </h3>
-      <p className="text-[15px] leading-[1.6] font-medium text-mute">
+      <p className="text-[15px] leading-[1.6] font-medium text-mute relative">
         {body}
       </p>
     </div>
@@ -1037,7 +1052,10 @@ function TestimonialCard({
   role: string
 }) {
   return (
-    <div className="rounded-3xl p-7 bg-carbon border border-seam flex flex-col gap-5 min-h-[260px]">
+    <div
+      className="rounded-3xl p-7 border border-seam flex flex-col gap-5 min-h-[260px] relative overflow-hidden"
+      style={{ background: SUBTLE_CARD_GRADIENT }}
+    >
       <Stars n={5} />
       <p className="text-[16px] leading-[1.55] text-ink font-medium flex-1">
         &ldquo;{body}&rdquo;
@@ -1091,17 +1109,20 @@ function BenefitCard({
   body: string
 }) {
   return (
-    <div className="rounded-3xl p-7 md:p-8 bg-carbon border border-seam flex flex-col gap-3 min-h-[200px]">
-      <div className="w-12 h-12 rounded-2xl bg-leaf-50 text-leaf-dk grid place-items-center mb-2">
+    <div
+      className="rounded-3xl p-7 md:p-8 border border-seam flex flex-col gap-3 min-h-[200px] relative overflow-hidden"
+      style={{ background: SUBTLE_CARD_GRADIENT }}
+    >
+      <div className="w-12 h-12 rounded-2xl bg-leaf-50 text-leaf-dk grid place-items-center mb-2 relative">
         <BenefitIcon name={icon} />
       </div>
       <h3
-        className="font-black text-[22px] leading-tight text-ink"
+        className="font-black text-[22px] leading-tight text-ink relative"
         style={{ letterSpacing: '-0.03em' }}
       >
         {title}
       </h3>
-      <p className="text-[15px] leading-[1.55] font-medium text-mute">
+      <p className="text-[15px] leading-[1.55] font-medium text-mute relative">
         {body}
       </p>
     </div>
