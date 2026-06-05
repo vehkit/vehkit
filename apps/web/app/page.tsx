@@ -123,16 +123,16 @@ export default async function Home({
       </header>
 
       {/* ───────────────────── 2. HERO ───────────────────── */}
-      <section className="pt-16 md:pt-24 pb-20 md:pb-32 overflow-hidden">
+      <section className="pt-20 md:pt-32 pb-24 md:pb-40 overflow-hidden">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10 grid lg:grid-cols-[1.15fr_1fr] gap-12 lg:gap-16 items-center">
           <Reveal variant="left" duration={0.8}>
             <Kicker>Verified Garage Network</Kicker>
             <h1
               className="font-black mt-5 text-ink"
               style={{
-                fontSize: 'clamp(44px,6.5vw,96px)',
-                lineHeight: 0.95,
-                letterSpacing: '-0.045em',
+                fontSize: 'clamp(48px,7.2vw,112px)',
+                lineHeight: 0.9,
+                letterSpacing: '-0.05em',
                 maxWidth: '14ch',
               }}
             >
@@ -195,13 +195,13 @@ export default async function Home({
       )}
 
       {/* ───────────────── 4. FEATURE PANELS (2-up) ───────────────── */}
-      <section className="py-24 md:py-[120px]">
+      <section className="py-28 md:py-[140px]">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10">
           <Reveal variant="up" className="text-center max-w-2xl mx-auto mb-16">
             <Kicker>The future of garage discovery</Kicker>
             <h2 className="font-black mt-5 text-ink"
               style={{
-                fontSize: 'clamp(36px,4.5vw,64px)',
+                fontSize: 'clamp(44px,5.5vw,80px)',
                 lineHeight: 0.98,
                 letterSpacing: '-0.04em',
               }}
@@ -235,14 +235,14 @@ export default async function Home({
       </section>
 
       {/* ───────────────── 5. ALL-IN-ONE (dark) ───────────────── */}
-      <section className="dark py-24 md:py-[120px] bg-noir text-chalk relative overflow-hidden">
+      <section className="dark py-28 md:py-[140px] bg-noir text-chalk relative overflow-hidden">
         <AmbientGradient placement="left-right" />
         <div className="relative max-w-[1240px] mx-auto px-6 md:px-10 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <Reveal variant="left">
             <Kicker tone="dark">All-in-One Trust Platform</Kicker>
             <h2 className="font-black mt-5 text-chalk"
               style={{
-                fontSize: 'clamp(32px,4vw,56px)',
+                fontSize: 'clamp(40px,5vw,72px)',
                 lineHeight: 0.98,
                 letterSpacing: '-0.04em',
                 maxWidth: '18ch',
@@ -278,7 +278,7 @@ export default async function Home({
           <h3
             className="font-black text-chalk"
             style={{
-              fontSize: 'clamp(28px,3.5vw,48px)',
+              fontSize: 'clamp(36px,4.5vw,60px)',
               lineHeight: 1.1,
               letterSpacing: '-0.03em',
               maxWidth: '24ch',
@@ -296,14 +296,14 @@ export default async function Home({
       </section>
 
       {/* ───────────────── 7. TESTIMONIALS ───────────────── */}
-      <section className="py-24 md:py-[120px]">
+      <section className="py-28 md:py-[140px]">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10">
           <Reveal variant="up" className="text-center max-w-2xl mx-auto mb-14">
             <Kicker>From the people who matter</Kicker>
             <h2
               className="font-black mt-5 text-ink"
               style={{
-                fontSize: 'clamp(32px,4vw,56px)',
+                fontSize: 'clamp(40px,5vw,72px)',
                 lineHeight: 0.98,
                 letterSpacing: '-0.04em',
               }}
@@ -338,7 +338,7 @@ export default async function Home({
       </section>
 
       {/* ───────────────── 8. FOR GARAGE OWNERS PITCH ───────────────── */}
-      <section className="py-24 md:py-[120px] bg-iron">
+      <section className="py-28 md:py-[140px] bg-iron">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <Reveal variant="left">
             <GarageDashboardMock />
@@ -348,7 +348,7 @@ export default async function Home({
             <h2
               className="font-black mt-5 text-ink"
               style={{
-                fontSize: 'clamp(32px,4vw,56px)',
+                fontSize: 'clamp(40px,5vw,72px)',
                 lineHeight: 0.98,
                 letterSpacing: '-0.04em',
                 maxWidth: '18ch',
@@ -382,14 +382,14 @@ export default async function Home({
       </section>
 
       {/* ───────────────── 9. 5 BENEFIT ROWS (alternating) ───────────────── */}
-      <section id="benefits" className="py-24 md:py-[120px]">
+      <section id="benefits" className="py-28 md:py-[140px]">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10">
           <Reveal variant="up" className="text-center max-w-2xl mx-auto mb-16">
             <Kicker>Explore Our Benefits</Kicker>
             <h2
               className="font-black mt-5 text-ink"
               style={{
-                fontSize: 'clamp(32px,4vw,56px)',
+                fontSize: 'clamp(40px,5vw,72px)',
                 lineHeight: 0.98,
                 letterSpacing: '-0.04em',
               }}
@@ -422,7 +422,7 @@ export default async function Home({
             <h2
               className="font-black mt-5 text-chalk"
               style={{
-                fontSize: 'clamp(28px,3.5vw,48px)',
+                fontSize: 'clamp(36px,4.5vw,60px)',
                 lineHeight: 0.98,
                 letterSpacing: '-0.04em',
               }}
@@ -443,14 +443,14 @@ export default async function Home({
       </section>
 
       {/* ───────────────── 11. BIG NUMBER CARDS ───────────────── */}
-      <section id="numbers" className="py-24 md:py-[120px]">
+      <section id="numbers" className="py-28 md:py-[140px]">
         <div className="max-w-[1240px] mx-auto px-6 md:px-10">
           <Reveal variant="up" className="text-center max-w-2xl mx-auto mb-14">
             <Kicker>Focus on what matters</Kicker>
             <h2
               className="font-black mt-5 text-ink"
               style={{
-                fontSize: 'clamp(32px,4vw,56px)',
+                fontSize: 'clamp(40px,5vw,72px)',
                 lineHeight: 0.98,
                 letterSpacing: '-0.04em',
               }}
@@ -492,7 +492,7 @@ export default async function Home({
               <h2
                 className="font-black mt-5 text-chalk"
                 style={{
-                  fontSize: 'clamp(32px,4vw,56px)',
+                  fontSize: 'clamp(40px,5vw,72px)',
                   lineHeight: 0.98,
                   letterSpacing: '-0.04em',
                   maxWidth: '18ch',
@@ -529,14 +529,14 @@ export default async function Home({
       </section>
 
       {/* ───────────────── 13. FAQ ───────────────── */}
-      <section id="faq" className="py-24 md:py-[120px] bg-iron">
+      <section id="faq" className="py-28 md:py-[140px] bg-iron">
         <div className="max-w-3xl mx-auto px-6 md:px-10">
           <Reveal variant="up" className="text-center mb-12">
             <Kicker>We&apos;ve got you covered</Kicker>
             <h2
               className="font-black mt-5 text-ink"
               style={{
-                fontSize: 'clamp(32px,4vw,56px)',
+                fontSize: 'clamp(40px,5vw,72px)',
                 lineHeight: 0.98,
                 letterSpacing: '-0.04em',
               }}
@@ -570,14 +570,14 @@ export default async function Home({
       </section>
 
       {/* ───────────────── 14. CALLBACK FORM ───────────────── */}
-      <section id="callback" className="py-24 md:py-[120px]">
+      <section id="callback" className="py-28 md:py-[140px]">
         <div className="max-w-3xl mx-auto px-6 md:px-10">
           <Reveal variant="up" className="text-center mb-10">
             <Kicker>Let&apos;s talk</Kicker>
             <h2
               className="font-black mt-5 text-ink"
               style={{
-                fontSize: 'clamp(32px,4vw,56px)',
+                fontSize: 'clamp(40px,5vw,72px)',
                 lineHeight: 0.98,
                 letterSpacing: '-0.04em',
               }}
@@ -1210,7 +1210,7 @@ function BigNumber({ n, l }: { n: string; l: string }) {
       <p
         className="font-black text-ink"
         style={{
-          fontSize: 'clamp(28px,3.5vw,44px)',
+          fontSize: 'clamp(36px,4.5vw,56px)',
           letterSpacing: '-0.04em',
           lineHeight: 1,
         }}
