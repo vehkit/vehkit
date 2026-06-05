@@ -766,16 +766,16 @@ function AmbientGradient({
         className="absolute inset-0 pointer-events-none"
         style={{
           background: `
-            radial-gradient(ellipse 900px 200px at 20% 100%, rgb(var(--leaf) / 0.10), transparent 70%),
-            radial-gradient(ellipse 700px 180px at 80% 0%, rgb(var(--wallet) / 0.06), transparent 70%)
+            radial-gradient(ellipse 1100px 280px at 15% 110%, rgb(var(--leaf) / 0.28), transparent 65%),
+            radial-gradient(ellipse 900px 240px at 85% -10%, rgb(var(--wallet) / 0.18), transparent 65%)
           `,
         }}
       />
     )
   }
 
-  const leafX = placement === 'left-right' ? '12%' : '88%'
-  const walletX = placement === 'left-right' ? '88%' : '12%'
+  const leafX = placement === 'left-right' ? '10%' : '90%'
+  const walletX = placement === 'left-right' ? '90%' : '10%'
 
   return (
     <div
@@ -783,8 +783,8 @@ function AmbientGradient({
       className="absolute inset-0 pointer-events-none"
       style={{
         background: `
-          radial-gradient(ellipse 700px 500px at ${leafX} 20%, rgb(var(--leaf) / 0.11), transparent 65%),
-          radial-gradient(ellipse 600px 420px at ${walletX} 90%, rgb(var(--wallet) / 0.07), transparent 65%)
+          radial-gradient(ellipse 800px 600px at ${leafX} 15%, rgb(var(--leaf) / 0.30), transparent 60%),
+          radial-gradient(ellipse 700px 500px at ${walletX} 95%, rgb(var(--wallet) / 0.18), transparent 60%)
         `,
       }}
     />
