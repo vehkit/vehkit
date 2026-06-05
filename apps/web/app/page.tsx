@@ -730,11 +730,12 @@ export default async function Home({
  * Subtle inside-card paint. Soft leaf wash from top-right + wallet hint
  * from bottom-left, layered over the carbon surface. Gives every card
  * the same "lit from within" feel Kendal uses — depth without colour
- * shouting. Applied via inline style on card components.
+ * shouting. Opacities tuned to read visibly on near-white surface;
+ * bump down if it starts feeling promotional.
  */
 const SUBTLE_CARD_GRADIENT = `
-  radial-gradient(ellipse 420px 320px at 100% 0%, rgb(var(--leaf) / 0.07), transparent 60%),
-  radial-gradient(ellipse 340px 260px at 0% 100%, rgb(var(--wallet) / 0.05), transparent 60%),
+  radial-gradient(ellipse 520px 380px at 100% 0%, rgb(var(--leaf) / 0.18), transparent 60%),
+  radial-gradient(ellipse 420px 320px at 0% 100%, rgb(var(--wallet) / 0.12), transparent 60%),
   rgb(var(--carbon))
 `
 
