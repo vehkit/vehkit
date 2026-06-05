@@ -137,6 +137,7 @@ export default async function NewServicePage({
               id="photos"
               name="photos"
               accept="image/*"
+              capture="environment"
               multiple
               className="block w-full text-sm text-ash file:mr-4 file:py-2 file:px-4 file:rounded-pill file:border-0 file:text-sm file:font-medium file:bg-iron file:text-chalk hover:file:bg-iron/70 file:cursor-pointer cursor-pointer"
             />

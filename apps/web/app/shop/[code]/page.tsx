@@ -276,6 +276,7 @@ export default async function ShopLogPage({
               name="photos"
               type="file"
               accept="image/*"
+              capture="environment"
               multiple
               className="field file:mr-3 file:py-1.5 file:px-3 file:rounded-pill file:border-0 file:bg-iron file:text-chalk file:text-xs file:tracking-widest file:uppercase file:font-medium hover:file:bg-iron/70 file:cursor-pointer"
             />

@@ -131,6 +131,7 @@ export function WorkshopHeroUpload({
           <input
             type="file"
             accept="image/*"
+            capture="environment"
             onChange={onChange}
             disabled={uploading}
             className="hidden"

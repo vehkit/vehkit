@@ -145,6 +145,7 @@ export function VehicleHero({
           <input
             type="file"
             accept="image/*"
+            capture="environment"
             onChange={onChange}
             className="hidden"
             disabled={uploading}

@@ -56,6 +56,7 @@ export function AvatarUpload({
       <input
         type="file"
         accept="image/*"
+        capture="environment"
         onChange={onChange}
         className="hidden"
         disabled={uploading}

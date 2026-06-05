@@ -4,6 +4,26 @@ import { createClient } from '@/lib/supabase/server'
 import { createVehicle } from '@/app/actions/vehicles'
 import { EMIRATES } from '@vehkit/types'
 
+const COMMON_MAKES = [
+  'Toyota', 'Nissan', 'Lexus', 'Mercedes-Benz', 'BMW', 'Audi',
+  'Honda', 'Hyundai', 'Kia', 'Ford', 'GMC', 'Chevrolet',
+  'Land Rover', 'Range Rover', 'Jeep', 'Mitsubishi', 'Mazda',
+  'Volkswagen', 'Porsche', 'Tesla', 'Suzuki', 'Renault', 'Peugeot',
+  'Dodge', 'RAM', 'Cadillac', 'Infiniti', 'MG', 'Volvo', 'Mini',
+  'Bentley', 'Rolls-Royce', 'Ferrari', 'Lamborghini', 'Maserati',
+] as const
+
+const COMMON_COLORS = [
+  'White', 'Black', 'Silver', 'Grey', 'Beige', 'Brown',
+  'Red', 'Blue', 'Green', 'Gold', 'Yellow', 'Orange', 'Other',
+] as const
+
+const CURRENT_YEAR = new Date().getFullYear()
+const YEAR_OPTIONS = Array.from(
+  { length: CURRENT_YEAR + 1 - 1990 + 1 },
+  (_, i) => String(CURRENT_YEAR + 1 - i),
+)
+
 export default async function NewVehiclePage({
   searchParams,
 }: {
@@ -38,12 +58,19 @@ export default async function NewVehiclePage({
         )}
 
         <form action={createVehicle} className="mt-8 space-y-4" id="vehicle-form">
-          <Field label="Make" name="make" placeholder="Toyota" required autoFocus />
+          <FieldWithDatalist
+            label="Make"
+            name="make"
+            placeholder="Start typing… Toyota, Nissan, BMW…"
+            required
+            autoFocus
+            options={COMMON_MAKES}
+          />
           <Field label="Model" name="model" placeholder="Land Cruiser" required />
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Year" name="year" type="number" inputMode="numeric" placeholder="2023" />
-            <Field label="Color" name="color" placeholder="White" />
+            <Select label="Year" name="year" options={YEAR_OPTIONS} />
+            <Select label="Color" name="color" options={COMMON_COLORS} />
           </div>
 
           <Field
@@ -167,6 +194,48 @@ function Select({
           </option>
         ))}
       </select>
+    </div>
+  )
+}
+
+function FieldWithDatalist({
+  label,
+  name,
+  placeholder,
+  required,
+  autoFocus,
+  options,
+}: {
+  label: string
+  name: string
+  placeholder?: string
+  required?: boolean
+  autoFocus?: boolean
+  options: readonly string[]
+}) {
+  const listId = `${name}-list`
+  return (
+    <div>
+      <label htmlFor={name} className="label">
+        {label} {required && <span className="text-signal">*</span>}
+      </label>
+      <input
+        type="text"
+        id={name}
+        name={name}
+        list={listId}
+        placeholder={placeholder}
+        required={required}
+        autoFocus={autoFocus}
+        enterKeyHint="next"
+        autoComplete="off"
+        className="field"
+      />
+      <datalist id={listId}>
+        {options.map((opt) => (
+          <option key={opt} value={opt} />
+        ))}
+      </datalist>
     </div>
   )
 }

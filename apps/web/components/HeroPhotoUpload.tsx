@@ -95,6 +95,7 @@ export function HeroPhotoUpload({
           <input
             type="file"
             accept="image/*"
+            capture="environment"
             onChange={onChange}
             className="hidden"
             disabled={uploading}
@@ -132,6 +133,7 @@ export function HeroPhotoUpload({
       <input
         type="file"
         accept="image/*"
+        capture="environment"
         onChange={onChange}
         className="hidden"
         disabled={uploading}
