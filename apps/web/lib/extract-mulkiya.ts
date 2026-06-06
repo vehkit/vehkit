@@ -118,18 +118,34 @@ export async function extractMulkiyaFromImage(
   if (!text) return null
 
   // Prefer OpenAI for structured parsing when a key is set. Reads the
-  // document semantics rather than matching by adjacency, so it does
-  // not swap labels for values like the regex parser sometimes did.
-  // Cost on gpt-4o-mini: ~$0.0004/doc. Falls back to regex when no
-  // key or when the OpenAI call errors out.
+  // document semantics rather than matching by adjacency.
   const openaiKey = process.env.OPENAI_API_KEY
+  console.log(
+    '[extract-mulkiya] openai key present?',
+    !!openaiKey,
+    'len',
+    openaiKey?.length ?? 0,
+  )
   if (openaiKey) {
+    console.log('[extract-mulkiya] calling openai…')
     try {
       const llm = await parseWithOpenAI(text, openaiKey)
-      if (llm) return validate(llm)
+      if (llm) {
+        console.log(
+          '[extract-mulkiya] openai parse ok; fields populated:',
+          Object.entries(llm).filter(([, v]) => v != null).length,
+        )
+        return validate(llm)
+      }
+      console.warn('[extract-mulkiya] openai returned null; falling back')
     } catch (err) {
-      console.warn('[extract-mulkiya] openai parse failed; falling back', err)
+      console.warn(
+        '[extract-mulkiya] openai parse threw; falling back',
+        (err as Error)?.message ?? err,
+      )
     }
+  } else {
+    console.warn('[extract-mulkiya] no OPENAI_API_KEY in env; using regex')
   }
   return validate(parseMulkiyaText(text))
 }
