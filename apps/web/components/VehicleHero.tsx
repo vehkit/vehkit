@@ -57,85 +57,54 @@ export function VehicleHero({
     setUploading(false)
   }
 
+  // No photo? Collapse to a thin "Add a photo" strip (owner) or
+  // nothing at all (non-owner). The 300px gray box was dominating
+  // the page on every vehicle that hadn't uploaded a hero yet.
+  if (!preview) {
+    if (!isOwner) return null
+    return (
+      <label className="flex items-center gap-3 px-4 py-3 rounded-DEFAULT border border-dashed border-seam bg-iron/30 hover:border-leaf/40 hover:bg-leaf/5 transition-colors cursor-pointer">
+        <span className="w-9 h-9 rounded-pill bg-noir/30 flex items-center justify-center text-chalk shrink-0">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            aria-hidden
+          >
+            <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+            <circle cx="12" cy="13" r="4" />
+          </svg>
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-semibold text-chalk">
+            {uploading ? 'Uploading…' : 'Add a photo'}
+          </span>
+          <span className="block text-[11px] text-ash">
+            Camera, photos, or files
+          </span>
+        </span>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={onChange}
+          className="hidden"
+          disabled={uploading}
+        />
+      </label>
+    )
+  }
+
   return (
     <div className="relative w-full h-[32vh] min-h-[220px] md:h-[300px] overflow-hidden rounded-DEFAULT bg-iron group">
-      {/* Photo */}
-      {preview ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={preview}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-      ) : isOwner ? (
-        // Empty-state IS the upload trigger. Whole placeholder area is a
-        // <label> wrapping the file input, so tapping the big middle area
-        // (not just the small icon) opens the OS picker.
-        // No `capture` attribute so iOS Safari shows the full action sheet
-        // (Photo Library / Take Photo / Choose Files) instead of camera-only.
-        <label className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-iron via-carbon to-noir cursor-pointer active:opacity-90 transition-opacity">
-          <div className="text-center pointer-events-none">
-            <div className="w-16 h-16 mx-auto rounded-pill bg-noir/40 backdrop-blur flex items-center justify-center">
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="text-chalk/70"
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3 13l1.66-4.97A2 2 0 016.55 6.5h10.9a2 2 0 011.89 1.53L21 13M5 13h14M7 17h.01M17 17h.01M5 13v4a1 1 0 001 1h12a1 1 0 001-1v-4"
-                />
-              </svg>
-            </div>
-            <p className="text-sm text-chalk mt-3 font-semibold">
-              {uploading ? 'Uploading…' : 'Add a photo'}
-            </p>
-            <p className="text-[11px] text-chalk/60 mt-1 tracking-wide">
-              Tap to pick from camera, photos, or files
-            </p>
-          </div>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={onChange}
-            className="hidden"
-            disabled={uploading}
-          />
-        </label>
-      ) : (
-        // Non-owner empty state — no upload action, just decoration.
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-iron via-carbon to-noir">
-          <div className="text-center">
-            <div className="w-16 h-16 mx-auto rounded-pill bg-noir/40 backdrop-blur flex items-center justify-center">
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="text-chalk/70"
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3 13l1.66-4.97A2 2 0 016.55 6.5h10.9a2 2 0 011.89 1.53L21 13M5 13h14M7 17h.01M17 17h.01M5 13v4a1 1 0 001 1h12a1 1 0 001-1v-4"
-                />
-              </svg>
-            </div>
-            <p className="text-xs text-chalk/70 mt-3 tracking-widest uppercase">
-              No photo yet
-            </p>
-          </div>
-        </div>
-      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={preview}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover"
+      />
 
       {/* Soft gradient at the bottom edge only. Keeps badges legible
           without the heavy 50% black overlay that made the old hero
