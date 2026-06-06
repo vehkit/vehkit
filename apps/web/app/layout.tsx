@@ -5,10 +5,10 @@ import './globals.css'
 import { AppNav } from '@/components/AppNav'
 import { THEME_COLORS } from '@/lib/brand-colors'
 
-// Plus Jakarta Sans — Kendal-style display font. Full weight
-// range + italics so headings, body, and italic emphases share
-// one geometric family. CSS-var name stays --font-inter so
-// Tailwind's font-sans token doesn't need rewiring.
+// Plus Jakarta Sans — Kendal-style display font. Loads the full
+// weight range (200-800) + italics so headings, body, and italicised
+// emphasis all share one geometric family. Variable name stays as
+// `--font-inter` so Tailwind's font-sans token doesn't need rewiring.
 const inter = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-inter',
@@ -92,6 +92,11 @@ export const metadata: Metadata = {
     shortcut: '/brand/app-icon/vehkit-favicon-256.png',
   },
 }
+
+// Inherited by all routes and server actions. Mulkiya extraction
+// (sharp compress + OCR.space + OpenAI) needs ~10s; default Vercel
+// timeout is too tight. 60s is also the Hobby-plan max.
+export const maxDuration = 60
 
 export const viewport: Viewport = {
   // theme-color drives the browser chrome colour (Android URL bar, iOS PWA

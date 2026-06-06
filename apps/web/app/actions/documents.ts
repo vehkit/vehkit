@@ -8,10 +8,9 @@ import {
   type ExtractedMulkiya,
 } from '@/lib/extract-mulkiya'
 
-// Allow the action up to a minute. Mulkiya extraction is compress
-// (sharp) + OCR.space round-trip + OpenAI round-trip, typically 6 to
-// 10 seconds total. Default Vercel function timeout would kill it.
-export const maxDuration = 60
+// maxDuration is set on the root layout so all server actions inherit
+// 60s. Cannot be exported here because 'use server' files only allow
+// async exports.
 
 function strOrNull(v: FormDataEntryValue | null): string | null {
   if (v === null) return null
