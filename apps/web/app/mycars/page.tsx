@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { createSampleVehicle } from '@/app/actions/vehicles'
 import { relativeDate } from '@/lib/format'
 
 /**
@@ -221,14 +220,6 @@ export default async function MyCarsPage() {
             >
               Browse garages
             </Link>
-            <form action={createSampleVehicle}>
-              <button
-                type="submit"
-                className="text-sm text-mute hover:text-ink underline-offset-4 hover:underline"
-              >
-                or try with a sample car
-              </button>
-            </form>
           </div>
         </div>
       </main>

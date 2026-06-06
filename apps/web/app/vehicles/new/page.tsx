@@ -2,10 +2,25 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createVehicle } from '@/app/actions/vehicles'
-import { EMIRATES } from '@vehkit/types'
-import { COMMON_COLORS, YEAR_OPTIONS } from '@/lib/car-data'
 import { VehicleMakeModelPicker } from '@/components/VehicleMakeModelPicker'
+import { ContinueWhenValid } from '@/components/ContinueWhenValid'
 
+/**
+ * /vehicles/new — first form a new user fills.
+ *
+ * Stripped to the bare minimum:
+ *   1. Make (required)
+ *   2. Model (required)
+ *   3. Current km from the odometer (required-ish; needed for service
+ *      reminders to make sense)
+ *
+ * Everything else (plate, VIN, color, year, nickname, doors, fuel...)
+ * is read from the mulkiya upload on the next screen, so we don't ask
+ * twice. Less typing now equals more cars added.
+ *
+ * The Continue button stays hidden until the form's HTML5 validity
+ * passes, so the user knows when they're done.
+ */
 export default async function NewVehiclePage({
   searchParams,
 }: {
@@ -28,9 +43,8 @@ export default async function NewVehiclePage({
           Add your car
         </h1>
         <p className="text-sm text-ash mt-2 leading-relaxed">
-          Just the basics now — only{' '}
-          <span className="text-chalk font-medium">make and model</span> are
-          required. You can add documents, services and reminders right after.
+          Make, model, and the odometer. The rest we will read off your
+          mulkiya in a minute.
         </p>
 
         {errorMsg && (
@@ -42,56 +56,35 @@ export default async function NewVehiclePage({
         <form action={createVehicle} className="mt-8 space-y-4" id="vehicle-form">
           <VehicleMakeModelPicker />
 
-          <div className="grid grid-cols-2 gap-3">
-            <Select label="Year" name="year" options={YEAR_OPTIONS} />
-            <Select label="Color" name="color" options={COMMON_COLORS} />
-          </div>
-
-          <Field
-            label="Nickname"
-            name="nickname"
-            placeholder="The Patrol"
-            hint="What you'd call it in conversation. Shows on your garage card."
-          />
-
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2">
-              <Field
-                label="Plate number"
-                name="plate_number"
-                placeholder="A 12345"
-                hint="Letter + numbers, exactly as on the plate."
-              />
-            </div>
-            <Select label="Emirate" name="plate_emirate" options={EMIRATES} />
-          </div>
-
-          <Field
-            label="VIN / Chassis number"
-            name="vin"
-            placeholder="17 characters"
-            hint="Found on your mulkiya (registration). Optional — but helps with resale."
-          />
           <Field
             label="Current kilometres"
             name="current_odometer"
             type="number"
             inputMode="numeric"
             placeholder="82000"
+            required
             hint="What the odometer reads today. We use this to time service reminders."
           />
         </form>
       </div>
 
-      {/* Sticky bottom action bar */}
+      {/* Sticky bottom action bar. Continue only shows when the form
+          is valid (make + model + odometer filled). Cancel is always
+          there. */}
       <div className="fixed bottom-16 md:bottom-0 inset-x-0 px-6 pb-6 pt-4 bg-gradient-to-t from-noir via-noir/95 to-noir/0 z-20">
         <div className="max-w-xl mx-auto flex gap-3">
           <Link href="/mycars" className="pill-ghost flex-1 text-center">
             Cancel
           </Link>
-          <button type="submit" form="vehicle-form" className="pill-primary flex-[2] text-center">
-            Save and continue
-          </button>
+          <ContinueWhenValid formId="vehicle-form">
+            <button
+              type="submit"
+              form="vehicle-form"
+              className="pill-primary flex-[2] text-center"
+            >
+              Continue
+            </button>
+          </ContinueWhenValid>
         </div>
       </div>
     </main>
@@ -116,12 +109,6 @@ function Field({
   required?: boolean
   hint?: string
   inputMode?: 'text' | 'numeric' | 'decimal' | 'email' | 'tel' | 'url' | 'search'
-  /**
-   * Hints the mobile keyboard's action key. Defaults to "next" so most
-   * fields show a "Next" button that moves to the following input. The
-   * final field of a form should pass "done" so the soft keyboard offers
-   * a clear submit affordance.
-   */
   enterKeyHint?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send'
   autoFocus?: boolean
 }) {
@@ -145,30 +132,3 @@ function Field({
     </div>
   )
 }
-
-function Select({
-  label,
-  name,
-  options,
-}: {
-  label: string
-  name: string
-  options: readonly string[]
-}) {
-  return (
-    <div>
-      <label htmlFor={name} className="label">
-        {label}
-      </label>
-      <select id={name} name={name} defaultValue="" className="field">
-        <option value="">—</option>
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
-    </div>
-  )
-}
-
