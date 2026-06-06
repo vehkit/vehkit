@@ -28,6 +28,7 @@ type DocRow = {
 }
 
 const TYPE_LABEL: Record<string, string> = {
+  auto: 'Auto-classified',
   mulkiya: 'Mulkiya',
   insurance_policy: 'Insurance',
   driving_licence: 'Driving licence',
@@ -183,6 +184,7 @@ export default async function AdminDocumentsPage({
               <th className="text-left p-3">Size</th>
               <th className="text-left p-3">Created</th>
               <th className="text-left p-3">State</th>
+              <th className="text-left p-3"></th>
             </tr>
           </thead>
           <tbody>
@@ -269,12 +271,20 @@ export default async function AdminDocumentsPage({
                       </span>
                     )}
                   </td>
+                  <td className="p-3">
+                    <Link
+                      href={`/admin/documents/${d.id}`}
+                      className="text-[10px] tracking-widest uppercase text-leaf hover:underline font-semibold"
+                    >
+                      Inspect →
+                    </Link>
+                  </td>
                 </tr>
               )
             })}
             {list.length === 0 && (
               <tr>
-                <td colSpan={8} className="p-8 text-center text-ash">
+                <td colSpan={9} className="p-8 text-center text-ash">
                   No documents
                 </td>
               </tr>
