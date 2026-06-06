@@ -481,7 +481,7 @@ You will be given ONE OR MORE images that together form a single logical documen
 The document is laid out in sections. Match each field to the value in its correct section. Do not guess.
 
 Critical rules:
-- expires_at is the MULKIYA / REGISTRATION expiry only. If the document is purely an insurance certificate without a registration expiry, leave it null.
+- expires_at is the MULKIYA / REGISTRATION expiry ONLY. On a UAE Vehicle License card it is the date in the "Exp. Date" / "تاريخ الانتهاء" field at the TOP of the card. DO NOT confuse it with "Ins. Exp" (insurance expiry) which is a different field lower on the card. If only insurance dates are visible, leave expires_at null.
 - insurance_commencement_at is the policy START date.
 - insurance_expires_at is the policy EXPIRY date. Never swap with commencement.
 - registration_date is when the vehicle was first registered, not insurance dates.
@@ -1097,7 +1097,7 @@ function validate(e: ExtractedMulkiya): ExtractedMulkiya {
     mortgage_by: cleanMortgageBy(e.mortgage_by),
     expires_at: validIsoDate(e.expires_at),
     owner_name: cleanText(e.owner_name),
-    owner_nationality: cleanText(e.owner_nationality),
+    owner_nationality: cleanNationality(e.owner_nationality),
     traffic_code_no: cleanCode(e.traffic_code_no, 4, 12),
     insurance_company: cleanInsurer(e.insurance_company),
     insurance_policy_number: cleanCode(e.insurance_policy_number, 4, 25),
@@ -1270,6 +1270,74 @@ function cleanPlate(s: string | null | undefined): string | null {
   if (digits.length < 3 || digits.length > 5) return null
   return digits
 }
+// Owner nationality — UAE residents are predominantly from a known
+// list of countries. Whitelist match prevents the model from reading
+// a surname or address fragment into the nationality field.
+const KNOWN_NATIONALITIES: ReadonlySet<string> = new Set([
+  'india', 'indian',
+  'pakistan', 'pakistani',
+  'bangladesh', 'bangladeshi',
+  'philippines', 'filipino', 'philippine',
+  'nepal', 'nepali', 'nepalese',
+  'sri lanka', 'sri lankan', 'srilankan',
+  'egypt', 'egyptian',
+  'syria', 'syrian',
+  'jordan', 'jordanian',
+  'lebanon', 'lebanese',
+  'palestine', 'palestinian',
+  'iraq', 'iraqi',
+  'iran', 'iranian',
+  'yemen', 'yemeni',
+  'sudan', 'sudanese',
+  'morocco', 'moroccan',
+  'tunisia', 'tunisian',
+  'algeria', 'algerian',
+  'saudi arabia', 'saudi', 'saudi arabian',
+  'kuwait', 'kuwaiti',
+  'bahrain', 'bahraini',
+  'qatar', 'qatari',
+  'oman', 'omani',
+  'uae', 'emirati', 'united arab emirates',
+  'china', 'chinese',
+  'japan', 'japanese',
+  'korea', 'korean', 'south korea', 'south korean',
+  'indonesia', 'indonesian',
+  'thailand', 'thai',
+  'vietnam', 'vietnamese',
+  'malaysia', 'malaysian',
+  'singapore', 'singaporean',
+  'turkey', 'turkish',
+  'russia', 'russian',
+  'ukraine', 'ukrainian',
+  'germany', 'german',
+  'france', 'french',
+  'italy', 'italian',
+  'spain', 'spanish',
+  'portugal', 'portuguese',
+  'netherlands', 'dutch',
+  'belgium', 'belgian',
+  'switzerland', 'swiss',
+  'uk', 'united kingdom', 'british', 'english', 'irish', 'ireland', 'scottish',
+  'usa', 'us', 'united states', 'american',
+  'canada', 'canadian',
+  'australia', 'australian',
+  'new zealand', 'kiwi',
+  'south africa', 'south african',
+  'kenya', 'kenyan',
+  'nigeria', 'nigerian',
+  'ethiopia', 'ethiopian',
+  'somalia', 'somali',
+  'eritrea', 'eritrean',
+  'afghanistan', 'afghan',
+  'stateless',
+])
+function cleanNationality(s: string | null | undefined): string | null {
+  const t = cleanText(s)
+  if (!t) return null
+  if (KNOWN_NATIONALITIES.has(t.toLowerCase())) return t
+  return null
+}
+
 function cleanInsurer(s: string | null | undefined): string | null {
   const t = cleanText(s)
   if (!t) return null
