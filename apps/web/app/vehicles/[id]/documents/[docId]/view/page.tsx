@@ -371,8 +371,9 @@ function ExtractionCard({
             Apply them to your car?
           </h3>
           <p className="text-xs text-ash mt-2 leading-relaxed max-w-md">
-            Read straight from your mulkiya. We only fill in blanks — anything
-            you&apos;ve already typed stays as you set it.
+            Read straight from your mulkiya. Apply replaces matching fields
+            on your car with whatever the document says. Blank readings
+            are left untouched.
           </p>
         </div>
       </div>

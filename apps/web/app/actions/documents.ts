@@ -285,25 +285,19 @@ export async function applyExtractedToVehicle(formData: FormData) {
 
   const e = doc.extracted_data as ExtractedMulkiya
 
-  // Fetch current vehicle so we only fill in blank fields — never
-  // overwrite something the user has typed in.
-  const { data: vehicle } = await supabase
-    .from('vehicles')
-    .select('make, model, year, plate_number, plate_emirate, vin')
-    .eq('id', vehicleId)
-    .maybeSingle()
-
-  if (!vehicle) redirect(`/vehicles/${vehicleId}#documents`)
-
+  // Overwrite the vehicle's fields with whatever the document
+  // extracted. The mulkiya is the source of truth for plate, VIN,
+  // year, make, model, plate_emirate. If the user had typed
+  // something different, it gets replaced. Anything the extractor
+  // returned null for is left untouched (we don't blow away a
+  // field the doc couldn't read).
   const updates: Record<string, unknown> = {}
-  if (!vehicle.make && e.vehicle_make) updates.make = e.vehicle_make
-  if (!vehicle.model && e.vehicle_model) updates.model = e.vehicle_model
-  if (!vehicle.year && e.year) updates.year = e.year
-  if (!vehicle.plate_number && e.plate_number)
-    updates.plate_number = e.plate_number
-  if (!vehicle.plate_emirate && e.plate_emirate)
-    updates.plate_emirate = e.plate_emirate
-  if (!vehicle.vin && e.vin) updates.vin = e.vin
+  if (e.vehicle_make) updates.make = e.vehicle_make
+  if (e.vehicle_model) updates.model = e.vehicle_model
+  if (e.year) updates.year = e.year
+  if (e.plate_number) updates.plate_number = e.plate_number
+  if (e.plate_emirate) updates.plate_emirate = e.plate_emirate
+  if (e.vin) updates.vin = e.vin
 
   if (Object.keys(updates).length > 0) {
     await supabase.from('vehicles').update(updates).eq('id', vehicleId)
