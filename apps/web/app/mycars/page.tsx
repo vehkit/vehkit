@@ -257,130 +257,91 @@ export default async function MyCarsPage() {
           </Link>
         </header>
 
-        {/* the table */}
-        <section className="mt-8">
+        {/* Borderless list. One row per car. Avatar plus name plus
+            plate. Tap to open detail. Status only surfaces when there
+            is something to act on. Everything else stays on the detail
+            page so this surface stays calm. */}
+        <section className="mt-10">
           <p className="text-[11px] tracking-[0.28em] uppercase text-leaf font-bold mb-3">
             Your cars
           </p>
-          <div className="border border-seam rounded-DEFAULT overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-[10px] tracking-widest uppercase text-mute border-b border-seam bg-iron/30">
-                  <Th>Car</Th>
-                  <Th>Plate</Th>
-                  <Th align="right">KM</Th>
-                  <Th>Mulkiya</Th>
-                  <Th>Insurance</Th>
-                  <Th>Last service</Th>
-                  <Th align="right">Pending</Th>
-                  <Th>Status</Th>
-                  <Th>{''}</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {vehicles.map((v) => {
-                  const isShared = v.owner_id !== user.id
-                  const pending = pendingByVehicle.get(v.id) ?? 0
-                  const lastService = lastServiceByVehicle.get(v.id) ?? null
-                  const mulkiyaExp = mulkiyaByVehicle.get(v.id) ?? null
-                  const insuranceExp = insuranceByVehicle.get(v.id) ?? null
+          <ul className="space-y-1">
+            {vehicles.map((v) => {
+              const isShared = v.owner_id !== user.id
+              const pending = pendingByVehicle.get(v.id) ?? 0
+              const mulkiyaExp = mulkiyaByVehicle.get(v.id) ?? null
+              const insuranceExp = insuranceByVehicle.get(v.id) ?? null
 
-                  const title =
-                    v.nickname ??
-                    `${v.year ? v.year + ' ' : ''}${v.make} ${v.model}`
-                  const sub = v.nickname
-                    ? `${v.year ? v.year + ' ' : ''}${v.make} ${v.model}`
-                    : null
-                  const plate =
-                    v.plate_emirate && v.plate_number
-                      ? `${v.plate_emirate} . ${v.plate_number}`
-                      : v.plate_number ?? '—'
+              const title =
+                v.nickname ??
+                `${v.year ? v.year + ' ' : ''}${v.make} ${v.model}`
+              const sub =
+                v.nickname
+                  ? `${v.year ? v.year + ' ' : ''}${v.make} ${v.model}`
+                  : null
+              const plate =
+                v.plate_emirate && v.plate_number
+                  ? `${v.plate_emirate} . ${v.plate_number}`
+                  : v.plate_number ?? null
 
-                  const status = computeStatus({
-                    pending,
-                    mulkiyaExp,
-                    insuranceExp,
-                  })
+              const status = computeStatus({
+                pending,
+                mulkiyaExp,
+                insuranceExp,
+              })
 
-                  return (
-                    <tr
-                      key={v.id}
-                      className="border-b border-seam last:border-0 hover:bg-leaf/5 transition-colors"
-                    >
-                      <Td>
-                        <Link
-                          href={`/vehicles/${v.id}`}
-                          className="block min-w-[180px]"
-                        >
-                          <p className="font-semibold text-ink truncate">
-                            {title}
-                            {isShared && (
-                              <span className="ml-2 text-[9px] tracking-widest uppercase text-mute bg-iron px-1.5 py-0.5 rounded-pill align-middle">
-                                Shared
-                              </span>
-                            )}
-                          </p>
-                          {sub && (
-                            <p className="text-xs text-mute truncate">{sub}</p>
-                          )}
-                        </Link>
-                      </Td>
-                      <Td mono>{plate}</Td>
-                      <Td align="right" mono>
-                        {v.current_odometer != null
-                          ? v.current_odometer.toLocaleString()
-                          : '—'}
-                      </Td>
-                      <Td>
-                        <DaysCell iso={mulkiyaExp} />
-                      </Td>
-                      <Td>
-                        <DaysCell iso={insuranceExp} />
-                      </Td>
-                      <Td>
-                        {lastService ? (
-                          <span>
-                            <span className="text-ink">
-                              {relativeDate(lastService.date)}
-                            </span>
-                            {lastService.workshop && (
-                              <span className="text-mute">
-                                {' '}
-                                . {lastService.workshop}
-                              </span>
-                            )}
+              const initials = (v.nickname ?? `${v.make} ${v.model}`)
+                .trim()
+                .split(/\s+/)
+                .map((w) => w.charAt(0).toUpperCase())
+                .slice(0, 2)
+                .join('')
+
+              return (
+                <li key={v.id}>
+                  <Link
+                    href={`/vehicles/${v.id}`}
+                    className="flex items-center gap-4 py-3 -mx-2 px-2 rounded-DEFAULT hover:bg-leaf/5 transition-colors"
+                  >
+                    {/* avatar / DP */}
+                    <span className="shrink-0 w-14 h-14 rounded-pill overflow-hidden bg-iron flex items-center justify-center">
+                      {v.hero_image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={v.hero_image_url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-sm font-bold text-mute tracking-wider">
+                          {initials || '—'}
+                        </span>
+                      )}
+                    </span>
+                    {/* identity */}
+                    <span className="flex-1 min-w-0">
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className="text-base font-semibold text-ink truncate">
+                          {title}
+                        </span>
+                        {isShared && (
+                          <span className="text-[9px] tracking-widest uppercase text-mute">
+                            shared
                           </span>
-                        ) : (
-                          <span className="text-mute">—</span>
                         )}
-                      </Td>
-                      <Td align="right" mono>
-                        {pending > 0 ? (
-                          <span className="text-wallet font-semibold">
-                            {pending}
-                          </span>
-                        ) : (
-                          <span className="text-mute">0</span>
-                        )}
-                      </Td>
-                      <Td>
-                        <StatusPill status={status} />
-                      </Td>
-                      <Td>
-                        <Link
-                          href={`/vehicles/${v.id}`}
-                          className="text-xs font-semibold text-leaf hover:text-leaf-dk"
-                        >
-                          Open
-                        </Link>
-                      </Td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="mt-3">
+                      </span>
+                      <span className="block text-xs text-mute truncate">
+                        {[sub, plate].filter(Boolean).join(' . ')}
+                      </span>
+                    </span>
+                    {/* status pill only if something needs attention */}
+                    {status !== 'ok' && <StatusPill status={status} />}
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+          <div className="mt-4">
             <Link
               href="/vehicles/new"
               className="text-sm font-semibold text-leaf hover:text-leaf-dk"
@@ -409,7 +370,7 @@ export default async function MyCarsPage() {
                 <Link
                   key={g.id}
                   href={`/w/${g.slug}/book`}
-                  className="snap-start shrink-0 w-[180px] rounded-DEFAULT border border-seam bg-carbon hover:border-leaf/40 transition-colors overflow-hidden group"
+                  className="snap-start shrink-0 w-[180px] rounded-DEFAULT bg-carbon hover:bg-iron/40 transition-colors overflow-hidden group"
                 >
                   <div className="relative w-full aspect-[4/3] bg-iron overflow-hidden">
                     {g.hero ? (
@@ -457,42 +418,6 @@ export default async function MyCarsPage() {
   )
 }
 
-// table helpers
-
-function Th({
-  children,
-  align = 'left',
-}: {
-  children: React.ReactNode
-  align?: 'left' | 'right'
-}) {
-  return (
-    <th
-      className={`px-4 py-3 text-${align} font-bold whitespace-nowrap`}
-    >
-      {children}
-    </th>
-  )
-}
-
-function Td({
-  children,
-  align = 'left',
-  mono,
-}: {
-  children: React.ReactNode
-  align?: 'left' | 'right'
-  mono?: boolean
-}) {
-  return (
-    <td
-      className={`px-4 py-3 text-${align} whitespace-nowrap ${mono ? 'font-mono tabular-nums' : ''}`}
-    >
-      {children}
-    </td>
-  )
-}
-
 type Status = 'ok' | 'pending' | 'due_soon' | 'overdue'
 
 function computeStatus(opts: {
@@ -529,21 +454,3 @@ function StatusPill({ status }: { status: Status }) {
   )
 }
 
-function DaysCell({ iso }: { iso: string | null }) {
-  if (!iso) return <span className="text-mute">—</span>
-  const dayMs = 1000 * 60 * 60 * 24
-  const days = Math.floor((new Date(iso).getTime() - Date.now()) / dayMs)
-  if (days < 0) {
-    return <span className="text-signal">{-days}d overdue</span>
-  }
-  if (days === 0) {
-    return <span className="text-signal">today</span>
-  }
-  if (days <= 14) {
-    return <span className="text-signal">{days}d</span>
-  }
-  if (days <= 30) {
-    return <span className="text-wallet">{days}d</span>
-  }
-  return <span className="text-mute">{days}d</span>
-}
