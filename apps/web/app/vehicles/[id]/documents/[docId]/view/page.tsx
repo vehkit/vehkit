@@ -351,7 +351,10 @@ function ExtractionCard({
     { label: 'Plate', value: extracted.plate_number },
     { label: 'Emirate', value: extracted.plate_emirate },
     { label: 'VIN', value: extracted.vin },
-    { label: 'Expires', value: extracted.expires_at },
+    { label: 'Cylinders', value: extracted.cylinders },
+    { label: 'Engine no.', value: extracted.engine_number },
+    { label: 'Registration expires', value: extracted.expires_at },
+    { label: 'Insurance expires', value: extracted.insurance_expires_at },
   ]
   const populated = fields.filter((f) => f.value != null && f.value !== '')
 
@@ -362,7 +365,7 @@ function ExtractionCard({
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
           <p className="text-[10px] tracking-widest uppercase text-leaf">
-            ✨ We found these details
+            We found these details
           </p>
           <h3 className="text-lg md:text-xl font-semibold text-chalk mt-1 leading-tight">
             Apply them to your car?

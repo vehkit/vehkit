@@ -1,29 +1,36 @@
 /**
  * Mulkiya field extraction via OCR.space (free tier).
  *
- * Replaced the paid Claude vision path with a free OCR pipeline:
- *   1. POST the image to OCR.space (25,000 free pages/month, no
- *      tokens, no per-request cost).
- *   2. Parse the returned raw text with regex to pull the structured
+ * Pipeline:
+ *   1. Compress the image down to under 1 MB and resize to a max
+ *      width of 1600 px. OCR.space free tier rejects files larger
+ *      than 1 MB with a TCP reset, not a clean HTTP error, so this
+ *      step is non-optional.
+ *   2. POST the compressed image as multipart/form-data. Base64
+ *      bloats the payload by 33 percent, which makes the size cap
+ *      even tighter, so we send raw bytes.
+ *   3. Parse the returned plain text with regex for the structured
  *      fields the consumer cares about (plate, VIN, year, expiry,
  *      emirate, make, model).
  *
- * Trade-off vs Claude vision:
- *   - Zero recurring cost. Good enough for early users.
- *   - Lower accuracy on creased / shadowed photos. We default to
- *     null on any field we cannot confidently parse so the user
- *     just types those instead of getting a wrong autofill.
- *   - No bundle weight server-side (vs Tesseract.js which needs
- *     ~30 MB of language data per cold start).
+ * Trade-offs:
+ *   + Zero recurring spend at our scale.
+ *   + Survives the OCR.space 1 MB cap on free keys.
+ *   + Single retry on transient TCP resets.
+ *   - Lower accuracy than Claude vision on creased or shadowed
+ *     photos. Unparsed fields stay null so the user types them in.
  *
- * Public surface is unchanged: documents.ts still calls
- * extractMulkiyaFromImage(b64, mimeType). The whole swap is a
- * drop-in replacement.
+ * Public surface unchanged. documents.ts still calls
+ * extractMulkiyaFromImage(b64, mimeType).
  */
 
+import sharp from 'sharp'
 import { MAKES, MODELS_BY_MAKE } from '@/lib/car-data'
 
 const OCR_SPACE_URL = 'https://api.ocr.space/parse/image'
+const REQUEST_TIMEOUT_MS = 25_000
+const RETRY_ATTEMPTS = 2 // initial plus one retry on TCP reset / timeout
+const TARGET_MAX_BYTES = 950_000 // sit a touch under OCR.space's 1 MB cap
 
 const EMIRATES = [
   'Dubai',
@@ -43,16 +50,12 @@ export type ExtractedMulkiya = {
   plate_emirate: (typeof EMIRATES)[number] | null
   vin: string | null
   expires_at: string | null
+  // Added per user request, June 2026:
+  insurance_expires_at: string | null
+  engine_number: string | null
+  cylinders: number | null
 }
 
-/**
- * Extract structured mulkiya fields from an image.
- * Signature kept identical to the old Claude version so callers in
- * actions/documents.ts do not need to change.
- *
- * @param imageBase64 base64-encoded image bytes (no data: prefix)
- * @param mimeType e.g. "image/jpeg", "image/png", "image/webp"
- */
 export async function extractMulkiyaFromImage(
   imageBase64: string,
   mimeType: string,
@@ -61,28 +64,88 @@ export async function extractMulkiyaFromImage(
     console.log('[extract-mulkiya] EXTRACTION_ENABLED=false; skipping')
     return null
   }
-
-  // OCR.space accepts a public anonymous key for very small use,
-  // but it is heavily throttled. Sign up for a free key at
-  // ocr.space/ocrapi to get the 25k/month allowance and set
-  // OCR_SPACE_API_KEY in env. Falls back to "helloworld" when
-  // unset so dev still works.
   const apiKey = process.env.OCR_SPACE_API_KEY ?? 'helloworld'
 
-  let text = ''
+  // Decode the base64 the action handed us and recompress before
+  // sending. Sharp pre-bundled with Next.js for next/image, no
+  // extra runtime cost on Vercel.
+  let compressed: Buffer
   try {
-    const form = new FormData()
-    form.append('apikey', apiKey)
-    form.append('language', 'eng')
-    form.append('isOverlayRequired', 'false')
-    form.append('detectOrientation', 'true')
-    form.append('scale', 'true')
-    // OCR engine 2 has better accuracy on mixed Arabic-English
-    // structured docs like the mulkiya.
-    form.append('OCREngine', '2')
-    form.append('base64Image', `data:${mimeType};base64,${imageBase64}`)
+    const raw = Buffer.from(imageBase64, 'base64')
+    compressed = await compressForOcr(raw, mimeType)
+  } catch (err) {
+    console.error('[extract-mulkiya] compression failed', err)
+    return null
+  }
+  console.log(
+    '[extract-mulkiya] compressed bytes',
+    compressed.byteLength,
+    'mime',
+    mimeType,
+  )
 
-    const res = await fetch(OCR_SPACE_URL, { method: 'POST', body: form })
+  const text = await postToOcrSpaceWithRetry(compressed, apiKey)
+  if (!text) return null
+
+  return parseMulkiyaText(text)
+}
+
+// ─── network ────────────────────────────────────────────────────────
+
+async function postToOcrSpaceWithRetry(
+  bytes: Buffer,
+  apiKey: string,
+): Promise<string | null> {
+  let lastErr: unknown = null
+  for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt++) {
+    try {
+      const text = await postToOcrSpace(bytes, apiKey)
+      if (text != null) return text
+    } catch (err) {
+      lastErr = err
+      console.warn(
+        '[extract-mulkiya] attempt',
+        attempt,
+        'failed',
+        (err as Error)?.message ?? err,
+      )
+      // Don't sleep between attempts; OCR.space resets are usually
+      // a transient TLS handshake issue and a fresh connection
+      // immediately works. Sleeping wastes our 25s budget.
+    }
+  }
+  console.error('[extract-mulkiya] all attempts failed', lastErr)
+  return null
+}
+
+async function postToOcrSpace(
+  bytes: Buffer,
+  apiKey: string,
+): Promise<string | null> {
+  const form = new FormData()
+  form.append('apikey', apiKey)
+  form.append('language', 'eng')
+  form.append('isOverlayRequired', 'false')
+  form.append('detectOrientation', 'true')
+  form.append('scale', 'true')
+  // Engine 2 has better mixed Arabic/English accuracy than engine 1
+  // and a higher per-call budget on the free plan.
+  form.append('OCREngine', '2')
+  form.append(
+    'file',
+    new Blob([new Uint8Array(bytes)], { type: 'image/jpeg' }),
+    'mulkiya.jpg',
+  )
+
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS)
+
+  try {
+    const res = await fetch(OCR_SPACE_URL, {
+      method: 'POST',
+      body: form,
+      signal: ctrl.signal,
+    })
     if (!res.ok) {
       const body = await res.text().catch(() => '')
       console.error('[extract-mulkiya] ocr.space http error', res.status, body)
@@ -97,23 +160,45 @@ export async function extractMulkiyaFromImage(
       console.error('[extract-mulkiya] ocr.space error', json.ErrorMessage)
       return null
     }
-    text = json.ParsedResults?.[0]?.ParsedText ?? ''
+    const text = json.ParsedResults?.[0]?.ParsedText ?? ''
     if (!text.trim()) {
       console.warn('[extract-mulkiya] ocr.space returned empty text')
       return null
     }
-  } catch (err) {
-    console.error('[extract-mulkiya] ocr.space fetch failed', err)
-    return null
+    return text
+  } finally {
+    clearTimeout(timer)
   }
+}
 
-  return parseMulkiyaText(text)
+// ─── compression ────────────────────────────────────────────────────
+
+async function compressForOcr(raw: Buffer, mimeType: string): Promise<Buffer> {
+  // Step down through progressively smaller widths until the JPEG
+  // lands under the OCR.space 1 MB cap. Most phone photos hit the
+  // cap on the first pass (1600 px at quality 78).
+  const widths = [1600, 1400, 1200, 1000]
+  for (const width of widths) {
+    const out = await sharp(raw, { failOn: 'none' })
+      .rotate() // honour EXIF orientation; mulkiya is often rotated
+      .resize({ width, withoutEnlargement: true })
+      .jpeg({ quality: 78, mozjpeg: true })
+      .toBuffer()
+    if (out.byteLength <= TARGET_MAX_BYTES) return out
+  }
+  // Last resort: drop quality. Below 60 OCR starts losing characters.
+  const last = await sharp(raw, { failOn: 'none' })
+    .rotate()
+    .resize({ width: 900, withoutEnlargement: true })
+    .jpeg({ quality: 60, mozjpeg: true })
+    .toBuffer()
+  return last
 }
 
 // ─── parsers ────────────────────────────────────────────────────────
 
 export function parseMulkiyaText(text: string): ExtractedMulkiya {
-  const norm = text.replace(/ /g, ' ').replace(/\r/g, '')
+  const norm = text.replace(/ /g, ' ').replace(/\r/g, '')
   const upper = norm.toUpperCase()
 
   return {
@@ -124,21 +209,17 @@ export function parseMulkiyaText(text: string): ExtractedMulkiya {
     plate_emirate: findEmirate(norm),
     vin: findVin(upper),
     expires_at: findExpiry(upper),
+    insurance_expires_at: findInsuranceExpiry(upper),
+    engine_number: findEngineNumber(upper),
+    cylinders: findCylinders(upper),
   }
 }
 
-// VIN: 17 alphanumeric chars, never I/O/Q (per ISO 3779). Search the
-// full text for any 17-char run that looks like a VIN. False-positives
-// are rare because the I/O/Q exclusion is hard for plate or random
-// strings to satisfy.
 function findVin(upper: string): string | null {
   const m = upper.match(/\b[A-HJ-NPR-Z0-9]{17}\b/)
   return m ? m[0] : null
 }
 
-// Year of manufacture. Mulkiya prints "Year" or "Model Year" in
-// English near a 4-digit number 1980 to next-year. Pick the first
-// plausible value.
 function findYear(text: string): number | null {
   const nextYear = new Date().getFullYear() + 1
   const matches = text.match(/\b(19[89]\d|20\d{2})\b/g) ?? []
@@ -149,10 +230,6 @@ function findYear(text: string): number | null {
   return null
 }
 
-// Plate number: a 3 to 5 digit number near the words PLATE or LOUVRE
-// or NO. Returns the digits only. If we cannot find a contextual
-// match, fall back to the largest 3-5 digit number in the document
-// that is not also a year.
 function findPlateNumber(upper: string): string | null {
   const contextual = upper.match(
     /\b(?:PLATE(?:\s+NO)?|PLATE\s+NUMBER|TRAFFIC\s+PLATE)[^\d]{0,12}(\d{3,5})/,
@@ -166,13 +243,10 @@ function findPlateNumber(upper: string): string | null {
     (n) => !yearLike.has(n),
   )
   if (candidates.length === 0) return null
-  // Pick the longest run as the most likely plate.
   candidates.sort((a, b) => b.length - a.length)
   return candidates[0] ?? null
 }
 
-// Emirate: scan for any of the 7 emirate names, allowing common
-// abbreviations and partial matches.
 function findEmirate(text: string): (typeof EMIRATES)[number] | null {
   const lower = text.toLowerCase()
   const order: Array<[RegExp, (typeof EMIRATES)[number]]> = [
@@ -190,9 +264,6 @@ function findEmirate(text: string): (typeof EMIRATES)[number] | null {
   return null
 }
 
-// Expiry date. Mulkiya prints expiry next to "EXP" or "VALID UNTIL"
-// or sometimes just "EXPIRY DATE". Accept dd/mm/yyyy or dd-mm-yyyy
-// or yyyy-mm-dd and normalise to ISO yyyy-mm-dd.
 function findExpiry(upper: string): string | null {
   const contextual = upper.match(
     /(?:EXP(?:IRY)?(?:\s+DATE)?|VALID(?:\s+UNTIL)?|REG(?:ISTRATION)?\s+EXPIRES?)[^\d]{0,20}(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2})/,
@@ -203,14 +274,11 @@ function findExpiry(upper: string): string | null {
 }
 
 function normaliseDate(raw: string): string | null {
-  const m = raw.match(
-    /^(\d{1,4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,4})$/,
-  )
+  const m = raw.match(/^(\d{1,4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,4})$/)
   if (!m) return null
   const a = m[1]!
   const b = m[2]!
   const c = m[3]!
-  // If first part is 4 digits, treat as yyyy-mm-dd; otherwise dd-mm-yyyy.
   let yyyy: number
   let mm: number
   let dd: number
@@ -241,9 +309,41 @@ function normaliseDate(raw: string): string | null {
     .padStart(2, '0')}-${dd.toString().padStart(2, '0')}`
 }
 
-// Make: scan the OCR text for any curated make from car-data.ts.
-// Return the canonical name (so "TOYOTA" or "toyota" both resolve to
-// "Toyota"). Picks the longest match so "Land Rover" beats "Land".
+// Insurance expiry. UAE mulkiya prints it as "INS EXP" or
+// "INSURANCE EXP" near a date. Normalised to ISO yyyy-mm-dd.
+function findInsuranceExpiry(upper: string): string | null {
+  const m = upper.match(
+    /(?:INS(?:URANCE)?(?:\s+EXP(?:IRY)?)?(?:\s+DATE)?|POLICY\s+EXP(?:IRY)?)[^\d]{0,20}(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2})/,
+  )
+  const raw = m?.[1]
+  if (!raw) return null
+  return normaliseDate(raw)
+}
+
+// Engine number. Alphanumeric run 6 to 20 chars near "ENGINE NO"
+// or "ENGINE NUMBER" or "MOTOR NO". Stays defensive about false
+// positives by requiring the label context (no anywhere-in-text
+// fallback like VIN).
+function findEngineNumber(upper: string): string | null {
+  const m = upper.match(
+    /(?:ENGINE\s*(?:NO|NUMBER|#)|MOTOR\s*NO)[^A-Z0-9]{0,8}([A-Z0-9]{6,20})/,
+  )
+  return m?.[1] ?? null
+}
+
+// Cylinder count. Petrol/diesel passenger cars in the UAE are 3,
+// 4, 6, 8, 10, or 12 cylinders. Look for a 1-2 digit number near
+// "CYLINDERS", "CYL", or "NO OF CYL".
+function findCylinders(upper: string): number | null {
+  const m = upper.match(
+    /(?:NO\.?\s*OF\s*)?CYL(?:INDERS)?[^\d]{0,10}(\d{1,2})/,
+  )
+  if (!m || !m[1]) return null
+  const n = Number(m[1])
+  if (!Number.isFinite(n) || n < 2 || n > 16) return null
+  return n
+}
+
 function findMake(text: string): string | null {
   const haystack = ' ' + text.toUpperCase() + ' '
   let best: { name: string; length: number } | null = null
@@ -256,8 +356,6 @@ function findMake(text: string): string | null {
   return best?.name ?? null
 }
 
-// Model: only attempt once we have a make. Scan for any of the
-// curated models under that make. Same longest-match priority.
 function findModel(text: string): string | null {
   const make = findMake(text)
   if (!make) return null
