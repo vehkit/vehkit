@@ -117,7 +117,268 @@ export async function extractMulkiyaFromImage(
   const text = await postToOcrSpaceWithRetry(compressed, apiKey)
   if (!text) return null
 
-  return parseMulkiyaText(text)
+  // Prefer OpenAI for structured parsing when a key is set. Reads the
+  // document semantics rather than matching by adjacency, so it does
+  // not swap labels for values like the regex parser sometimes did.
+  // Cost on gpt-4o-mini: ~$0.0004/doc. Falls back to regex when no
+  // key or when the OpenAI call errors out.
+  const openaiKey = process.env.OPENAI_API_KEY
+  if (openaiKey) {
+    try {
+      const llm = await parseWithOpenAI(text, openaiKey)
+      if (llm) return validate(llm)
+    } catch (err) {
+      console.warn('[extract-mulkiya] openai parse failed; falling back', err)
+    }
+  }
+  return validate(parseMulkiyaText(text))
+}
+
+// ─── OpenAI structured parser ───────────────────────────────────────
+// Sends the OCR plain text to gpt-4o-mini with response_format
+// json_object. Cheap, accurate enough for UAE registration + insurance
+// bundles, and survives the OCR reordering that breaks the regex
+// parser.
+async function parseWithOpenAI(
+  text: string,
+  apiKey: string,
+): Promise<ExtractedMulkiya | null> {
+  const model = process.env.OPENAI_EXTRACTION_MODEL ?? 'gpt-4o-mini'
+  const schema = `{
+    "vehicle_make": "string or null",
+    "vehicle_model": "string or null",
+    "year": "integer or null",
+    "color": "string or null",
+    "body_type": "string or null",
+    "country_of_origin": "string or null",
+    "category": "string or null",
+    "fuel_type": "string or null",
+    "doors": "integer or null",
+    "seats": "integer or null",
+    "cylinders": "integer or null",
+    "engine_number": "string or null",
+    "vin": "string or null (17 chars, no I/O/Q)",
+    "gross_weight_kg": "integer or null",
+    "empty_weight_kg": "integer or null",
+    "use_of_vehicle": "string or null",
+    "plate_number": "string or null (digits only)",
+    "plate_emirate": "one of Dubai/Abu Dhabi/Sharjah/Ajman/Ras Al Khaimah/Fujairah/Umm Al Quwain, or null",
+    "plate_type": "string or null",
+    "registration_date": "ISO YYYY-MM-DD or null",
+    "registration_authority": "string or null",
+    "mortgage_by": "string or null (bank or finance company name)",
+    "expires_at": "ISO YYYY-MM-DD or null (mulkiya/registration expiry)",
+    "owner_name": "string or null",
+    "owner_nationality": "string or null",
+    "traffic_code_no": "string or null",
+    "insurance_company": "string or null (insurer name)",
+    "insurance_policy_number": "string or null",
+    "insurance_cover_type": "string or null",
+    "insurance_cover_plan": "string or null",
+    "insurance_commencement_at": "ISO YYYY-MM-DD or null",
+    "insurance_expires_at": "ISO YYYY-MM-DD or null",
+    "insurance_premium_aed": "number or null",
+    "insurance_insured_value_aed": "number or null"
+  }`
+
+  const system =
+    'You extract structured fields from UAE Mulkiya / vehicle registration / insurance documents. Reply with ONLY a JSON object matching the requested schema. If a field is missing or uncertain, set null. Never put a header label like "Type Of Cover" or "Seating Capacity" as a value.'
+
+  const user = `SCHEMA:\n${schema}\n\nDOCUMENT TEXT:\n"""\n${text}\n"""\n\nReturn the JSON object only.`
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+    }),
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    console.error('[extract-mulkiya] openai http error', res.status, body)
+    return null
+  }
+  const json = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>
+  }
+  const out = json.choices?.[0]?.message?.content ?? ''
+  if (!out.trim()) {
+    console.error('[extract-mulkiya] openai returned empty content')
+    return null
+  }
+  try {
+    return JSON.parse(out) as ExtractedMulkiya
+  } catch (err) {
+    console.error('[extract-mulkiya] openai JSON parse failed', err, out)
+    return null
+  }
+}
+
+// ─── value validators ───────────────────────────────────────────────
+// Last-line defense. Any value that looks like a label (all-caps,
+// contains the word OF / TYPE / NUMBER / NO / NAME) gets nulled out
+// rather than displayed as a wrong autofill. Same for VIN, year,
+// premium ranges, etc.
+function validate(e: ExtractedMulkiya): ExtractedMulkiya {
+  return {
+    ...e,
+    vehicle_make: cleanText(e.vehicle_make),
+    vehicle_model: cleanText(e.vehicle_model),
+    year: validYear(e.year),
+    color: cleanColor(e.color),
+    body_type: cleanText(e.body_type),
+    country_of_origin: cleanText(e.country_of_origin),
+    category: cleanText(e.category),
+    fuel_type: cleanText(e.fuel_type),
+    doors: clampInt(e.doors, 2, 6),
+    seats: clampInt(e.seats, 1, 30),
+    cylinders: clampInt(e.cylinders, 2, 16),
+    engine_number: cleanCode(e.engine_number, 4, 25),
+    vin: cleanVin(e.vin),
+    gross_weight_kg: clampInt(e.gross_weight_kg, 200, 50_000),
+    empty_weight_kg: clampInt(e.empty_weight_kg, 200, 50_000),
+    use_of_vehicle: cleanText(e.use_of_vehicle),
+    plate_number: cleanCode(e.plate_number, 1, 6),
+    plate_type: cleanText(e.plate_type),
+    registration_date: validIsoDate(e.registration_date),
+    registration_authority: cleanText(e.registration_authority),
+    mortgage_by: cleanText(e.mortgage_by),
+    expires_at: validIsoDate(e.expires_at),
+    owner_name: cleanText(e.owner_name),
+    owner_nationality: cleanText(e.owner_nationality),
+    traffic_code_no: cleanCode(e.traffic_code_no, 4, 12),
+    insurance_company: cleanInsurer(e.insurance_company),
+    insurance_policy_number: cleanCode(e.insurance_policy_number, 4, 25),
+    insurance_cover_type: cleanText(e.insurance_cover_type),
+    insurance_cover_plan: cleanText(e.insurance_cover_plan),
+    insurance_commencement_at: validIsoDate(e.insurance_commencement_at),
+    insurance_expires_at: validIsoDate(e.insurance_expires_at),
+    insurance_premium_aed: clampNumber(e.insurance_premium_aed, 1, 1_000_000),
+    insurance_insured_value_aed: clampNumber(
+      e.insurance_insured_value_aed,
+      1,
+      100_000_000,
+    ),
+  }
+}
+
+const LABEL_TRAPS = [
+  /^seating\s*capacity$/i,
+  /^type\s*of\s*cover$/i,
+  /^value\s*of\s*insured\s*vehicle$/i,
+  /^motor\s*vehicle\s*insurance\s*certificate$/i,
+  /^policy\s*(no|number)\.?$/i,
+  /^document\s*number$/i,
+  /^plate\s*number$/i,
+  /^plate\s*type$/i,
+  /^chassis\s*number$/i,
+  /^engine\s*number$/i,
+  /^body\s*type$/i,
+  /^model\s*year$/i,
+  /^country\s*of\s*origin$/i,
+  /^number\s*of\s*passengers$/i,
+  /^use\s*of\s*vehicle$/i,
+  /^vehicle\s*registration$/i,
+  /^vehicle\s*information$/i,
+  /^owner\s*information$/i,
+  /^insurance\s*plan\s*details$/i,
+  /^tax\s*invoice$/i,
+  /^cover\s*plan$/i,
+  /^cover\s*type$/i,
+  /^expiry\s*date$/i,
+  /^commencement\s*date$/i,
+  /^registration\s*date$/i,
+  /^mortgage\s*by$/i,
+  /^nationality$/i,
+  /^address$/i,
+]
+function isLabelTrap(s: string): boolean {
+  const trimmed = s.trim()
+  if (!trimmed) return true
+  return LABEL_TRAPS.some((re) => re.test(trimmed))
+}
+function cleanText(s: string | null | undefined): string | null {
+  if (!s) return null
+  const t = s.toString().trim().replace(/\s{2,}/g, ' ')
+  if (!t) return null
+  if (isLabelTrap(t)) return null
+  return t
+}
+function cleanColor(s: string | null | undefined): string | null {
+  const t = cleanText(s)
+  if (!t) return null
+  const KNOWN = [
+    'white', 'black', 'silver', 'grey', 'gray', 'beige', 'brown',
+    'red', 'blue', 'green', 'gold', 'yellow', 'orange', 'maroon',
+    'champagne', 'pearl', 'graphite',
+  ]
+  const lower = t.toLowerCase()
+  return KNOWN.some((c) => lower.includes(c)) ? t : null
+}
+function cleanInsurer(s: string | null | undefined): string | null {
+  const t = cleanText(s)
+  if (!t) return null
+  // Reject if it looks like a doc title rather than a company name.
+  if (/certificate|policy|document|invoice/i.test(t)) return null
+  return t
+}
+function cleanCode(
+  s: string | null | undefined,
+  minLen: number,
+  maxLen: number,
+): string | null {
+  const t = cleanText(s)
+  if (!t) return null
+  // Codes should be a single token of digits or alphanumerics.
+  if (/\s/.test(t)) return null
+  if (t.length < minLen || t.length > maxLen) return null
+  return t
+}
+function cleanVin(s: string | null | undefined): string | null {
+  const t = cleanText(s)
+  if (!t) return null
+  if (!/^[A-HJ-NPR-Z0-9]{17}$/i.test(t)) return null
+  return t.toUpperCase()
+}
+function validYear(n: number | null | undefined): number | null {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return null
+  const next = new Date().getFullYear() + 1
+  if (n < 1980 || n > next) return null
+  return Math.trunc(n)
+}
+function clampInt(
+  n: number | null | undefined,
+  min: number,
+  max: number,
+): number | null {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return null
+  if (n < min || n > max) return null
+  return Math.trunc(n)
+}
+function clampNumber(
+  n: number | null | undefined,
+  min: number,
+  max: number,
+): number | null {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return null
+  if (n < min || n > max) return null
+  return n
+}
+function validIsoDate(s: string | null | undefined): string | null {
+  if (!s) return null
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null
+  const d = new Date(s)
+  if (Number.isNaN(d.getTime())) return null
+  return s
 }
 
 // ─── network ────────────────────────────────────────────────────────
