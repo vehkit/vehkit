@@ -66,9 +66,32 @@ export default async function NewDocumentPage({
         >
           <input type="hidden" name="vehicle_id" value={id} />
 
+          {/* File first. We want the user to drop the file in and let
+              everything else flow from that. */}
+          <div>
+            <label htmlFor="file" className="label">
+              File <span className="text-signal">*</span>
+            </label>
+            <input
+              id="file"
+              name="file"
+              type="file"
+              accept="application/pdf,image/*"
+              multiple
+              required
+              autoFocus
+              className="field file:mr-3 file:py-1.5 file:px-3 file:rounded-pill file:border-0 file:bg-iron file:text-chalk file:text-xs file:tracking-widest file:uppercase file:font-medium hover:file:bg-iron/70 file:cursor-pointer"
+            />
+            <p className="text-[11px] text-ash/70 mt-1.5">
+              PDF or image. Multiple files OK.
+            </p>
+          </div>
+
+          {/* Then what kind of doc. If not in the list, pick Other and
+              type the name in Label below. */}
           <div>
             <label htmlFor="doc_type" className="label">
-              Document type <span className="text-signal">*</span>
+              What is it? <span className="text-signal">*</span>
             </label>
             <select
               id="doc_type"
@@ -90,7 +113,7 @@ export default async function NewDocumentPage({
 
           <div>
             <label htmlFor="label" className="label">
-              Label <span className="text-ash/70">(optional)</span>
+              Name <span className="text-ash/70">(optional if you picked above)</span>
             </label>
             <input
               id="label"
@@ -100,24 +123,6 @@ export default async function NewDocumentPage({
               placeholder="e.g. RSA renewal 2026"
               className="field"
             />
-          </div>
-
-          <div>
-            <label htmlFor="file" className="label">
-              Files <span className="text-signal">*</span>
-            </label>
-            <input
-              id="file"
-              name="file"
-              type="file"
-              accept="application/pdf,image/*"
-              multiple
-              required
-              className="field file:mr-3 file:py-1.5 file:px-3 file:rounded-pill file:border-0 file:bg-iron file:text-chalk file:text-xs file:tracking-widest file:uppercase file:font-medium hover:file:bg-iron/70 file:cursor-pointer"
-            />
-            <p className="text-[11px] text-ash/70 mt-1.5">
-              PDF or image. Multiple files OK.
-            </p>
           </div>
 
           <div>

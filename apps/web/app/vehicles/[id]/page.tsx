@@ -417,28 +417,16 @@ export default async function VehiclePage({
             isOwner={isOwner}
           />
 
-          {isOwner && documents.length > 0 && (
-            <div className="mt-3 flex items-center justify-between gap-3">
-              <Link
-                href={`/vehicles/${id}/documents/new`}
-                className="text-xs tracking-widest uppercase text-volt hover:underline"
-              >
-                + Add document
-              </Link>
-              <AgentCodeSheet
-                vehicleId={id}
-                vehicleTitle={vehicleTitle}
-                baseUrl={baseUrl}
-              />
-            </div>
-          )}
-          {isOwner && documents.length === 0 && (
+          {/* Add-document entry point has moved to the floating + FAB.
+              Share-with-agent stays on this surface because it's a
+              vehicle-scoped action, not a global one. */}
+          {isOwner && (
             <div className="mt-3 flex items-center justify-end">
               <AgentCodeSheet
                 vehicleId={id}
                 vehicleTitle={vehicleTitle}
                 baseUrl={baseUrl}
-                disabled
+                disabled={documents.length === 0}
               />
             </div>
           )}
