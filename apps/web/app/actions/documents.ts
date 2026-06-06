@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import {
   extractMulkiyaFromImage,
@@ -159,8 +160,14 @@ export async function createVehicleDocument(formData: FormData) {
       .update({ extraction_status: 'pending' })
       .eq('id', doc.id)
 
-    // Fire async; don't await the redirect on it. Errors logged inside.
-    void runMulkiyaExtraction(doc.id, fileEntries[0], vehicleId)
+    // Run extraction in the background, but use after() so Vercel keeps
+    // the function alive after the redirect response. Without this, the
+    // worker is killed the moment the action returns and the extraction
+    // never finishes (which is why nothing showed in the logs before).
+    const primaryFile = fileEntries[0]
+    if (primaryFile) {
+      after(() => runMulkiyaExtraction(doc.id, primaryFile, vehicleId))
+    }
   }
 
   revalidatePath(`/vehicles/${vehicleId}`)
