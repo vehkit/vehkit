@@ -256,37 +256,9 @@ export default async function VehiclePage({
           />
         </section>
 
-        {/* ACTION ROW */}
-        {isOwner && (
-          <section className="mt-6 -mx-5 md:-mx-6 px-5 md:px-6 overflow-x-auto">
-            <div className="flex gap-2 min-w-max">
-              <ShareSheet vehicleId={id} baseUrl={baseUrl} />
-              <WorkshopCodeSheet vehicleId={id} />
-              <Link
-                href={`/vehicles/${id}/edit`}
-                className="pill-outline text-sm whitespace-nowrap"
-              >
-                Edit
-              </Link>
-            </div>
-          </section>
-        )}
-
-        {/* META — VIN + owner since */}
-        {(vehicle.vin || ownerSinceLabel) && (
-          <section className="mt-5 flex items-center gap-4 text-[11px] text-ash/70 flex-wrap">
-            {vehicle.vin && (
-              <span className="font-mono">
-                VIN <span className="text-ash">{vehicle.vin}</span>
-              </span>
-            )}
-            {ownerSinceLabel && (
-              <span className="tracking-widest uppercase">
-                On Vehkit since {ownerSinceLabel}
-              </span>
-            )}
-          </section>
-        )}
+        {/* Pill action row and VIN/since meta moved to the manage
+            section at the bottom of the page. They were in the face
+            on every load; they belong at the foot. */}
 
         {errorMsg && (
           <div className="mt-4 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">
@@ -528,25 +500,57 @@ export default async function VehiclePage({
           )}
         </section>
 
-        {/* Footer actions */}
-        <section className="mt-16 pt-6 border-t border-seam flex items-center justify-between">
-          <a
-            href={`/vehicles/${id}/export`}
-            className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
-            download
-          >
-            Export CSV
-          </a>
-          <form action={deleteVehicle}>
-            <input type="hidden" name="id" value={id} />
-            <button
-              type="submit"
-              className="text-xs tracking-widest uppercase text-signal hover:underline"
-              formNoValidate
+        {/* Manage / Footer. Where the loud pill actions and meta
+            line live now. Owner-only group + neutral group + danger
+            group on three rows, all small text. */}
+        <section className="mt-16 pt-6 border-t border-seam space-y-4">
+          {isOwner && (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-2 overflow-x-auto">
+              <ShareSheet vehicleId={id} baseUrl={baseUrl} />
+              <WorkshopCodeSheet vehicleId={id} />
+              <Link
+                href={`/vehicles/${id}/edit`}
+                className="pill-outline text-sm whitespace-nowrap"
+              >
+                Edit
+              </Link>
+            </div>
+          )}
+
+          {(vehicle.vin || ownerSinceLabel) && (
+            <div className="flex items-center gap-4 text-[11px] text-ash/70 flex-wrap">
+              {vehicle.vin && (
+                <span className="font-mono">
+                  VIN <span className="text-ash">{vehicle.vin}</span>
+                </span>
+              )}
+              {ownerSinceLabel && (
+                <span className="tracking-widest uppercase">
+                  On Vehkit since {ownerSinceLabel}
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <a
+              href={`/vehicles/${id}/export`}
+              className="text-xs tracking-widest uppercase text-ash hover:text-chalk transition-colors"
+              download
             >
-              Delete this vehicle
-            </button>
-          </form>
+              Export CSV
+            </a>
+            <form action={deleteVehicle}>
+              <input type="hidden" name="id" value={id} />
+              <button
+                type="submit"
+                className="text-xs tracking-widest uppercase text-signal hover:underline"
+                formNoValidate
+              >
+                Delete this vehicle
+              </button>
+            </form>
+          </div>
         </section>
       </div>
 
@@ -784,10 +788,14 @@ function ScoreLine({
 }
 
 // ─── DetailsTable ──────────────────────────────────────────────────
-// Two-column key/value grid that aggregates everything we know about
-// the vehicle. Hides rows with no value so empty cars do not show a
-// table of dashes; once the user fills the form or extracts a mulkiya
-// the relevant rows light up.
+// Necessary detail only. Aggregates the identifying values from the
+// vehicle row, anything extracted from the uploaded mulkiya, and
+// every other document expiry currently on file.
+//
+// Hides nickname and color (cosmetic, not essential), hides the
+// year/make/model rows when they collapse to one obvious vehicle
+// line, hides any row whose value is null. As the user uploads
+// more documents the table grows automatically.
 function DetailsTable({
   vehicle,
   documents,
@@ -818,6 +826,12 @@ function DetailsTable({
   const odoLabel =
     typeof odo === 'number' ? `${odo.toLocaleString()} km` : null
 
+  const year = get('year') as number | null
+  const make = get('make') as string | null
+  const model = get('model') as string | null
+  const vehicleLine =
+    [year, make, model].filter(Boolean).join(' ') || null
+
   const mulkiyaExp =
     (mulkiyaDoc?.expires_at as string | null) ??
     (extracted.expires_at as string | null) ??
@@ -826,20 +840,41 @@ function DetailsTable({
     (insuranceDoc?.expires_at as string | null) ??
     (extracted.insurance_expires_at as string | null) ??
     null
+  const insuranceLabel = (insuranceDoc?.label as string | null) ?? null
+
+  // Every document with an expiry that's not the two we surface as
+  // their own rows. Listed last so they don't crowd the essentials.
+  const otherExpiries = documents
+    .filter(
+      (d) =>
+        d.doc_type !== 'mulkiya' &&
+        d.doc_type !== 'insurance' &&
+        d.doc_type !== 'insurance_policy' &&
+        typeof d.expires_at === 'string',
+    )
+    .map(
+      (d) =>
+        [
+          prettyDocLabel(d.doc_type as string, d.label as string | null),
+          d.expires_at as string,
+        ] as [string, string],
+    )
 
   const rows: Array<[string, string | number | null]> = [
-    ['Nickname', (get('nickname') as string) ?? null],
-    ['Year', (get('year') as number) ?? null],
-    ['Make', (get('make') as string) ?? null],
-    ['Model', (get('model') as string) ?? null],
-    ['Color', (get('color') as string) ?? null],
+    ['Vehicle', vehicleLine],
     ['Plate', plate],
     ['Odometer', odoLabel],
     ['VIN', (get('vin') as string) ?? null],
     ['Engine no.', (extracted.engine_number as string) ?? null],
     ['Cylinders', (extracted.cylinders as number) ?? null],
     ['Mulkiya expires', mulkiyaExp],
-    ['Insurance expires', insuranceExp],
+    [
+      insuranceLabel ? `Insurance (${insuranceLabel}) expires` : 'Insurance expires',
+      insuranceExp,
+    ],
+    ...otherExpiries.map(
+      ([label, date]) => [`${label} expires`, date] as [string, string],
+    ),
   ]
 
   const populated = rows.filter(
@@ -879,5 +914,27 @@ function DetailsTable({
       </dl>
     </div>
   )
+}
+
+function prettyDocLabel(docType: string, customLabel: string | null): string {
+  if (customLabel && customLabel.trim().length > 0) return customLabel
+  switch (docType) {
+    case 'driving_licence':
+      return 'Driving licence'
+    case 'noc':
+      return 'NOC'
+    case 'pollution_test':
+      return 'Pollution test'
+    case 'service_history':
+      return 'Service history'
+    case 'warranty':
+      return 'Warranty'
+    case 'attestation':
+      return 'Attestation'
+    case 'rsa':
+      return 'RSA'
+    default:
+      return docType.charAt(0).toUpperCase() + docType.slice(1).replace(/_/g, ' ')
+  }
 }
 
