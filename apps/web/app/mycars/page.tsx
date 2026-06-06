@@ -5,30 +5,30 @@ import { createSampleVehicle } from '@/app/actions/vehicles'
 import { relativeDate } from '@/lib/format'
 
 /**
- * /mycars v3 — garage-discovery first.
+ * /mycars v3. Garage-discovery first.
  *
  * Why this revision exists:
  *
- *   v1 + v2 led with vehicle photos. Photo-led cards reward a small
- *   subset of users (those who've uploaded a hero photo) and feel
+ *   v1 and v2 led with vehicle photos. Photo-led cards reward a
+ *   small subset of users (those who uploaded a hero photo) and feel
  *   sparse to everyone else. They also push the *primary action of
- *   the product* — "find a garage" — below the fold.
+ *   the product* (find a garage) below the fold.
  *
  *   This version inverts the hierarchy:
  *
  *   1. Greeting line (compact).
  *   2. SERVICE PICKER hero. The dominant card. Big "What does your
- *      car need today?" prompt + a row of common service chips
- *      (Oil & filters / AC / Tires / General service / Body work /
+ *      car need today?" prompt with a row of common service chips
+ *      (Oil and filters, AC, Tires, General service, Body work,
  *      Car wash). Each chip routes to /workshops with the service
- *      pre-filtered. This IS the product — surface it first.
- *   3. Next-up — only if there's something urgent (overdue mulkiya,
- *      pending workshop entry). One row, dismiss-by-action.
- *   4. CARS — compact rows, not full-bleed cards. 60x60 thumbnail +
- *      name + plate + odometer + small status pill. Four+ cars fit
- *      on a phone without scrolling.
- *   5. Trusted garages — quiet horizontal rail, only if any.
- *   6. Quiet footer → /insights.
+ *      pre-filtered. This IS the product. Surface it first.
+ *   3. Next-up. Only if something is urgent (overdue mulkiya, or a
+ *      pending workshop entry). One row, dismiss by action.
+ *   4. CARS. Compact rows, not full-bleed cards. 60x60 thumbnail
+ *      plus name, plate, odometer, small status pill. Four or more
+ *      cars fit on a phone without scrolling.
+ *   5. Trusted garages. Quiet horizontal rail, only if any.
+ *   6. Quiet footer to /insights.
  *
  * Visual intent: dashboard, not Instagram. Asset photos are still
  * present on the detail page; here they're a 60x60 identifying
@@ -85,18 +85,18 @@ type NextUp =
     }
   | null
 
-// Service chips drive the hero — picked from real UAE garage demand,
+// Service chips drive the hero. Picked from real UAE garage demand,
 // not invented categories. Order = ascending visit frequency in our
 // pilot data; tweak as we learn.
-const SERVICE_CHIPS: { label: string; slug: string; emoji: string }[] = [
-  { label: 'Oil & filters', slug: 'oil', emoji: '🛢️' },
-  { label: 'AC service', slug: 'ac', emoji: '❄️' },
-  { label: 'Tires', slug: 'tires', emoji: '🛞' },
-  { label: 'Brakes', slug: 'brakes', emoji: '🛑' },
-  { label: 'General service', slug: 'service', emoji: '🔧' },
-  { label: 'Body work', slug: 'body', emoji: '🚗' },
-  { label: 'Car wash', slug: 'wash', emoji: '🧼' },
-  { label: 'Detailing', slug: 'detailing', emoji: '✨' },
+const SERVICE_CHIPS: { label: string; slug: string }[] = [
+  { label: 'Oil and filters', slug: 'oil' },
+  { label: 'AC service', slug: 'ac' },
+  { label: 'Tires', slug: 'tires' },
+  { label: 'Brakes', slug: 'brakes' },
+  { label: 'General service', slug: 'service' },
+  { label: 'Body work', slug: 'body' },
+  { label: 'Car wash', slug: 'wash' },
+  { label: 'Detailing', slug: 'detailing' },
 ]
 
 export default async function MyCarsPage() {
@@ -285,7 +285,7 @@ export default async function MyCarsPage() {
             Hi {greetingName}.
           </h1>
           <p className="text-base text-mute mt-4 max-w-md leading-relaxed">
-            Find a verified UAE garage in two taps — or add your car to keep
+            Find a verified UAE garage in two taps. Or add your car to keep
             its full service history.
           </p>
 
@@ -326,17 +326,17 @@ export default async function MyCarsPage() {
           </p>
         </header>
 
-        {/* ── 2. service picker hero — THE primary action ── */}
+        {/* 2. service picker hero. THE primary action. */}
         <ServicePickerHero className="mt-6" />
 
-        {/* ── 3. next-up — only when urgent ── */}
+        {/* 3. next-up. Only when urgent. */}
         {nextUp && (
           <div className="mt-4">
             <NextUpRow nextUp={nextUp} />
           </div>
         )}
 
-        {/* ── 4. cars — compact rows ── */}
+        {/* 4. cars. Compact rows. */}
         <section className="mt-10">
           <div className="flex items-center justify-between">
             <SectionLabel>
@@ -363,7 +363,7 @@ export default async function MyCarsPage() {
           </ul>
         </section>
 
-        {/* ── 5. trusted garages — quiet rail ── */}
+        {/* 5. trusted garages. Quiet rail. */}
         {trusted.length > 0 && (
           <section className="mt-10">
             <div className="flex items-end justify-between gap-3">
@@ -458,9 +458,8 @@ function ServicePickerHero({ className = '' }: { className?: string }) {
           <Link
             key={c.slug}
             href={`/workshops?service=${c.slug}`}
-            className="flex items-center gap-2 px-3 py-2.5 rounded-pill bg-paper border border-seam text-sm font-semibold text-ink hover:border-leaf/40 hover:bg-leaf/5 transition-colors"
+            className="flex items-center justify-center px-3 py-2.5 rounded-pill bg-paper border border-seam text-sm font-semibold text-ink hover:border-leaf/40 hover:bg-leaf/5 transition-colors text-center"
           >
-            <span aria-hidden>{c.emoji}</span>
             <span className="truncate">{c.label}</span>
           </Link>
         ))}
@@ -492,7 +491,7 @@ function NextUpRow({ nextUp }: { nextUp: NonNullable<NextUp> }) {
             <span className="text-mute font-normal">on {nextUp.vehicleTitle}</span>
           </p>
           <p className="text-[11px] text-mute mt-0.5">
-            A garage logged service — confirm or reject.
+            A garage logged service. Confirm or reject.
           </p>
         </div>
         <span className="text-sm font-semibold text-leaf shrink-0">&rarr;</span>
