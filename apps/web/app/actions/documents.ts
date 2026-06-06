@@ -18,7 +18,13 @@ function strOrNull(v: FormDataEntryValue | null): string | null {
   return s === '' ? null : s
 }
 
+// 'auto' is the new default — frontend stops asking the user what the
+// doc is. Extraction figures it out from the image and writes the
+// detected type into extracted_data.detected_doc_type. The legacy enum
+// values stay valid for older uploads and for any back-end caller that
+// already knows what kind of doc it has.
 const ALLOWED_DOC_TYPES = new Set([
+  'auto',
   'mulkiya',
   'insurance_policy',
   'driving_licence',
@@ -49,22 +55,30 @@ export async function createVehicleDocument(formData: FormData) {
   if (!user) redirect('/login')
 
   const vehicleId = strOrNull(formData.get('vehicle_id'))
-  const docType = strOrNull(formData.get('doc_type'))
+  const docTypeRaw = strOrNull(formData.get('doc_type'))
   if (!vehicleId) redirect('/garage')
-  if (!docType || !ALLOWED_DOC_TYPES.has(docType)) {
-    redirect(`/vehicles/${vehicleId}/documents/new?error=Pick+a+document+type`)
-  }
+
+  // The new FAB flow stops asking the user what the doc is. Anything
+  // missing or unknown gets stored as 'auto' and extraction figures it
+  // out. Legacy callers (older /documents/new page) still pass the
+  // proper enum value, which we honour.
+  const docType =
+    docTypeRaw && ALLOWED_DOC_TYPES.has(docTypeRaw) ? docTypeRaw : 'auto'
 
   // Accept all files keyed under "file" — the input has `multiple`, so
-  // the browser submits multiple entries with the same name.
-  const fileEntries = formData
+  // the browser submits multiple entries with the same name. Cap at 10
+  // to keep the vision token bill predictable.
+  const allFiles = formData
     .getAll('file')
     .filter((v): v is File => v instanceof File && v.size > 0)
+  const fileEntries = allFiles.slice(0, 10)
 
   if (fileEntries.length === 0) {
-    redirect(`/vehicles/${vehicleId}/documents/new?error=Pick+at+least+one+file`)
+    redirect(`/vehicles/${vehicleId}?error=Pick+at+least+one+file`)
   }
 
+  // Label and expires are no longer collected from the new flow — the
+  // extractor fills expires_at from the document body if it's present.
   const label = strOrNull(formData.get('label'))
   const expiresAt = strOrNull(formData.get('expires_at'))
 
@@ -153,37 +167,30 @@ export async function createVehicleDocument(formData: FormData) {
     )
   }
 
-  // Mulkiya only — fire-and-forget extraction so the user redirect isn't
-  // blocked on Claude's response. The extraction writes back to the doc
-  // row when done; the UI polls via revalidation when user lands on the
-  // doc view.
-  if (docType === 'mulkiya' && fileEntries.length > 0) {
-    await supabase
-      .from('vehicle_documents')
-      .update({ extraction_status: 'pending' })
-      .eq('id', doc.id)
+  // Run extraction for every upload — we no longer ask the user what
+  // the doc is, so the model classifies + extracts in one pass. The
+  // detected_doc_type field comes back in extracted_data and may later
+  // be promoted onto the parent row's doc_type column once we trust
+  // the classifier (currently parked as 'auto').
+  await supabase
+    .from('vehicle_documents')
+    .update({ extraction_status: 'pending' })
+    .eq('id', doc.id)
 
-    // Run extraction synchronously. The previous after() background
-    // task kept being killed by Vercel's worker timeout, leaving the
-    // doc stuck on 'pending' and writing no data. Synchronous is a
-    // few seconds slower for the user (button spinner) but guarantees
-    // the extraction actually finishes and the next page render shows
-    // the extracted values.
-    //
-    // Pass ALL uploaded image files. Dubai mulkiya is two-sided — the
-    // back carries owner/color/body/cylinders that the front omits.
-    // Vision (gpt-4o) accepts multi-image in a single call.
-    await runMulkiyaExtraction(doc.id, fileEntries, vehicleId)
-  }
+  await runMulkiyaExtraction(doc.id, fileEntries, vehicleId)
 
   revalidatePath(`/vehicles/${vehicleId}`)
   redirect(`/vehicles/${vehicleId}#documents`)
 }
 
 /**
- * Send the mulkiya image to Claude, parse the structured response, and
- * write it back to the document row. Runs out-of-band of the user's
- * redirect; the doc-view page reads the result.
+ * Send any uploaded document image(s) to gpt-4o vision, classify the
+ * type, extract the fields, write everything back to the document row.
+ *
+ * The model also tells us what kind of doc it thinks it is
+ * (detected_doc_type). We persist that into extracted_data; the UI can
+ * eventually promote it onto the parent doc_type column once we trust
+ * the classifier across a real sample of uploads.
  *
  * Designed to NEVER throw — we always end with a status the UI can read.
  */
@@ -194,7 +201,9 @@ async function runMulkiyaExtraction(
 ): Promise<void> {
   try {
     // Only photos for now. PDFs need a different content shape — we'll
-    // mark them failed with a friendly error rather than crashing.
+    // mark them failed with a friendly error rather than crashing. If
+    // the user uploaded a mix, we extract from the images and silently
+    // ignore the PDFs (they're still stored).
     const imageFiles = files.filter((f) => f.type.startsWith('image/'))
     if (imageFiles.length === 0) {
       const supabase = await createClient()
@@ -202,7 +211,7 @@ async function runMulkiyaExtraction(
         .from('vehicle_documents')
         .update({
           extraction_status: 'failed',
-          extraction_error: 'PDF extraction not supported yet — try a photo.',
+          extraction_error: 'PDF reading is coming soon — for now upload photos.',
         })
         .eq('id', docId)
       return
@@ -229,22 +238,45 @@ async function runMulkiyaExtraction(
         .update({
           extraction_status: 'failed',
           extraction_error:
-            'Could not read the mulkiya. Try a clearer photo with all four corners visible.',
+            'Could not read this document. Try a clearer photo with all corners visible.',
           extracted_at: new Date().toISOString(),
         })
         .eq('id', docId)
       return
     }
 
-    // Promote the expires_at from the extracted data onto the parent
-    // row. That feeds the renewal reminder cron.
+    // Promote derived fields onto the parent row so the legacy reminder
+    // cron + the UI don't need to look inside the jsonb. The detected
+    // doc type only gets promoted if the model was confident (>= 0.6)
+    // and the detected value matches one of the allowed enum strings on
+    // the column — otherwise we leave doc_type='auto' and rely on the
+    // jsonb for downstream reads.
     const docUpdates: Record<string, unknown> = {
       extracted_data: extracted,
-      extraction_status: 'applied', // skip the manual Apply step
+      extraction_status: 'applied',
       extracted_at: new Date().toISOString(),
     }
     if (extracted.expires_at) {
       docUpdates.expires_at = extracted.expires_at
+    }
+    if (
+      extracted.detected_doc_type &&
+      (extracted.detected_doc_confidence ?? 0) >= 0.6
+    ) {
+      // Map the model's broader vocabulary back to the on-column enum.
+      // Anything we can't map stays as 'auto' on the parent row.
+      const mapping: Record<string, string> = {
+        mulkiya: 'mulkiya',
+        insurance_certificate: 'insurance_policy',
+        insurance_policy_schedule: 'insurance_policy',
+        driving_licence: 'driving_licence',
+        noc: 'noc',
+        pollution_test: 'pollution_test',
+        service_invoice: 'service_history',
+        service_history: 'service_history',
+      }
+      const mapped = mapping[extracted.detected_doc_type]
+      if (mapped) docUpdates.doc_type = mapped
     }
     await supabase.from('vehicle_documents').update(docUpdates).eq('id', docId)
 

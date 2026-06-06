@@ -37,7 +37,29 @@ const EMIRATES = [
   'Umm Al Quwain',
 ] as const
 
+// The detected document type the model returns. Keep this list close
+// to the human-facing categories the UI will eventually surface; new
+// types should be appended, never reordered, so DB rows stay readable.
+export type DetectedDocType =
+  | 'mulkiya'
+  | 'insurance_certificate'
+  | 'insurance_policy_schedule'
+  | 'driving_licence'
+  | 'noc'
+  | 'pollution_test'
+  | 'rta_passing_certificate'
+  | 'service_invoice'
+  | 'service_history'
+  | 'salik_statement'
+  | 'fine_receipt'
+  | 'other'
+
 export type ExtractedMulkiya = {
+  // ── document classification ──
+  detected_doc_type: DetectedDocType | null
+  detected_doc_confidence: number | null // 0–1
+  document_number: string | null // any official ref number on the doc
+
   // ── vehicle identity ──
   vehicle_make: string | null
   vehicle_model: string | null
@@ -219,6 +241,9 @@ async function parseImagesWithVision(
   )
 
   const schema = `{
+  "detected_doc_type": "one of: mulkiya | insurance_certificate | insurance_policy_schedule | driving_licence | noc | pollution_test | rta_passing_certificate | service_invoice | service_history | salik_statement | fine_receipt | other",
+  "detected_doc_confidence": "number between 0 and 1",
+  "document_number": "string | null (any official reference / certificate number printed on the doc)",
   "vehicle_make": "string | null",
   "vehicle_model": "string | null",
   "year": "integer | null",
@@ -255,7 +280,11 @@ async function parseImagesWithVision(
   "insurance_insured_value_aed": "number | null"
 }`
 
-  const system = `You read UAE vehicle documents (Mulkiya, RTA Vehicle Possession Certificate, Motor Vehicle Insurance Certificate, or any combined bundle) and extract structured fields.
+  const system = `You read UAE vehicle documents and extract structured fields.
+
+FIRST: classify what you are looking at. Possible types include the Mulkiya / RTA Vehicle Possession Certificate, Motor Vehicle Insurance Certificate, Insurance Policy Schedule, Driving Licence, NOC, Pollution Test, RTA Passing Certificate, Service Invoice, Service History PDF, Salik Statement, Fine Receipt, or other. Set detected_doc_type to the best match. Use 'other' only as a last resort. Express your confidence as detected_doc_confidence between 0 and 1.
+
+THEN: extract every field from the schema that the document(s) contain. Not every field is relevant to every document type — fill what you can read, return null for the rest. NEVER invent a value.
 
 You will be given ONE OR MORE images that together form a single logical document. Dubai mulkiya is two-sided: the front shows vehicle identity + registration; the back shows owner + technical specs (body type, color, cylinders, doors, seats, engine no.). Read every image carefully and merge fields across them.
 
@@ -269,6 +298,7 @@ Critical rules:
 - mortgage_by is a bank or finance company name (e.g. "Emirates NBD Bank").
 - owner_name is the full name printed next to "Owner" or "Name" — not a transliteration of the issuing authority.
 - color and body_type usually appear on the BACK of the mulkiya. Look across all images.
+- document_number is any printed reference / certificate / policy number on the doc.
 - For any field where you cannot read the value clearly, return null. Do NOT use a section heading or label like "Type Of Cover", "Seating Capacity", "Motor Vehicle Insurance Certificate" as a value.
 
 Return ONLY a JSON object matching the schema. No prose, no markdown fences.`
@@ -485,6 +515,12 @@ export function parseMulkiyaText(text: string): ExtractedMulkiya {
   const upper = norm.toUpperCase()
 
   return {
+    // The regex fallback can't reliably tell what kind of doc this is —
+    // it sees a stream of UPPERCASE tokens. Leave classification to the
+    // vision path; here we just emit nulls.
+    detected_doc_type: null,
+    detected_doc_confidence: null,
+    document_number: null,
     vehicle_make: findMake(norm),
     vehicle_model: findModel(norm),
     year: findYear(norm),
@@ -841,6 +877,9 @@ function validate(e: ExtractedMulkiya): ExtractedMulkiya {
   }
   return {
     ...e,
+    detected_doc_type: cleanDocType(e.detected_doc_type),
+    detected_doc_confidence: clampNumber(e.detected_doc_confidence, 0, 1),
+    document_number: cleanCode(e.document_number, 3, 40),
     vehicle_make: cleanText(e.vehicle_make),
     vehicle_model: cleanText(e.vehicle_model),
     year: validYear(e.year),
@@ -915,6 +954,30 @@ function isLabelTrap(s: string): boolean {
   const trimmed = s.trim()
   if (!trimmed) return true
   return LABEL_TRAPS.some((re) => re.test(trimmed))
+}
+const ALLOWED_DETECTED_DOC_TYPES: ReadonlySet<DetectedDocType> = new Set<
+  DetectedDocType
+>([
+  'mulkiya',
+  'insurance_certificate',
+  'insurance_policy_schedule',
+  'driving_licence',
+  'noc',
+  'pollution_test',
+  'rta_passing_certificate',
+  'service_invoice',
+  'service_history',
+  'salik_statement',
+  'fine_receipt',
+  'other',
+])
+function cleanDocType(
+  s: DetectedDocType | string | null | undefined,
+): DetectedDocType | null {
+  if (!s) return null
+  const t = s.toString().trim().toLowerCase() as DetectedDocType
+  if (!ALLOWED_DETECTED_DOC_TYPES.has(t)) return null
+  return t
 }
 function cleanText(s: string | null | undefined): string | null {
   if (!s) return null
