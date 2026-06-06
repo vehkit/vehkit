@@ -116,6 +116,12 @@ export async function extractMulkiyaFromImage(
 
   const text = await postToOcrSpaceWithRetry(compressed, apiKey)
   if (!text) return null
+  console.log(
+    '[extract-mulkiya] ocr text length',
+    text.length,
+    'preview:',
+    text.slice(0, 600).replace(/\s+/g, ' '),
+  )
 
   // Prefer OpenAI for structured parsing when a key is set. Reads the
   // document semantics rather than matching by adjacency.
@@ -197,10 +203,20 @@ async function parseWithOpenAI(
     "insurance_insured_value_aed": "number or null"
   }`
 
-  const system =
-    'You extract structured fields from UAE Mulkiya / vehicle registration / insurance documents. Reply with ONLY a JSON object matching the requested schema. If a field is missing or uncertain, set null. Never put a header label like "Type Of Cover" or "Seating Capacity" as a value.'
+  const system = `You extract structured fields from UAE vehicle documents. The document may be the plain Mulkiya (registration card), the RTA-issued Vehicle Possession Certificate, the Motor Vehicle Insurance Certificate, or a combined bundle containing all three.
 
-  const user = `SCHEMA:\n${schema}\n\nDOCUMENT TEXT:\n"""\n${text}\n"""\n\nReturn the JSON object only.`
+Critical disambiguation rules. Read carefully:
+
+- "expires_at" means the MULKIYA / REGISTRATION expiry only. This usually sits under the heading "Vehicle Registration" or near "Plate Number" / "Mulkiya". NEVER copy the insurance expiry into this field.
+- "insurance_expires_at" is the policy EXPIRY date under the Insurance section.
+- "insurance_commencement_at" is the policy START / commencement date. Do not swap these.
+- "registration_date" is when the vehicle was first registered. Do not confuse with insurance dates.
+
+For every field, if you cannot find a clear value in the right section, return null. Do NOT guess. Do NOT use a section header as a value (no "Type Of Cover", "Seating Capacity", "Motor Vehicle Insurance Certificate", "Value Of Insured Vehicle" as values).
+
+Reply with ONLY a JSON object matching the requested schema, nothing else.`
+
+  const user = `SCHEMA:\n${schema}\n\nDOCUMENT TEXT (raw OCR; layout may be noisy or reordered):\n"""\n${text}\n"""\n\nReturn the JSON object only.`
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
