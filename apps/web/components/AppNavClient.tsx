@@ -39,7 +39,7 @@ function isPathActive(pathname: string, href: string): boolean {
     )
   }
   if (href === '/profile') {
-    return pathname.startsWith('/profile') || pathname.startsWith('/fleet')
+    return pathname.startsWith('/profile')
   }
   return pathname.startsWith(href)
 }

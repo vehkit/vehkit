@@ -34,11 +34,10 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname
   const protectedPrefixes = [
     '/mycars',
-    '/garage', // legacy — redirects to /mycars but still gates auth
+    '/garage', // legacy. Redirects to /mycars but still gates auth.
     '/vehicles',
     '/reminders',
     '/notifications',
-    '/fleet',
     '/profile',
   ]
   // CRITICAL: distinguish '/workshop' (singular — the workshop owner's

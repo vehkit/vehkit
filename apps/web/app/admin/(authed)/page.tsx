@@ -14,7 +14,6 @@ type Overview = {
   total_reviews: number
   avg_rating: number
   open_reminders: number
-  fleet_orgs: number
   workshop_codes_today: number
   total_revenue_logged_aed: number
   signups_last_7d: number
@@ -92,7 +91,6 @@ export default async function AdminOverviewPage() {
       </section>
 
       <section className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
-        <Stat label="Fleet orgs" value={stats.fleet_orgs} />
         <Stat
           label="Workshop attested"
           value={stats.workshop_attested_records}

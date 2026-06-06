@@ -6,7 +6,6 @@ import { deleteVehicle } from '@/app/actions/vehicles'
 import { snoozeReminder, completeReminder } from '@/app/actions/reminders'
 import { ShareSheet } from '@/components/ShareSheet'
 import { WorkshopCodeSheet } from '@/components/WorkshopCodeSheet'
-import { FamilyShareSheet } from '@/components/FamilyShareSheet'
 import { VehicleScoreChip } from '@/components/VehicleScore'
 import { ScrollAwareHeader } from '@/components/ScrollAwareHeader'
 import { VehicleHero } from '@/components/VehicleHero'
@@ -262,7 +261,6 @@ export default async function VehiclePage({
             <div className="flex gap-2 min-w-max">
               <ShareSheet vehicleId={id} baseUrl={baseUrl} />
               <WorkshopCodeSheet vehicleId={id} />
-              <FamilyShareSheet vehicleId={id} baseUrl={baseUrl} />
               <Link
                 href={`/vehicles/${id}/edit`}
                 className="pill-outline text-sm whitespace-nowrap"

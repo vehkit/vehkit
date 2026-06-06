@@ -107,7 +107,7 @@ function contextLabel(next: string): {
     return {
       eyebrow: 'Agent sign-in',
       heading: 'Sign in to your agent desk',
-      sub: 'Insurance brokers, fleet desks, leasing operators. One-time link, no password.',
+      sub: 'Insurance brokers and leasing desks. One-time link, no password.',
     }
   }
   if (next === '/admin' || next.startsWith('/admin/')) {
@@ -124,18 +124,11 @@ function contextLabel(next: string): {
       sub: "We'll email you a link. Click it and the vehicle is added to your account.",
     }
   }
-  if (next.startsWith('/f/')) {
-    return {
-      eyebrow: 'Fleet invite',
-      heading: 'Sign in to join the fleet',
-      sub: "Click the link in your email — you'll land in the fleet dashboard.",
-    }
-  }
-  // Default case — same page handles both first-time sign-up and
+  // Default case. Same page handles both first-time sign-up and
   // returning sign-in (magic link auth), so the copy stays neutral.
   return {
     eyebrow: 'Sign in or create account',
     heading: 'Welcome to Vehkit',
-    sub: "Enter your email — we'll send you a magic link. No password to remember, no separate sign-up.",
+    sub: "Enter your email. We'll send you a magic link. No password to remember, no separate sign-up.",
   }
 }

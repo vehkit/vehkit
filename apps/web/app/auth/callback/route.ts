@@ -10,11 +10,9 @@ const ALLOWED_NEXT_PREFIXES = [
   '/profile',
   '/workshop',
   '/workshops',
-  '/fleet',
   '/admin',
   '/agent',
   '/a/',
-  '/f/',
   '/r/',
   '/shop',
 ] as const

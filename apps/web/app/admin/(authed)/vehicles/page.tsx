@@ -13,7 +13,6 @@ type Vehicle = {
   plate_emirate: string | null
   current_odometer: number | null
   owner_id: string
-  fleet_org_id: string | null
   created_at: string
 }
 
@@ -103,7 +102,6 @@ export default async function AdminVehiclesPage({
               <th className="text-left p-3">Plate</th>
               <th className="text-left p-3">Owner</th>
               <th className="text-right p-3">Odometer</th>
-              <th className="text-left p-3">Fleet</th>
               <th className="text-right p-3">Added</th>
             </tr>
           </thead>
@@ -129,7 +127,6 @@ export default async function AdminVehiclesPage({
                   <td className="p-3 text-right font-mono tabular-nums text-chalk">
                     {v.current_odometer?.toLocaleString() ?? '—'}
                   </td>
-                  <td className="p-3 text-xs text-ash">{v.fleet_org_id ? 'Fleet' : '—'}</td>
                   <td className="p-3 text-right text-xs text-ash">
                     {new Date(v.created_at).toLocaleDateString('en-GB', {
                       day: 'numeric',

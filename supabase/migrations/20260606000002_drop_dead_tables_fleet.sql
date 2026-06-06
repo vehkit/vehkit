@@ -1,0 +1,132 @@
+-- =====================================================================
+-- DB cleanup pass.
+--
+-- Drops three dead tables left over from earlier feature attempts plus
+-- the entire fleet B2B feature. Post-pivot Vehkit is a consumer +
+-- workshop product; fleet was never adopted by a paying customer.
+--
+-- What goes:
+--   * audit_log           replaced by admin_audit_log
+--   * family_invites      replaced by agent_grants (broader sharing model)
+--   * vehicle_access      replaced by agent_grants (granular grant model)
+--   * fleet_orgs          fleet feature retired
+--   * fleet_members       fleet feature retired
+--   * fleet_invites       fleet feature retired
+--
+-- Plus all RPCs and triggers tied to these tables. The schema needs to
+-- be clean before we wire Palantir, otherwise the lineage view shows
+-- ghost entities no human can explain.
+-- =====================================================================
+
+-- 1. Drop functions tied to dead tables. Block iterates and uses the
+--    actual installed signatures (resilient to migration drift over
+--    re-runs).
+DO $$
+DECLARE
+  r record;
+BEGIN
+  FOR r IN
+    SELECT n.nspname, p.proname,
+           pg_get_function_identity_arguments(p.oid) AS args
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname IN (
+        'is_fleet_member',
+        'is_fleet_admin',
+        'create_fleet_org',
+        'fleet_org_stats',
+        'create_fleet_invite',
+        'preview_fleet_invite',
+        'accept_fleet_invite',
+        'create_family_invite',
+        'preview_family_invite',
+        'accept_family_invite',
+        'audit_log_immutable',
+        'has_vehicle_access'
+      )
+  LOOP
+    EXECUTE format(
+      'DROP FUNCTION IF EXISTS %I.%I(%s) CASCADE;',
+      r.nspname, r.proname, r.args
+    );
+  END LOOP;
+END $$;
+
+-- 2. Drop the column on vehicles that referenced fleet_orgs. CASCADE
+--    on the table drop nukes the FK constraint, but the column itself
+--    stays as a dangling uuid otherwise. Dropping the column also
+--    cleans up the partial index and any RLS policies that joined on
+--    it.
+ALTER TABLE public.vehicles
+  DROP COLUMN IF EXISTS fleet_org_id CASCADE;
+
+-- 3. Drop tables with CASCADE so any remaining views, RLS policies,
+--    or foreign keys go with them.
+DROP TABLE IF EXISTS public.fleet_invites    CASCADE;
+DROP TABLE IF EXISTS public.fleet_members    CASCADE;
+DROP TABLE IF EXISTS public.fleet_orgs       CASCADE;
+DROP TABLE IF EXISTS public.family_invites   CASCADE;
+DROP TABLE IF EXISTS public.vehicle_access   CASCADE;
+DROP TABLE IF EXISTS public.audit_log        CASCADE;
+
+-- 4. Recreate admin_overview_stats without the fleet_orgs key.
+--    The old definition queries fleet_orgs, which no longer exists,
+--    so the RPC would 500 on every admin dashboard load.
+create or replace function public.admin_overview_stats()
+returns jsonb
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'total_users', (select count(*) from public.profiles),
+    'total_vehicles', (select count(*) from public.vehicles),
+    'total_service_records', (select count(*) from public.service_records),
+    'workshop_attested_records', (
+      select count(*) from public.service_records where attestation = 'workshop'
+    ),
+    'total_workshops', (select count(*) from public.workshops),
+    'verified_workshops', (
+      select count(*) from public.workshops where verification_tier in ('silver', 'gold')
+    ),
+    'gold_workshops', (
+      select count(*) from public.workshops where verification_tier = 'gold'
+    ),
+    'silver_workshops', (
+      select count(*) from public.workshops where verification_tier = 'silver'
+    ),
+    'total_reviews', (select count(*) from public.workshop_reviews),
+    'avg_rating', coalesce(
+      (select round(avg(rating)::numeric, 2) from public.workshop_reviews), 0
+    ),
+    'open_reminders', (
+      select count(*) from public.reminders where status = 'open'
+    ),
+    'workshop_codes_today', (
+      select count(*) from public.workshop_codes
+       where created_at >= current_date
+    ),
+    'total_revenue_logged_aed', coalesce(
+      (select sum(cost_aed)::numeric from public.service_records),
+      0
+    ),
+    'signups_last_7d', (
+      select count(*) from public.profiles where created_at >= now() - interval '7 days'
+    ),
+    'signups_last_30d', (
+      select count(*) from public.profiles where created_at >= now() - interval '30 days'
+    ),
+    'records_last_7d', (
+      select count(*) from public.service_records where created_at >= now() - interval '7 days'
+    ),
+    'records_last_30d', (
+      select count(*) from public.service_records where created_at >= now() - interval '30 days'
+    )
+  );
+$$;
+
+-- 5. Refresh PostgREST schema cache so the Supabase client stops
+--    listing these tables in autogenerated types.
+NOTIFY pgrst, 'reload schema';

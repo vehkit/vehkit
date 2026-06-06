@@ -286,13 +286,6 @@ async function cleanupDemo() {
   await sb.from('service_records').delete().in('created_by', demoIds)
   await sb.from('service_files').delete().in('uploaded_by', demoIds)
   await sb.from('vehicle_share_tokens').delete().in('created_by', demoIds)
-  await sb.from('vehicle_access').delete().in('granted_by', demoIds)
-  await sb.from('family_invites').delete().in('invited_by', demoIds)
-  await sb.from('fleet_invites').delete().in('invited_by', demoIds)
-  await sb
-    .from('fleet_orgs')
-    .delete()
-    .in('created_by', demoIds)
 
   // Workshops where ALL members are demo users (delete entire workshop record)
   const { data: demoWorkshopMembers } = await sb
@@ -305,8 +298,6 @@ async function cleanupDemo() {
   if (demoWorkshopIds.length > 0) {
     await sb.from('workshops').delete().in('id', demoWorkshopIds)
   }
-
-  await sb.from('audit_log').delete().in('actor_id', demoIds)
 
   // Delete the auth users themselves (cascades to profiles, vehicles, etc.)
   for (const id of demoIds) {
