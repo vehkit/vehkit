@@ -174,18 +174,28 @@ const FIELD_PRIORITY: Partial<
   insurance_insured_value_aed: ['insurance_policy_schedule', 'insurance_certificate'],
 }
 
+// Fields where cross-doc contamination is so common that we refuse to
+// accept values from outside the priority list. These are the values
+// most likely to leak in from barcodes or table-header misreads.
+const STRICT_FIELDS: ReadonlySet<keyof ExtractedMulkiya> = new Set([
+  'plate_number',
+  'plate_emirate',
+  'plate_type',
+  'color',
+])
+
 /**
  * Merge N per-file extraction results into a single consolidated record.
  *
- * For every field, we ONLY accept values from documents whose detected
- * type is on the field's allowlist (FIELD_PRIORITY). Values from
- * unrelated doc types are rejected — even if vision returned them — to
- * prevent insurance-barcode digits leaking into plate_number, or a
- * misread Make/Model column header polluting the color field.
- *
- * Result: missing data is better than wrong data. The data lake still
- * has every per-file extraction archived in extracted_data so we can
- * mine the misses later.
+ * Two-pass algorithm:
+ *   1. STRICT pass — every field that has a priority list pulls only
+ *      from documents whose detected_doc_type is on that list. This
+ *      catches the easy wins (mulkiya plate, passing color, etc.).
+ *   2. PERMISSIVE pass — for fields still null after pass 1, accept
+ *      a value from ANY extraction (validators have already run, so
+ *      bad shapes are already nulled). Skipped for STRICT_FIELDS —
+ *      those stay null rather than risk pulling a barcode fragment
+ *      from an insurance certificate.
  *
  * detected_doc_type / detected_doc_confidence on the merged record
  * inherit from the first extraction — those describe individual docs,
@@ -203,24 +213,29 @@ export function mergeExtractions(
       continue
     }
     const allowed = FIELD_PRIORITY[field]
-    if (!allowed) {
-      // No explicit rule — pick first non-null across the bundle.
-      // (Used by tail fields like document_number where any doc is fine.)
-      const found = results.find((r) => r[field] != null)
-      ;(out as Record<string, unknown>)[field] = found ? found[field] : null
-      continue
-    }
 
+    // Pass 1: strict — priority-listed doc types only.
     let resolved: unknown = null
-    for (const wantedType of allowed) {
-      const candidate = results.find(
-        (r) => r.detected_doc_type === wantedType && r[field] != null,
-      )
-      if (candidate) {
-        resolved = candidate[field]
-        break
+    if (allowed) {
+      for (const wantedType of allowed) {
+        const candidate = results.find(
+          (r) => r.detected_doc_type === wantedType && r[field] != null,
+        )
+        if (candidate) {
+          resolved = candidate[field]
+          break
+        }
       }
     }
+
+    // Pass 2: permissive — first non-null from any doc, BUT only for
+    // fields where contamination is unlikely. STRICT_FIELDS stay null
+    // if the priority pass didn't find them.
+    if (resolved == null && !STRICT_FIELDS.has(field)) {
+      const found = results.find((r) => r[field] != null)
+      if (found) resolved = found[field]
+    }
+
     ;(out as Record<string, unknown>)[field] = resolved
   }
   return out
