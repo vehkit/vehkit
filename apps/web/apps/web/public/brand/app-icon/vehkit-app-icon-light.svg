@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <title>Vehkit — app icon (light tile)</title>
-  <rect width="1024" height="1024" rx="235" fill="#F5F5F0"></rect>
-  <g transform="translate(112 112) scale(4)">
-    <circle cx="100" cy="100" r="92" fill="#21C07A"></circle>
-    <path d="M 60 104 L 90 132 L 144 76" fill="none" stroke="#F5F5F0" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"></path>
-  </g>
-</svg>
