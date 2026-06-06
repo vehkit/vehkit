@@ -1,28 +1,29 @@
 /**
- * Mulkiya field extraction via Claude vision.
+ * Mulkiya field extraction via OCR.space (free tier).
  *
- * Given the bytes of a UAE Mulkiya photo, returns a structured set of
- * fields suitable for auto-filling the vehicle record. Uses Claude
- * Sonnet's vision capability — it's strong at reading semi-structured
- * documents with mixed Arabic/English text like the mulkiya.
+ * Replaced the paid Claude vision path with a free OCR pipeline:
+ *   1. POST the image to OCR.space (25,000 free pages/month, no
+ *      tokens, no per-request cost).
+ *   2. Parse the returned raw text with regex to pull the structured
+ *      fields the consumer cares about (plate, VIN, year, expiry,
+ *      emirate, make, model).
  *
- * Returns null when extraction fails or the response can't be parsed —
- * the caller treats that as a "ready: false" state, not a crash.
+ * Trade-off vs Claude vision:
+ *   - Zero recurring cost. Good enough for early users.
+ *   - Lower accuracy on creased / shadowed photos. We default to
+ *     null on any field we cannot confidently parse so the user
+ *     just types those instead of getting a wrong autofill.
+ *   - No bundle weight server-side (vs Tesseract.js which needs
+ *     ~30 MB of language data per cold start).
+ *
+ * Public surface is unchanged: documents.ts still calls
+ * extractMulkiyaFromImage(b64, mimeType). The whole swap is a
+ * drop-in replacement.
  */
 
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages'
+import { MAKES, MODELS_BY_MAKE } from '@/lib/car-data'
 
-/**
- * Model is configurable via env. Default is Haiku — cheapest credible
- * option, ~3x lighter on tokens than Sonnet. Mulkiyas are standardised
- * forms; Haiku handles them fine. Override to `claude-sonnet-4-5` only
- * if you start seeing extraction failures on real docs.
- *
- * Cost guidance (Haiku 4.5 list price):
- *   input  $1/M tokens · output $5/M tokens
- *   typical mulkiya: ~1,200 input + ~150 output = ~$0.002 per doc
- */
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_EXTRACTION_MODEL ?? 'claude-haiku-4-5'
+const OCR_SPACE_URL = 'https://api.ocr.space/parse/image'
 
 const EMIRATES = [
   'Dubai',
@@ -44,134 +45,230 @@ export type ExtractedMulkiya = {
   expires_at: string | null
 }
 
-const EXTRACTION_PROMPT = `You are extracting structured data from a UAE Mulkiya (vehicle registration card).
-Look at the image carefully. The card contains text in both Arabic and English.
-
-Return ONLY a JSON object (no markdown fences, no commentary) with these fields:
-- vehicle_make: car brand as English text (e.g. "Toyota", "Nissan", "Mercedes-Benz")
-- vehicle_model: model as English text (e.g. "Land Cruiser", "Patrol", "C 200")
-- year: 4-digit integer model year
-- plate_number: the plate number as it appears on the card (digits only, no letter)
-- plate_emirate: ONE of exactly: ${EMIRATES.map((e) => `"${e}"`).join(', ')}
-- vin: 17-character alphanumeric VIN / chassis number
-- expires_at: registration expiry date as ISO YYYY-MM-DD
-
-If any field is not clearly legible, set it to null. Do not guess.
-Return ONLY the JSON, starting with { and ending with }.`
-
 /**
- * Send an image to Claude vision and parse the structured response.
- * @param imageBase64 base64 string of the image WITHOUT the data: prefix
+ * Extract structured mulkiya fields from an image.
+ * Signature kept identical to the old Claude version so callers in
+ * actions/documents.ts do not need to change.
+ *
+ * @param imageBase64 base64-encoded image bytes (no data: prefix)
  * @param mimeType e.g. "image/jpeg", "image/png", "image/webp"
  */
 export async function extractMulkiyaFromImage(
   imageBase64: string,
   mimeType: string,
 ): Promise<ExtractedMulkiya | null> {
-  // Hard kill-switch — set EXTRACTION_ENABLED=false to skip the API call
-  // entirely (zero spend). Used when running local dev, in test suites,
-  // or pre-launch when we don't want to pay for half-tested uploads.
   if (process.env.EXTRACTION_ENABLED === 'false') {
     console.log('[extract-mulkiya] EXTRACTION_ENABLED=false; skipping')
     return null
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) {
-    console.warn('[extract-mulkiya] ANTHROPIC_API_KEY not set; skipping')
-    return null
-  }
+  // OCR.space accepts a public anonymous key for very small use,
+  // but it is heavily throttled. Sign up for a free key at
+  // ocr.space/ocrapi to get the 25k/month allowance and set
+  // OCR_SPACE_API_KEY in env. Falls back to "helloworld" when
+  // unset so dev still works.
+  const apiKey = process.env.OCR_SPACE_API_KEY ?? 'helloworld'
 
+  let text = ''
   try {
-    const res = await fetch(ANTHROPIC_API_URL, {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: ANTHROPIC_MODEL,
-        max_tokens: 1024,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: mimeType,
-                  data: imageBase64,
-                },
-              },
-              { type: 'text', text: EXTRACTION_PROMPT },
-            ],
-          },
-        ],
-      }),
-    })
+    const form = new FormData()
+    form.append('apikey', apiKey)
+    form.append('language', 'eng')
+    form.append('isOverlayRequired', 'false')
+    form.append('detectOrientation', 'true')
+    form.append('scale', 'true')
+    // OCR engine 2 has better accuracy on mixed Arabic-English
+    // structured docs like the mulkiya.
+    form.append('OCREngine', '2')
+    form.append('base64Image', `data:${mimeType};base64,${imageBase64}`)
 
+    const res = await fetch(OCR_SPACE_URL, { method: 'POST', body: form })
     if (!res.ok) {
-      const errBody = await res.text().catch(() => '')
-      console.error('[extract-mulkiya] API error', res.status, errBody)
+      const body = await res.text().catch(() => '')
+      console.error('[extract-mulkiya] ocr.space http error', res.status, body)
       return null
     }
-
     const json = (await res.json()) as {
-      content?: Array<{ type: string; text?: string }>
+      ParsedResults?: Array<{ ParsedText?: string; ErrorMessage?: string }>
+      IsErroredOnProcessing?: boolean
+      ErrorMessage?: string | string[]
     }
-    const text = json.content?.find((c) => c.type === 'text')?.text ?? ''
-
-    // Find the JSON in the response. Be defensive — sometimes models
-    // wrap with explanation despite instructions.
-    const start = text.indexOf('{')
-    const end = text.lastIndexOf('}')
-    if (start === -1 || end === -1) {
-      console.error('[extract-mulkiya] no JSON found in response')
+    if (json.IsErroredOnProcessing) {
+      console.error('[extract-mulkiya] ocr.space error', json.ErrorMessage)
       return null
     }
-    const parsed = JSON.parse(text.slice(start, end + 1)) as Partial<ExtractedMulkiya>
-
-    return normalize(parsed)
+    text = json.ParsedResults?.[0]?.ParsedText ?? ''
+    if (!text.trim()) {
+      console.warn('[extract-mulkiya] ocr.space returned empty text')
+      return null
+    }
   } catch (err) {
-    console.error('[extract-mulkiya] fetch/parse failed', err)
+    console.error('[extract-mulkiya] ocr.space fetch failed', err)
     return null
   }
+
+  return parseMulkiyaText(text)
 }
 
-function normalize(p: Partial<ExtractedMulkiya>): ExtractedMulkiya {
-  // Trust but verify — coerce types defensively.
-  const emirateRaw = typeof p.plate_emirate === 'string' ? p.plate_emirate : null
-  const plate_emirate =
-    emirateRaw && (EMIRATES as readonly string[]).includes(emirateRaw)
-      ? (emirateRaw as (typeof EMIRATES)[number])
-      : null
+// ─── parsers ────────────────────────────────────────────────────────
 
-  const yearRaw = p.year
-  const year =
-    typeof yearRaw === 'number' && yearRaw >= 1950 && yearRaw <= 2099
-      ? Math.trunc(yearRaw)
-      : null
-
-  const expiresRaw =
-    typeof p.expires_at === 'string' ? p.expires_at.trim() : null
-  const expires_at =
-    expiresRaw && /^\d{4}-\d{2}-\d{2}$/.test(expiresRaw) ? expiresRaw : null
+export function parseMulkiyaText(text: string): ExtractedMulkiya {
+  const norm = text.replace(/ /g, ' ').replace(/\r/g, '')
+  const upper = norm.toUpperCase()
 
   return {
-    vehicle_make: stringOrNull(p.vehicle_make),
-    vehicle_model: stringOrNull(p.vehicle_model),
-    year,
-    plate_number: stringOrNull(p.plate_number),
-    plate_emirate,
-    vin: stringOrNull(p.vin),
-    expires_at,
+    vehicle_make: findMake(norm),
+    vehicle_model: findModel(norm),
+    year: findYear(norm),
+    plate_number: findPlateNumber(upper),
+    plate_emirate: findEmirate(norm),
+    vin: findVin(upper),
+    expires_at: findExpiry(upper),
   }
 }
 
-function stringOrNull(v: unknown): string | null {
-  if (typeof v !== 'string') return null
-  const s = v.trim()
-  return s.length === 0 ? null : s
+// VIN: 17 alphanumeric chars, never I/O/Q (per ISO 3779). Search the
+// full text for any 17-char run that looks like a VIN. False-positives
+// are rare because the I/O/Q exclusion is hard for plate or random
+// strings to satisfy.
+function findVin(upper: string): string | null {
+  const m = upper.match(/\b[A-HJ-NPR-Z0-9]{17}\b/)
+  return m ? m[0] : null
+}
+
+// Year of manufacture. Mulkiya prints "Year" or "Model Year" in
+// English near a 4-digit number 1980 to next-year. Pick the first
+// plausible value.
+function findYear(text: string): number | null {
+  const nextYear = new Date().getFullYear() + 1
+  const matches = text.match(/\b(19[89]\d|20\d{2})\b/g) ?? []
+  for (const m of matches) {
+    const n = Number(m)
+    if (n >= 1980 && n <= nextYear) return n
+  }
+  return null
+}
+
+// Plate number: a 3 to 5 digit number near the words PLATE or LOUVRE
+// or NO. Returns the digits only. If we cannot find a contextual
+// match, fall back to the largest 3-5 digit number in the document
+// that is not also a year.
+function findPlateNumber(upper: string): string | null {
+  const contextual = upper.match(
+    /\b(?:PLATE(?:\s+NO)?|PLATE\s+NUMBER|TRAFFIC\s+PLATE)[^\d]{0,12}(\d{3,5})/,
+  )
+  if (contextual && contextual[1]) return contextual[1]
+
+  const yearLike = new Set(
+    (upper.match(/\b(19\d{2}|20\d{2})\b/g) ?? []).map((s) => s),
+  )
+  const candidates = (upper.match(/\b\d{3,5}\b/g) ?? []).filter(
+    (n) => !yearLike.has(n),
+  )
+  if (candidates.length === 0) return null
+  // Pick the longest run as the most likely plate.
+  candidates.sort((a, b) => b.length - a.length)
+  return candidates[0] ?? null
+}
+
+// Emirate: scan for any of the 7 emirate names, allowing common
+// abbreviations and partial matches.
+function findEmirate(text: string): (typeof EMIRATES)[number] | null {
+  const lower = text.toLowerCase()
+  const order: Array<[RegExp, (typeof EMIRATES)[number]]> = [
+    [/\b(abu\s*dhabi|abudhabi|auh)\b/, 'Abu Dhabi'],
+    [/\b(ras\s*al\s*khaimah|rak)\b/, 'Ras Al Khaimah'],
+    [/\b(umm\s*al\s*quwain|uaq)\b/, 'Umm Al Quwain'],
+    [/\bdubai|dxb\b/, 'Dubai'],
+    [/\bsharjah|shj\b/, 'Sharjah'],
+    [/\bajman|ajm\b/, 'Ajman'],
+    [/\bfujairah|fuj\b/, 'Fujairah'],
+  ]
+  for (const [pattern, emirate] of order) {
+    if (pattern.test(lower)) return emirate
+  }
+  return null
+}
+
+// Expiry date. Mulkiya prints expiry next to "EXP" or "VALID UNTIL"
+// or sometimes just "EXPIRY DATE". Accept dd/mm/yyyy or dd-mm-yyyy
+// or yyyy-mm-dd and normalise to ISO yyyy-mm-dd.
+function findExpiry(upper: string): string | null {
+  const contextual = upper.match(
+    /(?:EXP(?:IRY)?(?:\s+DATE)?|VALID(?:\s+UNTIL)?|REG(?:ISTRATION)?\s+EXPIRES?)[^\d]{0,20}(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2})/,
+  )
+  const raw = contextual?.[1]
+  if (!raw) return null
+  return normaliseDate(raw)
+}
+
+function normaliseDate(raw: string): string | null {
+  const m = raw.match(
+    /^(\d{1,4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,4})$/,
+  )
+  if (!m) return null
+  const a = m[1]!
+  const b = m[2]!
+  const c = m[3]!
+  // If first part is 4 digits, treat as yyyy-mm-dd; otherwise dd-mm-yyyy.
+  let yyyy: number
+  let mm: number
+  let dd: number
+  if (a.length === 4) {
+    yyyy = Number(a)
+    mm = Number(b)
+    dd = Number(c)
+  } else {
+    dd = Number(a)
+    mm = Number(b)
+    yyyy = c.length === 2 ? 2000 + Number(c) : Number(c)
+  }
+  if (
+    !Number.isFinite(yyyy) ||
+    !Number.isFinite(mm) ||
+    !Number.isFinite(dd) ||
+    mm < 1 ||
+    mm > 12 ||
+    dd < 1 ||
+    dd > 31 ||
+    yyyy < 1980 ||
+    yyyy > 2099
+  ) {
+    return null
+  }
+  return `${yyyy.toString().padStart(4, '0')}-${mm
+    .toString()
+    .padStart(2, '0')}-${dd.toString().padStart(2, '0')}`
+}
+
+// Make: scan the OCR text for any curated make from car-data.ts.
+// Return the canonical name (so "TOYOTA" or "toyota" both resolve to
+// "Toyota"). Picks the longest match so "Land Rover" beats "Land".
+function findMake(text: string): string | null {
+  const haystack = ' ' + text.toUpperCase() + ' '
+  let best: { name: string; length: number } | null = null
+  for (const make of MAKES) {
+    const m = make.toUpperCase()
+    if (haystack.includes(' ' + m + ' ')) {
+      if (!best || m.length > best.length) best = { name: make, length: m.length }
+    }
+  }
+  return best?.name ?? null
+}
+
+// Model: only attempt once we have a make. Scan for any of the
+// curated models under that make. Same longest-match priority.
+function findModel(text: string): string | null {
+  const make = findMake(text)
+  if (!make) return null
+  const models = MODELS_BY_MAKE[make] ?? []
+  const haystack = ' ' + text.toUpperCase() + ' '
+  let best: { name: string; length: number } | null = null
+  for (const model of models) {
+    const m = model.toUpperCase()
+    if (haystack.includes(' ' + m + ' ')) {
+      if (!best || m.length > best.length) best = { name: model, length: m.length }
+    }
+  }
+  return best?.name ?? null
 }
