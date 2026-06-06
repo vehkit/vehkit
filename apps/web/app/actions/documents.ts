@@ -235,9 +235,10 @@ async function runMulkiyaExtraction(
     }
 
     await supabase.from('vehicle_documents').update(updates).eq('id', docId)
-    // Revalidate the vehicle page so when the user navigates back, the
-    // freshly extracted data is visible.
-    revalidatePath(`/vehicles/${vehicleId}`)
+    // No revalidatePath here. We run inside after(), and Next 15 forbids
+    // revalidate calls from that context. The doc-view page is dynamic
+    // (force-dynamic), so the next navigation reads the fresh DB row
+    // automatically.
   } catch (err) {
     console.error('[runMulkiyaExtraction] failed', err)
     try {
