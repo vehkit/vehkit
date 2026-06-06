@@ -157,7 +157,7 @@ export async function createVehicleDocument(formData: FormData) {
   // blocked on Claude's response. The extraction writes back to the doc
   // row when done; the UI polls via revalidation when user lands on the
   // doc view.
-  if (docType === 'mulkiya' && fileEntries[0]) {
+  if (docType === 'mulkiya' && fileEntries.length > 0) {
     await supabase
       .from('vehicle_documents')
       .update({ extraction_status: 'pending' })
@@ -169,10 +169,11 @@ export async function createVehicleDocument(formData: FormData) {
     // few seconds slower for the user (button spinner) but guarantees
     // the extraction actually finishes and the next page render shows
     // the extracted values.
-    const primaryFile = fileEntries[0]
-    if (primaryFile) {
-      await runMulkiyaExtraction(doc.id, primaryFile, vehicleId)
-    }
+    //
+    // Pass ALL uploaded image files. Dubai mulkiya is two-sided — the
+    // back carries owner/color/body/cylinders that the front omits.
+    // Vision (gpt-4o) accepts multi-image in a single call.
+    await runMulkiyaExtraction(doc.id, fileEntries, vehicleId)
   }
 
   revalidatePath(`/vehicles/${vehicleId}`)
@@ -188,13 +189,14 @@ export async function createVehicleDocument(formData: FormData) {
  */
 async function runMulkiyaExtraction(
   docId: string,
-  file: File,
+  files: File[],
   vehicleId: string,
 ): Promise<void> {
   try {
     // Only photos for now. PDFs need a different content shape — we'll
     // mark them failed with a friendly error rather than crashing.
-    if (!file.type.startsWith('image/')) {
+    const imageFiles = files.filter((f) => f.type.startsWith('image/'))
+    if (imageFiles.length === 0) {
       const supabase = await createClient()
       await supabase
         .from('vehicle_documents')
@@ -206,11 +208,18 @@ async function runMulkiyaExtraction(
       return
     }
 
-    // Convert file to base64
-    const buf = await file.arrayBuffer()
-    const b64 = Buffer.from(buf).toString('base64')
+    // Convert each file to base64. Vision call sees all of them as
+    // one document so it can correlate fields across front/back.
+    const images: Array<{ base64: string; mimeType: string }> = []
+    for (const f of imageFiles) {
+      const buf = await f.arrayBuffer()
+      images.push({
+        base64: Buffer.from(buf).toString('base64'),
+        mimeType: f.type,
+      })
+    }
 
-    const extracted = await extractMulkiyaFromImage(b64, file.type)
+    const extracted = await extractMulkiyaFromImage(images)
 
     const supabase = await createClient()
 

@@ -11,8 +11,10 @@
  * of both paths to null out any value that looks like a label or
  * fails a basic shape check.
  *
- * Public surface unchanged: documents.ts calls extractMulkiyaFromImage
- * with the base64-encoded image bytes and the mime type.
+ * Public surface: documents.ts calls extractMulkiyaFromImage with an
+ * array of { base64, mimeType } images so the vision call can see both
+ * sides of a Dubai mulkiya (front carries vehicle identity, back carries
+ * owner + technical specs).
  */
 
 import sharp from 'sharp'
@@ -79,25 +81,36 @@ export type ExtractedMulkiya = {
   insurance_insured_value_aed: number | null
 }
 
+export type MulkiyaImageInput = { base64: string; mimeType: string }
+
+/**
+ * Accepts ONE OR MANY images for a single logical document. Dubai mulkiya
+ * is two-sided — front (vehicle + reg) and back (owner + tech specs). To
+ * fill all fields we send both sides to vision in one call so it can
+ * correlate them. Single-image callers can still pass a one-element array.
+ */
 export async function extractMulkiyaFromImage(
-  imageBase64: string,
-  mimeType: string,
+  images: MulkiyaImageInput[],
 ): Promise<ExtractedMulkiya | null> {
   if (process.env.EXTRACTION_ENABLED === 'false') {
     console.log('[extract-mulkiya] EXTRACTION_ENABLED=false; skipping')
+    return null
+  }
+  if (images.length === 0) {
+    console.error('[extract-mulkiya] no images supplied')
     return null
   }
 
   const openaiKey = process.env.OPENAI_API_KEY
   if (openaiKey) {
     console.error(
-      '[extract-mulkiya] vision path entered; mime=',
-      mimeType,
-      'b64 length=',
-      imageBase64.length,
+      '[extract-mulkiya] vision path entered; image count=',
+      images.length,
+      'first mime=',
+      images[0]?.mimeType,
     )
     try {
-      const llm = await parseImageWithVision(imageBase64, mimeType, openaiKey)
+      const llm = await parseImagesWithVision(images, openaiKey)
       if (llm) {
         const populated = Object.entries(llm).filter(([, v]) => v != null)
         console.error(
@@ -129,31 +142,19 @@ export async function extractMulkiyaFromImage(
     console.error('[extract-mulkiya] OPENAI_API_KEY missing; using OCR path')
   }
 
-  // OCR fallback path. Only kicks in when no OPENAI_API_KEY or when
-  // vision errored out.
-  return extractViaOcr(imageBase64, mimeType)
+  // OCR fallback. Only the primary image — OCR.space doesn't accept
+  // multi-image input, and the front of the mulkiya carries enough for
+  // a salvage-grade extraction when vision is unavailable.
+  const primary = images[0]!
+  return extractViaOcr(primary.base64, primary.mimeType)
 }
 
 // ─── vision path ────────────────────────────────────────────────────
 
-async function parseImageWithVision(
-  imageBase64: string,
-  mimeType: string,
-  apiKey: string,
-): Promise<ExtractedMulkiya | null> {
-  console.error('[extract-mulkiya] parseImageWithVision: enter')
-  // Resize for token cost. GPT-4o vision bills by image tokens; a
-  // 2000px-wide JPEG at quality 85 is plenty to read a mulkiya.
-  let bytes: Buffer
+async function compressOneForVision(imageBase64: string): Promise<Buffer | null> {
   try {
     const raw = Buffer.from(imageBase64, 'base64')
-    console.error(
-      '[extract-mulkiya] raw image buffer bytes=',
-      raw.byteLength,
-      'first8=',
-      raw.subarray(0, 8).toString('hex'),
-    )
-    bytes = await sharp(raw, { failOn: 'none' })
+    let bytes = await sharp(raw, { failOn: 'none' })
       .rotate()
       .resize({ width: VISION_MAX_WIDTH, withoutEnlargement: true })
       .jpeg({ quality: 85, mozjpeg: true })
@@ -165,20 +166,57 @@ async function parseImageWithVision(
         .jpeg({ quality: 75, mozjpeg: true })
         .toBuffer()
     }
+    return bytes
   } catch (err) {
     console.error(
-      '[extract-mulkiya] vision compression failed. message=',
+      '[extract-mulkiya] compressOneForVision failed. message=',
       (err as Error)?.message ?? err,
-      'stack=',
-      (err as Error)?.stack ?? 'n/a',
     )
     return null
   }
-  const dataUrl = `data:image/jpeg;base64,${bytes.toString('base64')}`
-  console.error('[extract-mulkiya] vision image bytes=', bytes.byteLength)
+}
+
+async function parseImagesWithVision(
+  images: MulkiyaImageInput[],
+  apiKey: string,
+): Promise<ExtractedMulkiya | null> {
+  console.error(
+    '[extract-mulkiya] parseImagesWithVision: enter; image count=',
+    images.length,
+  )
+
+  // Compress each image in parallel. Drop any that fail compression
+  // rather than aborting — better to extract from 1 page than 0.
+  const compressed = await Promise.all(
+    images.map((img) => compressOneForVision(img.base64)),
+  )
+  const dataUrls: string[] = []
+  for (let i = 0; i < compressed.length; i++) {
+    const buf = compressed[i]
+    if (!buf) {
+      console.error('[extract-mulkiya] image', i, 'failed to compress; skipping')
+      continue
+    }
+    console.error(
+      '[extract-mulkiya] image',
+      i,
+      'compressed bytes=',
+      buf.byteLength,
+    )
+    dataUrls.push(`data:image/jpeg;base64,${buf.toString('base64')}`)
+  }
+  if (dataUrls.length === 0) {
+    console.error('[extract-mulkiya] no images survived compression')
+    return null
+  }
 
   const model = process.env.OPENAI_VISION_MODEL ?? 'gpt-4o'
-  console.error('[extract-mulkiya] vision model=', model)
+  console.error(
+    '[extract-mulkiya] vision model=',
+    model,
+    'images going to vision=',
+    dataUrls.length,
+  )
 
   const schema = `{
   "vehicle_make": "string | null",
@@ -219,7 +257,9 @@ async function parseImageWithVision(
 
   const system = `You read UAE vehicle documents (Mulkiya, RTA Vehicle Possession Certificate, Motor Vehicle Insurance Certificate, or any combined bundle) and extract structured fields.
 
-Read the image carefully. The document is laid out in sections. Match each field to the value in its correct section. Do not guess.
+You will be given ONE OR MORE images that together form a single logical document. Dubai mulkiya is two-sided: the front shows vehicle identity + registration; the back shows owner + technical specs (body type, color, cylinders, doors, seats, engine no.). Read every image carefully and merge fields across them.
+
+The document is laid out in sections. Match each field to the value in its correct section. Do not guess.
 
 Critical rules:
 - expires_at is the MULKIYA / REGISTRATION expiry only. If the document is purely an insurance certificate without a registration expiry, leave it null.
@@ -227,11 +267,13 @@ Critical rules:
 - insurance_expires_at is the policy EXPIRY date. Never swap with commencement.
 - registration_date is when the vehicle was first registered, not insurance dates.
 - mortgage_by is a bank or finance company name (e.g. "Emirates NBD Bank").
+- owner_name is the full name printed next to "Owner" or "Name" — not a transliteration of the issuing authority.
+- color and body_type usually appear on the BACK of the mulkiya. Look across all images.
 - For any field where you cannot read the value clearly, return null. Do NOT use a section heading or label like "Type Of Cover", "Seating Capacity", "Motor Vehicle Insurance Certificate" as a value.
 
 Return ONLY a JSON object matching the schema. No prose, no markdown fences.`
 
-  const user = `Extract these fields from the document.
+  const user = `Extract these fields from the document. Use information from ALL attached images. If a field appears on one image, use it; if it appears on multiple, prefer the clearer reading.
 
 SCHEMA:
 ${schema}`
@@ -259,10 +301,10 @@ ${schema}`
             role: 'user',
             content: [
               { type: 'text', text: user },
-              {
-                type: 'image_url',
-                image_url: { url: dataUrl, detail: 'high' },
-              },
+              ...dataUrls.map((url) => ({
+                type: 'image_url' as const,
+                image_url: { url, detail: 'high' as const },
+              })),
             ],
           },
         ],
