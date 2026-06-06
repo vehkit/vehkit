@@ -40,6 +40,7 @@ type Vehicle = {
   plate_number: string | null
   plate_emirate: string | null
   current_odometer: number | null
+  hero_image_url: string | null
   owner_id: string
 }
 

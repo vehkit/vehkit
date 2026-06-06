@@ -63,7 +63,8 @@ export default async function VehiclePage({
           // without an extra round trip. extracted_data feeds the Details
           // table above Documents (cylinders, engine_number, insurance expiry).
           `id, doc_type, label, storage_path, file_type, file_size_bytes,
-           issued_date, expires_at, extracted_data, extraction_status, created_at,
+           issued_date, expires_at, extracted_data, extraction_status,
+           extraction_error, created_at,
            files:vehicle_document_files(id, storage_path, file_type, position)`,
         )
         .eq('vehicle_id', id)
