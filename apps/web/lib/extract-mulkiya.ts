@@ -90,23 +90,43 @@ export async function extractMulkiyaFromImage(
 
   const openaiKey = process.env.OPENAI_API_KEY
   if (openaiKey) {
-    console.log('[extract-mulkiya] using gpt-4o vision path')
+    console.error(
+      '[extract-mulkiya] vision path entered; mime=',
+      mimeType,
+      'b64 length=',
+      imageBase64.length,
+    )
     try {
       const llm = await parseImageWithVision(imageBase64, mimeType, openaiKey)
       if (llm) {
-        console.log(
-          '[extract-mulkiya] vision parse ok; populated:',
-          Object.entries(llm).filter(([, v]) => v != null).length,
+        const populated = Object.entries(llm).filter(([, v]) => v != null)
+        console.error(
+          '[extract-mulkiya] vision parse ok; populated count=',
+          populated.length,
+          'fields=',
+          populated.map(([k]) => k).join(','),
         )
-        return validate(llm)
+        const validated = validate(llm)
+        const survived = Object.entries(validated).filter(([, v]) => v != null)
+        console.error(
+          '[extract-mulkiya] post-validate populated=',
+          survived.length,
+          'fields=',
+          survived.map(([k]) => k).join(','),
+        )
+        return validated
       }
-      console.warn('[extract-mulkiya] vision returned null; falling back to OCR')
+      console.error('[extract-mulkiya] vision returned null; falling back to OCR')
     } catch (err) {
-      console.warn(
-        '[extract-mulkiya] vision threw; falling back to OCR',
+      console.error(
+        '[extract-mulkiya] vision threw; falling back to OCR. message=',
         (err as Error)?.message ?? err,
+        'stack=',
+        (err as Error)?.stack ?? 'n/a',
       )
     }
+  } else {
+    console.error('[extract-mulkiya] OPENAI_API_KEY missing; using OCR path')
   }
 
   // OCR fallback path. Only kicks in when no OPENAI_API_KEY or when
@@ -121,11 +141,18 @@ async function parseImageWithVision(
   mimeType: string,
   apiKey: string,
 ): Promise<ExtractedMulkiya | null> {
+  console.error('[extract-mulkiya] parseImageWithVision: enter')
   // Resize for token cost. GPT-4o vision bills by image tokens; a
   // 2000px-wide JPEG at quality 85 is plenty to read a mulkiya.
   let bytes: Buffer
   try {
     const raw = Buffer.from(imageBase64, 'base64')
+    console.error(
+      '[extract-mulkiya] raw image buffer bytes=',
+      raw.byteLength,
+      'first8=',
+      raw.subarray(0, 8).toString('hex'),
+    )
     bytes = await sharp(raw, { failOn: 'none' })
       .rotate()
       .resize({ width: VISION_MAX_WIDTH, withoutEnlargement: true })
@@ -139,13 +166,19 @@ async function parseImageWithVision(
         .toBuffer()
     }
   } catch (err) {
-    console.error('[extract-mulkiya] vision compression failed', err)
+    console.error(
+      '[extract-mulkiya] vision compression failed. message=',
+      (err as Error)?.message ?? err,
+      'stack=',
+      (err as Error)?.stack ?? 'n/a',
+    )
     return null
   }
   const dataUrl = `data:image/jpeg;base64,${bytes.toString('base64')}`
-  console.log('[extract-mulkiya] vision image bytes', bytes.byteLength)
+  console.error('[extract-mulkiya] vision image bytes=', bytes.byteLength)
 
   const model = process.env.OPENAI_VISION_MODEL ?? 'gpt-4o'
+  console.error('[extract-mulkiya] vision model=', model)
 
   const schema = `{
   "vehicle_make": "string | null",
@@ -207,6 +240,8 @@ ${schema}`
   const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS)
 
   try {
+    console.error('[extract-mulkiya] calling OpenAI chat completions...')
+    const t0 = Date.now()
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -233,6 +268,12 @@ ${schema}`
         ],
       }),
     })
+    console.error(
+      '[extract-mulkiya] OpenAI responded in',
+      Date.now() - t0,
+      'ms; status=',
+      res.status,
+    )
 
     if (!res.ok) {
       const body = await res.text().catch(() => '')
@@ -242,16 +283,23 @@ ${schema}`
     const json = (await res.json()) as {
       choices?: Array<{ message?: { content?: string } }>
       usage?: { prompt_tokens?: number; completion_tokens?: number }
+      model?: string
     }
     if (json.usage) {
-      console.log(
-        '[extract-mulkiya] vision tokens in/out',
+      console.error(
+        '[extract-mulkiya] vision tokens in/out=',
         json.usage.prompt_tokens,
         '/',
         json.usage.completion_tokens,
+        'reported model=',
+        json.model,
       )
     }
     const out = json.choices?.[0]?.message?.content ?? ''
+    console.error(
+      '[extract-mulkiya] vision raw content (first 800 chars)=',
+      out.slice(0, 800),
+    )
     if (!out.trim()) {
       console.error('[extract-mulkiya] vision returned empty content')
       return null
@@ -730,6 +778,25 @@ function findModel(text: string): string | null {
 // ─── value validators ───────────────────────────────────────────────
 
 function validate(e: ExtractedMulkiya): ExtractedMulkiya {
+  // Sanity: a real insurance policy has commencement < expiry. If both
+  // are the same or commencement > expiry, the reader confused them — drop
+  // commencement (we'd rather show nothing than mislead the user about
+  // their cover window).
+  let commencement = e.insurance_commencement_at
+  let expires = e.insurance_expires_at
+  if (commencement && expires) {
+    const c = new Date(commencement).getTime()
+    const x = new Date(expires).getTime()
+    if (!Number.isFinite(c) || !Number.isFinite(x) || c >= x) {
+      console.error(
+        '[extract-mulkiya] insurance dates invalid (commencement >= expires); nulling commencement. c=',
+        commencement,
+        'x=',
+        expires,
+      )
+      commencement = null
+    }
+  }
   return {
     ...e,
     vehicle_make: cleanText(e.vehicle_make),
@@ -761,8 +828,8 @@ function validate(e: ExtractedMulkiya): ExtractedMulkiya {
     insurance_policy_number: cleanCode(e.insurance_policy_number, 4, 25),
     insurance_cover_type: cleanText(e.insurance_cover_type),
     insurance_cover_plan: cleanText(e.insurance_cover_plan),
-    insurance_commencement_at: validIsoDate(e.insurance_commencement_at),
-    insurance_expires_at: validIsoDate(e.insurance_expires_at),
+    insurance_commencement_at: validIsoDate(commencement),
+    insurance_expires_at: validIsoDate(expires),
     insurance_premium_aed: clampNumber(e.insurance_premium_aed, 1, 1_000_000),
     insurance_insured_value_aed: clampNumber(
       e.insurance_insured_value_aed,
