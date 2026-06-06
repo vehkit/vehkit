@@ -58,7 +58,7 @@ export function VehicleHero({
   }
 
   return (
-    <div className="relative w-full h-[55vh] md:h-[460px] overflow-hidden md:rounded-DEFAULT bg-iron group">
+    <div className="relative w-full h-[32vh] min-h-[220px] md:h-[300px] overflow-hidden rounded-DEFAULT bg-iron group">
       {/* Photo */}
       {preview ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -137,8 +137,10 @@ export function VehicleHero({
         </div>
       )}
 
-      {/* Bottom gradient — for any caption / badge legibility */}
-      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-noir via-noir/40 to-transparent pointer-events-none" />
+      {/* Soft gradient at the bottom edge only. Keeps badges legible
+          without the heavy 50% black overlay that made the old hero
+          dominate the page. */}
+      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-noir/55 to-transparent pointer-events-none" />
 
       {/* Top-left: back button (mobile only — desktop has the column heading) */}
       <Link
