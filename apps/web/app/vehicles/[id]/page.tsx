@@ -804,7 +804,21 @@ function DetailsTable({
     (d) =>
       d.doc_type === 'insurance' || d.doc_type === 'insurance_policy',
   )
-  const extracted = (mulkiyaDoc?.extracted_data ?? {}) as Record<
+  // Source the Details table from any doc that carries extracted_data.
+  // Priority: a typed mulkiya doc first (legacy uploads); otherwise the
+  // most recent auto-classified bundle (new FAB flow stores everything
+  // under doc_type='auto'). Without this fallback the Registration /
+  // Owner / Insurance rows stay empty for every new upload even though
+  // extraction populated them inside extracted_data.
+  const sourceDoc =
+    mulkiyaDoc ??
+    documents.find(
+      (d) =>
+        d.extracted_data &&
+        typeof d.extracted_data === 'object' &&
+        Object.keys(d.extracted_data as object).length > 0,
+    )
+  const extracted = (sourceDoc?.extracted_data ?? {}) as Record<
     string,
     string | number | null
   >
@@ -828,6 +842,7 @@ function DetailsTable({
 
   const mulkiyaExp =
     (mulkiyaDoc?.expires_at as string | null) ??
+    (sourceDoc?.expires_at as string | null) ??
     (extracted.expires_at as string | null) ??
     null
   const insuranceExp =
