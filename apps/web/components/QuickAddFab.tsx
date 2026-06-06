@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import { createVehicleDocument } from '@/app/actions/documents'
 
 export type FabVehicle = {
   id: string
@@ -12,6 +13,16 @@ export type FabVehicle = {
 }
 
 type ActionKey = 'car' | 'service' | 'reminder' | 'document' | 'fuel'
+
+const DOC_TYPES: Array<{ value: string; label: string }> = [
+  { value: 'mulkiya', label: 'Mulkiya (registration)' },
+  { value: 'insurance_policy', label: 'Insurance policy' },
+  { value: 'driving_licence', label: 'Driving licence' },
+  { value: 'noc', label: 'No-objection certificate' },
+  { value: 'pollution_test', label: 'Pollution test' },
+  { value: 'service_history', label: 'Service history PDF' },
+  { value: 'other', label: 'Other' },
+]
 
 type Action = {
   key: ActionKey
@@ -81,6 +92,12 @@ export function QuickAddFab({ vehicles }: { vehicles: FabVehicle[] }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<Action | null>(null)
+  // When the document action is fired with a resolved vehicle, we don't
+  // navigate. We open an inline upload form inside the same sheet. This
+  // state holds the vehicle id we're uploading against, or null.
+  const [docUploadVehicleId, setDocUploadVehicleId] = useState<string | null>(
+    null,
+  )
 
   // Resolve vehicle context from pathname: /vehicles/{uuid}/...
   const contextVehicleId = useMemo(() => {
@@ -115,6 +132,17 @@ export function QuickAddFab({ vehicles }: { vehicles: FabVehicle[] }) {
   function close() {
     setOpen(false)
     setPendingAction(null)
+    setDocUploadVehicleId(null)
+  }
+
+  // Document action stays inline (renders the upload form inside the
+  // sheet). Every other action navigates to its dedicated page.
+  function resolveVehicleId(): string | null {
+    if (contextVehicleId && vehicles.some((v) => v.id === contextVehicleId)) {
+      return contextVehicleId
+    }
+    if (vehicles.length === 1) return vehicles[0]!.id
+    return null
   }
 
   function fire(action: Action) {
@@ -123,30 +151,40 @@ export function QuickAddFab({ vehicles }: { vehicles: FabVehicle[] }) {
       close()
       return
     }
-    // Empty garage → push to /vehicles/new with intent so we can deep-link back later
     if (vehicles.length === 0) {
       router.push('/vehicles/new')
       close()
       return
     }
-    // Path-scoped vehicle wins
-    if (contextVehicleId && vehicles.some((v) => v.id === contextVehicleId)) {
-      router.push(action.pathFor(contextVehicleId))
+
+    const resolvedId = resolveVehicleId()
+
+    if (action.key === 'document') {
+      if (resolvedId) {
+        setDocUploadVehicleId(resolvedId)
+        return
+      }
+      // Multiple cars and no context. Pick the car, then come back to
+      // the inline upload (handled in pickVehicle).
+      setPendingAction(action)
+      return
+    }
+
+    if (resolvedId) {
+      router.push(action.pathFor(resolvedId))
       close()
       return
     }
-    // Single car? Auto-pick.
-    if (vehicles.length === 1) {
-      router.push(action.pathFor(vehicles[0]!.id))
-      close()
-      return
-    }
-    // Multiple cars → second-step picker inside the same sheet
     setPendingAction(action)
   }
 
   function pickVehicle(id: string) {
     if (!pendingAction) return
+    if (pendingAction.key === 'document') {
+      setDocUploadVehicleId(id)
+      setPendingAction(null)
+      return
+    }
     router.push(pendingAction.pathFor(id))
     close()
   }
@@ -210,7 +248,12 @@ export function QuickAddFab({ vehicles }: { vehicles: FabVehicle[] }) {
               aria-hidden
             />
 
-            {!pendingAction ? (
+            {docUploadVehicleId ? (
+              <DocUploadInline
+                vehicleId={docUploadVehicleId}
+                onCancel={() => setDocUploadVehicleId(null)}
+              />
+            ) : !pendingAction ? (
               <>
                 <div className="flex items-center justify-between mb-1">
                   <h3 className="text-base font-semibold text-chalk">
@@ -352,6 +395,130 @@ export function QuickAddFab({ vehicles }: { vehicles: FabVehicle[] }) {
         </div>
       )}
 
+    </>
+  )
+}
+
+// ─── DocUploadInline ────────────────────────────────────────────────
+// Lives inside the FAB sheet. Skips the dedicated /documents/new page
+// for one less screen between the user and the upload. File picker is
+// the dominant control. Once the user picks a file, the type select
+// and (optional) name field show; submit kicks the server action, which
+// uploads to storage + queues extraction. Extraction now auto-applies
+// to the vehicle row (no Apply button), so the data shows up on the
+// vehicle page on the next render without any extra tap.
+function DocUploadInline({
+  vehicleId,
+  onCancel,
+}: {
+  vehicleId: string
+  onCancel: () => void
+}) {
+  const [filesPicked, setFilesPicked] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-base font-semibold text-chalk">Upload a document</h3>
+        <button
+          onClick={onCancel}
+          aria-label="Back"
+          className="text-ash hover:text-chalk text-2xl leading-none px-2"
+        >
+          ×
+        </button>
+      </div>
+      <p className="text-xs text-ash mb-4">
+        Pick the file. We will read the details for you.
+      </p>
+
+      <form
+        action={createVehicleDocument}
+        encType="multipart/form-data"
+        onSubmit={() => setSubmitting(true)}
+        className="space-y-4"
+      >
+        <input type="hidden" name="vehicle_id" value={vehicleId} />
+
+        <div>
+          <label htmlFor="fab-file" className="label">
+            File <span className="text-signal">*</span>
+          </label>
+          <input
+            id="fab-file"
+            name="file"
+            type="file"
+            accept="application/pdf,image/*"
+            multiple
+            required
+            autoFocus
+            onChange={(e) =>
+              setFilesPicked((e.target.files?.length ?? 0) > 0)
+            }
+            className="field file:mr-3 file:py-1.5 file:px-3 file:rounded-pill file:border-0 file:bg-iron file:text-chalk file:text-xs file:tracking-widest file:uppercase file:font-medium hover:file:bg-iron/70 file:cursor-pointer"
+          />
+          <p className="text-[11px] text-ash/70 mt-1.5">
+            PDF or image. Multiple files OK.
+          </p>
+        </div>
+
+        <div className={filesPicked ? '' : 'opacity-60'}>
+          <label htmlFor="fab-doc-type" className="label">
+            What is it? <span className="text-signal">*</span>
+          </label>
+          <select
+            id="fab-doc-type"
+            name="doc_type"
+            required
+            defaultValue=""
+            className="field"
+          >
+            <option value="" disabled>
+              Pick one…
+            </option>
+            {DOC_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="fab-label" className="label">
+            Name <span className="text-ash/70">(optional)</span>
+          </label>
+          <input
+            id="fab-label"
+            name="label"
+            type="text"
+            maxLength={120}
+            placeholder="If you picked Other, name it here"
+            className="field"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="fab-expires" className="label">
+            Expires <span className="text-ash/70">(optional)</span>
+          </label>
+          <input
+            id="fab-expires"
+            name="expires_at"
+            type="date"
+            className="field"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="pill-primary block w-full text-center"
+        >
+          {submitting ? 'Uploading…' : 'Save document'}
+        </button>
+      </form>
     </>
   )
 }

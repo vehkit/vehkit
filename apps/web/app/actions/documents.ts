@@ -222,23 +222,40 @@ async function runMulkiyaExtraction(
       return
     }
 
-    // Promote the expires_at from the extracted data onto the parent row
-    // — that's what fires the renewal reminder cron. The other fields
-    // wait for the user to click "Apply to my car."
-    const updates: Record<string, unknown> = {
+    // Promote the expires_at from the extracted data onto the parent
+    // row. That feeds the renewal reminder cron.
+    const docUpdates: Record<string, unknown> = {
       extracted_data: extracted,
-      extraction_status: 'ready',
+      extraction_status: 'applied', // skip the manual Apply step
       extracted_at: new Date().toISOString(),
     }
     if (extracted.expires_at) {
-      updates.expires_at = extracted.expires_at
+      docUpdates.expires_at = extracted.expires_at
+    }
+    await supabase.from('vehicle_documents').update(docUpdates).eq('id', docId)
+
+    // Auto-apply the identifying fields to the vehicle row. The mulkiya
+    // is the source of truth, so we overwrite any earlier free-text
+    // guesses (Tovota → Toyota). Null readings are skipped so we never
+    // blank a field the OCR could not read.
+    const vUpdates: Record<string, unknown> = {}
+    if (extracted.vehicle_make) vUpdates.make = extracted.vehicle_make
+    if (extracted.vehicle_model) vUpdates.model = extracted.vehicle_model
+    if (extracted.year) vUpdates.year = extracted.year
+    if (extracted.color) vUpdates.color = extracted.color
+    if (extracted.plate_number) vUpdates.plate_number = extracted.plate_number
+    if (extracted.plate_emirate)
+      vUpdates.plate_emirate = extracted.plate_emirate
+    if (extracted.vin) vUpdates.vin = extracted.vin
+
+    if (Object.keys(vUpdates).length > 0) {
+      await supabase.from('vehicles').update(vUpdates).eq('id', vehicleId)
     }
 
-    await supabase.from('vehicle_documents').update(updates).eq('id', docId)
     // No revalidatePath here. We run inside after(), and Next 15 forbids
-    // revalidate calls from that context. The doc-view page is dynamic
-    // (force-dynamic), so the next navigation reads the fresh DB row
-    // automatically.
+    // revalidate calls from that context. The vehicle and doc-view
+    // pages are dynamic (force-dynamic) so the next render reads the
+    // fresh data.
   } catch (err) {
     console.error('[runMulkiyaExtraction] failed', err)
     try {
