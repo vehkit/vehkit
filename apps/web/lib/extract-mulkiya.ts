@@ -126,11 +126,12 @@ const FIELD_PRIORITY: Partial<
   // for identity but they're allowed as a last resort.
   vehicle_make: ['mulkiya', 'rta_passing_certificate', 'insurance_certificate', 'insurance_policy_schedule'],
   vehicle_model: ['mulkiya', 'rta_passing_certificate', 'insurance_certificate', 'insurance_policy_schedule'],
-  // Year only from RTA documents. Insurance docs frequently have noisy
-  // barcode strings (e.g. "...190635-113000-1984.5") that get read as
-  // year. Mulkiya itself shows a Reg Date, not Year of Manufacture.
-  // The RTA passing certificate IS the source of truth for year.
-  year: ['rta_passing_certificate', 'mulkiya'],
+  // Year priority: insurance certificate FIRST. The QIC-style cert has
+  // a clean "Year of Manufacture" field that the model reads reliably.
+  // Passing reports also have year but are easily confused with test
+  // date (e.g. "27 NOV 2024" → year=2024). Policy schedule is excluded
+  // entirely because of barcode noise ("...-113000-1984.5" → 1984).
+  year: ['insurance_certificate', 'rta_passing_certificate', 'mulkiya'],
   vin: ['mulkiya', 'rta_passing_certificate', 'insurance_certificate'],
   engine_number: ['mulkiya', 'rta_passing_certificate', 'insurance_certificate'],
 
@@ -1045,7 +1046,7 @@ function validate(e: ExtractedMulkiya): ExtractedMulkiya {
     plate_type: cleanText(e.plate_type),
     registration_date: validIsoDate(e.registration_date),
     registration_authority: cleanText(e.registration_authority),
-    mortgage_by: cleanText(e.mortgage_by),
+    mortgage_by: cleanMortgageBy(e.mortgage_by),
     expires_at: validIsoDate(e.expires_at),
     owner_name: cleanText(e.owner_name),
     owner_nationality: cleanText(e.owner_nationality),
@@ -1074,7 +1075,9 @@ const LABEL_TRAPS = [
   /^document\s*number$/i,
   /^plate\s*number$/i,
   /^plate\s*type$/i,
+  /^plate\s*code$/i,
   /^chassis\s*number$/i,
+  /^chassis$/i,
   /^engine\s*number$/i,
   /^body\s*type$/i,
   /^model\s*year$/i,
@@ -1083,6 +1086,10 @@ const LABEL_TRAPS = [
   /^use\s*of\s*vehicle$/i,
   /^vehicle\s*registration$/i,
   /^vehicle\s*information$/i,
+  /^vehicle\s*category$/i,
+  /^vehicle\s*color$/i,
+  /^vehicle\s*colour$/i,
+  /^vehicle\s*year\s*model$/i,
   /^owner\s*information$/i,
   /^insurance\s*plan\s*details$/i,
   /^tax\s*invoice$/i,
@@ -1094,6 +1101,16 @@ const LABEL_TRAPS = [
   /^mortgage\s*by$/i,
   /^nationality$/i,
   /^address$/i,
+  /^period\s*of\s*insurance\s*from$/i,
+  /^period\s*of\s*insurance$/i,
+  /^gcc$/i, // GCC is a spec column header, never a fuel type
+  /^un\s*laden\s*weight$/i,
+  /^laden\s*weight$/i,
+  /^number\s*of\s*axles$/i,
+  /^number\s*of\s*doors$/i,
+  /^number\s*of\s*seats$/i,
+  /^number\s*of\s*cylinders$/i,
+  /^fuel\s*type$/i,
 ]
 function isLabelTrap(s: string): boolean {
   const trimmed = s.trim()
@@ -1116,13 +1133,54 @@ const ALLOWED_DETECTED_DOC_TYPES: ReadonlySet<DetectedDocType> = new Set<
   'fine_receipt',
   'other',
 ])
+// Map noisy / human-readable doc-type strings to our canonical enum.
+// gpt-4o returns variants like "Mulkiya", "Insurance Policy Schedule",
+// "RTA Passing Certificate" — all of which were previously rejected by
+// strict equality, leaving detected_doc_type null and breaking the
+// entire priority allowlist downstream. We now normalise (lowercase,
+// collapse separators) and run a keyword search.
 function cleanDocType(
   s: DetectedDocType | string | null | undefined,
 ): DetectedDocType | null {
   if (!s) return null
-  const t = s.toString().trim().toLowerCase() as DetectedDocType
-  if (!ALLOWED_DETECTED_DOC_TYPES.has(t)) return null
-  return t
+  // Normalise: lowercase, replace any run of non-alphanumerics with
+  // a single underscore. "Insurance Policy Schedule" → "insurance_policy_schedule".
+  const norm = s
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '') as DetectedDocType
+  if (ALLOWED_DETECTED_DOC_TYPES.has(norm)) return norm
+
+  // Fuzzy fallback — keyword search. Catches "vehicle license",
+  // "registration card", "motor insurance certificate", etc.
+  const hay = norm
+  if (/mulkiya|vehicle_license|registration_card|possession_certificate|rta_vehicle/.test(hay)) {
+    return 'mulkiya'
+  }
+  if (/policy_schedule|insurance_schedule|motor_policy/.test(hay)) {
+    return 'insurance_policy_schedule'
+  }
+  if (/insurance_certificate|motor_vehicle_insurance|insurance_cert/.test(hay)) {
+    return 'insurance_certificate'
+  }
+  if (/passing|tasjeel|inspection|fitness|emission/.test(hay)) {
+    return 'rta_passing_certificate'
+  }
+  if (/pollution|emission_test/.test(hay)) return 'pollution_test'
+  if (/driving_licence|driving_license|driver_license/.test(hay)) {
+    return 'driving_licence'
+  }
+  if (/^noc$|no_objection/.test(hay)) return 'noc'
+  if (/service_invoice|workshop_invoice|repair_invoice/.test(hay)) {
+    return 'service_invoice'
+  }
+  if (/service_history|service_record/.test(hay)) return 'service_history'
+  if (/salik/.test(hay)) return 'salik_statement'
+  if (/fine_receipt|traffic_fine/.test(hay)) return 'fine_receipt'
+  if (/insurance/.test(hay)) return 'insurance_certificate' // catch-all for insurance
+  return null
 }
 function cleanText(s: string | null | undefined): string | null {
   if (!s) return null
@@ -1168,6 +1226,25 @@ function cleanInsurer(s: string | null | undefined): string | null {
   const t = cleanText(s)
   if (!t) return null
   if (/^(motor\s+vehicle\s+)?insurance\s+certificate$/i.test(t)) return null
+  // Reject barcode-shape strings like "784-1994-3284753-3".
+  if (/^[\d-]+$/.test(t)) return null
+  // Reject pure digit blobs.
+  if (/^\d+$/.test(t)) return null
+  // A real insurer name has at least one letter.
+  if (!/[a-z]/i.test(t)) return null
+  return t
+}
+
+/**
+ * Mortgage-by should be a bank or finance company name. Reject pure
+ * numeric strings (model occasionally reads a policy number into this
+ * field) and barcode-shaped tokens.
+ */
+function cleanMortgageBy(s: string | null | undefined): string | null {
+  const t = cleanText(s)
+  if (!t) return null
+  if (/^[\d\s.,-]+$/.test(t)) return null // digits + separators only
+  if (!/[a-z]/i.test(t)) return null
   return t
 }
 function cleanCode(
@@ -1179,6 +1256,9 @@ function cleanCode(
   if (!t) return null
   if (/\s/.test(t)) return null
   if (t.length < minLen || t.length > maxLen) return null
+  // Reject ISO-date-shaped strings (the model sometimes reads an
+  // insurance expiry "2027-02-03" into the policy_number field).
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return null
   return t
 }
 function cleanVin(s: string | null | undefined): string | null {
