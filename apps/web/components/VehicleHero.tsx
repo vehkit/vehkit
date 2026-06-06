@@ -67,7 +67,49 @@ export function VehicleHero({
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
         />
+      ) : isOwner ? (
+        // Empty-state IS the upload trigger. Whole placeholder area is a
+        // <label> wrapping the file input, so tapping the big middle area
+        // (not just the small icon) opens the OS picker.
+        // No `capture` attribute so iOS Safari shows the full action sheet
+        // (Photo Library / Take Photo / Choose Files) instead of camera-only.
+        <label className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-iron via-carbon to-noir cursor-pointer active:opacity-90 transition-opacity">
+          <div className="text-center pointer-events-none">
+            <div className="w-16 h-16 mx-auto rounded-pill bg-noir/40 backdrop-blur flex items-center justify-center">
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="text-chalk/70"
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 13l1.66-4.97A2 2 0 016.55 6.5h10.9a2 2 0 011.89 1.53L21 13M5 13h14M7 17h.01M17 17h.01M5 13v4a1 1 0 001 1h12a1 1 0 001-1v-4"
+                />
+              </svg>
+            </div>
+            <p className="text-sm text-chalk mt-3 font-semibold">
+              {uploading ? 'Uploading…' : 'Add a photo'}
+            </p>
+            <p className="text-[11px] text-chalk/60 mt-1 tracking-wide">
+              Tap to pick from camera, photos, or files
+            </p>
+          </div>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={onChange}
+            className="hidden"
+            disabled={uploading}
+          />
+        </label>
       ) : (
+        // Non-owner empty state — no upload action, just decoration.
         <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-iron via-carbon to-noir">
           <div className="text-center">
             <div className="w-16 h-16 mx-auto rounded-pill bg-noir/40 backdrop-blur flex items-center justify-center">
@@ -89,7 +131,7 @@ export function VehicleHero({
               </svg>
             </div>
             <p className="text-xs text-chalk/70 mt-3 tracking-widest uppercase">
-              Add a photo
+              No photo yet
             </p>
           </div>
         </div>
@@ -145,7 +187,6 @@ export function VehicleHero({
           <input
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={onChange}
             className="hidden"
             disabled={uploading}
