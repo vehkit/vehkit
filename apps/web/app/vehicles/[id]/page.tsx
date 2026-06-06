@@ -60,9 +60,10 @@ export default async function VehiclePage({
         .from('vehicle_documents')
         .select(
           // Embed child file rows so the card can show "Front + Back · 2 files"
-          // without an extra round trip.
+          // without an extra round trip. extracted_data feeds the Details
+          // table above Documents (cylinders, engine_number, insurance expiry).
           `id, doc_type, label, storage_path, file_type, file_size_bytes,
-           issued_date, expires_at, created_at,
+           issued_date, expires_at, extracted_data, extraction_status, created_at,
            files:vehicle_document_files(id, storage_path, file_type, position)`,
         )
         .eq('vehicle_id', id)
@@ -415,6 +416,18 @@ export default async function VehiclePage({
           </section>
         )}
 
+        {/* DETAILS table. Aggregates everything we know about this
+            car: the original add-car form fields, plus anything
+            extracted from the uploaded mulkiya, plus document
+            expiry dates. Pure key/value layout, Excel rhythm. */}
+        <section className="mt-10">
+          <SectionHeader title="Details" />
+          <DetailsTable
+            vehicle={vehicle as Record<string, unknown>}
+            documents={documents as Array<Record<string, unknown>>}
+          />
+        </section>
+
         {/* DOCUMENTS — your digital glovebox + agent share */}
         <section id="documents" className="mt-10 scroll-mt-20">
           <SectionHeader
@@ -766,6 +779,104 @@ function ScoreLine({
       <div className="h-1 bg-iron rounded-full mt-1 overflow-hidden">
         <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
+    </div>
+  )
+}
+
+// ─── DetailsTable ──────────────────────────────────────────────────
+// Two-column key/value grid that aggregates everything we know about
+// the vehicle. Hides rows with no value so empty cars do not show a
+// table of dashes; once the user fills the form or extracts a mulkiya
+// the relevant rows light up.
+function DetailsTable({
+  vehicle,
+  documents,
+}: {
+  vehicle: Record<string, unknown>
+  documents: Array<Record<string, unknown>>
+}) {
+  const get = (k: string) => vehicle[k] as string | number | null | undefined
+
+  const mulkiyaDoc = documents.find((d) => d.doc_type === 'mulkiya')
+  const insuranceDoc = documents.find(
+    (d) =>
+      d.doc_type === 'insurance' || d.doc_type === 'insurance_policy',
+  )
+  const extracted = (mulkiyaDoc?.extracted_data ?? {}) as Record<
+    string,
+    string | number | null
+  >
+
+  const plateNumber = get('plate_number')
+  const plateEmirate = get('plate_emirate')
+  const plate =
+    plateEmirate && plateNumber
+      ? `${plateEmirate} . ${plateNumber}`
+      : (plateNumber as string) ?? null
+
+  const odo = get('current_odometer')
+  const odoLabel =
+    typeof odo === 'number' ? `${odo.toLocaleString()} km` : null
+
+  const mulkiyaExp =
+    (mulkiyaDoc?.expires_at as string | null) ??
+    (extracted.expires_at as string | null) ??
+    null
+  const insuranceExp =
+    (insuranceDoc?.expires_at as string | null) ??
+    (extracted.insurance_expires_at as string | null) ??
+    null
+
+  const rows: Array<[string, string | number | null]> = [
+    ['Nickname', (get('nickname') as string) ?? null],
+    ['Year', (get('year') as number) ?? null],
+    ['Make', (get('make') as string) ?? null],
+    ['Model', (get('model') as string) ?? null],
+    ['Color', (get('color') as string) ?? null],
+    ['Plate', plate],
+    ['Odometer', odoLabel],
+    ['VIN', (get('vin') as string) ?? null],
+    ['Engine no.', (extracted.engine_number as string) ?? null],
+    ['Cylinders', (extracted.cylinders as number) ?? null],
+    ['Mulkiya expires', mulkiyaExp],
+    ['Insurance expires', insuranceExp],
+  ]
+
+  const populated = rows.filter(
+    ([, v]) => v != null && String(v).trim() !== '',
+  )
+  if (populated.length === 0) return null
+
+  return (
+    <div className="mt-3 border border-seam rounded-DEFAULT overflow-hidden">
+      <dl className="grid grid-cols-1 sm:grid-cols-2">
+        {populated.map(([label, value], i) => {
+          const isMono =
+            label === 'VIN' ||
+            label === 'Plate' ||
+            label === 'Odometer' ||
+            label === 'Year' ||
+            label === 'Cylinders' ||
+            label === 'Engine no.'
+          return (
+            <div
+              key={label}
+              className={`flex items-center justify-between gap-4 px-4 py-2.5 border-b border-seam ${
+                i % 2 === 1 ? 'sm:border-l' : ''
+              } last:border-b-0`}
+            >
+              <dt className="text-xs tracking-widest uppercase text-ash">
+                {label}
+              </dt>
+              <dd
+                className={`text-sm text-chalk text-right truncate ${isMono ? 'font-mono tabular-nums' : ''}`}
+              >
+                {value as React.ReactNode}
+              </dd>
+            </div>
+          )
+        })}
+      </dl>
     </div>
   )
 }
