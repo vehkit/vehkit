@@ -126,7 +126,11 @@ const FIELD_PRIORITY: Partial<
   // for identity but they're allowed as a last resort.
   vehicle_make: ['mulkiya', 'rta_passing_certificate', 'insurance_certificate', 'insurance_policy_schedule'],
   vehicle_model: ['mulkiya', 'rta_passing_certificate', 'insurance_certificate', 'insurance_policy_schedule'],
-  year: ['mulkiya', 'rta_passing_certificate', 'insurance_certificate'],
+  // Year only from RTA documents. Insurance docs frequently have noisy
+  // barcode strings (e.g. "...190635-113000-1984.5") that get read as
+  // year. Mulkiya itself shows a Reg Date, not Year of Manufacture.
+  // The RTA passing certificate IS the source of truth for year.
+  year: ['rta_passing_certificate', 'mulkiya'],
   vin: ['mulkiya', 'rta_passing_certificate', 'insurance_certificate'],
   engine_number: ['mulkiya', 'rta_passing_certificate', 'insurance_certificate'],
 
@@ -182,6 +186,7 @@ const STRICT_FIELDS: ReadonlySet<keyof ExtractedMulkiya> = new Set([
   'plate_emirate',
   'plate_type',
   'color',
+  'year',
 ])
 
 /**
@@ -1185,7 +1190,10 @@ function cleanVin(s: string | null | undefined): string | null {
 function validYear(n: number | null | undefined): number | null {
   if (typeof n !== 'number' || !Number.isFinite(n)) return null
   const next = new Date().getFullYear() + 1
-  if (n < 1980 || n > next) return null
+  // UAE pilot scope: cars on the road in 2026 are realistically 2000+.
+  // Older vintage cars are rare enough that we prefer a missing year
+  // over the classic barcode-misread "1984" / "1994" failure mode.
+  if (n < 2000 || n > next) return null
   return Math.trunc(n)
 }
 function clampInt(
