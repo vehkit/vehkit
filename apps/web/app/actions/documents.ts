@@ -2,12 +2,16 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import {
   extractMulkiyaFromImage,
   type ExtractedMulkiya,
 } from '@/lib/extract-mulkiya'
+
+// Allow the action up to a minute. Mulkiya extraction is compress
+// (sharp) + OCR.space round-trip + OpenAI round-trip, typically 6 to
+// 10 seconds total. Default Vercel function timeout would kill it.
+export const maxDuration = 60
 
 function strOrNull(v: FormDataEntryValue | null): string | null {
   if (v === null) return null
@@ -160,13 +164,15 @@ export async function createVehicleDocument(formData: FormData) {
       .update({ extraction_status: 'pending' })
       .eq('id', doc.id)
 
-    // Run extraction in the background, but use after() so Vercel keeps
-    // the function alive after the redirect response. Without this, the
-    // worker is killed the moment the action returns and the extraction
-    // never finishes (which is why nothing showed in the logs before).
+    // Run extraction synchronously. The previous after() background
+    // task kept being killed by Vercel's worker timeout, leaving the
+    // doc stuck on 'pending' and writing no data. Synchronous is a
+    // few seconds slower for the user (button spinner) but guarantees
+    // the extraction actually finishes and the next page render shows
+    // the extracted values.
     const primaryFile = fileEntries[0]
     if (primaryFile) {
-      after(() => runMulkiyaExtraction(doc.id, primaryFile, vehicleId))
+      await runMulkiyaExtraction(doc.id, primaryFile, vehicleId)
     }
   }
 
@@ -252,10 +258,9 @@ async function runMulkiyaExtraction(
       await supabase.from('vehicles').update(vUpdates).eq('id', vehicleId)
     }
 
-    // No revalidatePath here. We run inside after(), and Next 15 forbids
-    // revalidate calls from that context. The vehicle and doc-view
-    // pages are dynamic (force-dynamic) so the next render reads the
-    // fresh data.
+    // Revalidate the vehicle page so the next render picks up the
+    // freshly applied extracted fields without the user hitting refresh.
+    revalidatePath(`/vehicles/${vehicleId}`)
   } catch (err) {
     console.error('[runMulkiyaExtraction] failed', err)
     try {
