@@ -105,6 +105,126 @@ export type ExtractedMulkiya = {
 
 export type MulkiyaImageInput = { base64: string; mimeType: string }
 
+// Field-level priority: when the user uploads a bundle (e.g. mulkiya
+// + insurance + passing), each document is authoritative for different
+// fields. Order matters — first match in the priority list wins.
+//
+// The "any" sentinel means "if no authoritative doc had the value, fall
+// back to whichever document did, regardless of type". Keeps the merged
+// result populated even when classification was off.
+const FIELD_PRIORITY: Partial<
+  Record<keyof ExtractedMulkiya, ReadonlyArray<DetectedDocType | 'any'>>
+> = {
+  // Vehicle identity — mulkiya is the source of truth, insurance cert
+  // mirrors it. Passing report often has model + chassis but rarely
+  // the legal owner record.
+  vehicle_make: ['mulkiya', 'insurance_certificate', 'insurance_policy_schedule', 'rta_passing_certificate', 'any'],
+  vehicle_model: ['mulkiya', 'insurance_certificate', 'insurance_policy_schedule', 'rta_passing_certificate', 'any'],
+  year: ['mulkiya', 'rta_passing_certificate', 'insurance_certificate', 'insurance_policy_schedule', 'any'],
+  vin: ['mulkiya', 'insurance_certificate', 'rta_passing_certificate', 'any'],
+  engine_number: ['mulkiya', 'insurance_certificate', 'rta_passing_certificate', 'any'],
+
+  // Technical specs — RTA passing report is the most reliable source.
+  color: ['rta_passing_certificate', 'mulkiya', 'insurance_certificate', 'any'],
+  body_type: ['rta_passing_certificate', 'mulkiya', 'insurance_certificate', 'any'],
+  cylinders: ['rta_passing_certificate', 'mulkiya', 'insurance_certificate', 'any'],
+  doors: ['rta_passing_certificate', 'mulkiya', 'any'],
+  seats: ['mulkiya', 'insurance_certificate', 'rta_passing_certificate', 'any'],
+  fuel_type: ['rta_passing_certificate', 'mulkiya', 'any'],
+  country_of_origin: ['mulkiya', 'any'],
+  category: ['mulkiya', 'any'],
+  gross_weight_kg: ['mulkiya', 'any'],
+  empty_weight_kg: ['mulkiya', 'any'],
+  use_of_vehicle: ['mulkiya', 'rta_passing_certificate', 'any'],
+
+  // Registration — only the mulkiya carries this. We pick the mulkiya
+  // plate over any plate-looking string from an insurance barcode.
+  plate_number: ['mulkiya', 'any'],
+  plate_emirate: ['mulkiya', 'rta_passing_certificate', 'any'],
+  plate_type: ['mulkiya', 'rta_passing_certificate', 'any'],
+  registration_date: ['mulkiya', 'any'],
+  registration_authority: ['mulkiya', 'any'],
+  mortgage_by: ['mulkiya', 'insurance_certificate', 'any'],
+  expires_at: ['mulkiya', 'any'],
+
+  // Owner — mulkiya is the legal owner record. Insurance carries the
+  // insured name which may match but should not override.
+  owner_name: ['mulkiya', 'insurance_certificate', 'any'],
+  owner_nationality: ['mulkiya', 'any'],
+  traffic_code_no: ['mulkiya', 'any'],
+
+  // Insurance — the policy schedule is the definitive source. The
+  // certificate is a summary; the schedule has full premium + cover.
+  insurance_company: ['insurance_policy_schedule', 'insurance_certificate', 'mulkiya', 'any'],
+  insurance_policy_number: ['insurance_policy_schedule', 'insurance_certificate', 'mulkiya', 'any'],
+  insurance_cover_type: ['insurance_policy_schedule', 'insurance_certificate', 'any'],
+  insurance_cover_plan: ['insurance_policy_schedule', 'insurance_certificate', 'any'],
+  insurance_commencement_at: ['insurance_policy_schedule', 'insurance_certificate', 'any'],
+  insurance_expires_at: ['insurance_policy_schedule', 'insurance_certificate', 'mulkiya', 'any'],
+  insurance_premium_aed: ['insurance_policy_schedule', 'insurance_certificate', 'any'],
+  insurance_insured_value_aed: ['insurance_policy_schedule', 'insurance_certificate', 'any'],
+
+  // Document number — keep whatever the doc itself said about itself.
+  document_number: ['any'],
+}
+
+/**
+ * Merge N per-file extraction results into a single consolidated record.
+ * Each field is filled from the most authoritative document for THAT
+ * field, falling back through the priority chain until a non-null value
+ * is found.
+ *
+ * The detected_doc_type and detected_doc_confidence on the merged result
+ * reflect the FIRST extraction in the list — generally the file the
+ * user uploaded first. These two fields are about "what type of doc is
+ * this", which doesn't make sense to merge across a bundle.
+ */
+export function mergeExtractions(
+  results: ExtractedMulkiya[],
+): ExtractedMulkiya | null {
+  if (results.length === 0) return null
+  if (results.length === 1) return results[0]!
+
+  const out = { ...results[0]! }
+
+  for (const field of Object.keys(out) as Array<keyof ExtractedMulkiya>) {
+    if (field === 'detected_doc_type' || field === 'detected_doc_confidence') {
+      continue
+    }
+    const priority = FIELD_PRIORITY[field]
+    if (!priority) {
+      // No explicit rule — keep first non-null across the bundle.
+      const v = pickFirstNonNull(results, field)
+      ;(out as Record<string, unknown>)[field] = v
+      continue
+    }
+
+    let resolved: unknown = null
+    for (const wanted of priority) {
+      const candidate = results.find((r) => {
+        if (wanted === 'any') return r[field] != null
+        return r.detected_doc_type === wanted && r[field] != null
+      })
+      if (candidate) {
+        resolved = candidate[field]
+        break
+      }
+    }
+    ;(out as Record<string, unknown>)[field] = resolved
+  }
+  return out
+}
+
+function pickFirstNonNull<K extends keyof ExtractedMulkiya>(
+  results: ExtractedMulkiya[],
+  field: K,
+): ExtractedMulkiya[K] | null {
+  for (const r of results) {
+    if (r[field] != null) return r[field]
+  }
+  return null
+}
+
 /**
  * Accepts ONE OR MANY images for a single logical document. Dubai mulkiya
  * is two-sided — front (vehicle + reg) and back (owner + tech specs). To

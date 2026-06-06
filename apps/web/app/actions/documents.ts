@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import {
   extractMulkiyaFromImage,
+  mergeExtractions,
   type ExtractedMulkiya,
 } from '@/lib/extract-mulkiya'
 
@@ -217,18 +218,33 @@ async function runMulkiyaExtraction(
       return
     }
 
-    // Convert each file to base64. Vision call sees all of them as
-    // one document so it can correlate fields across front/back.
-    const images: Array<{ base64: string; mimeType: string }> = []
-    for (const f of imageFiles) {
-      const buf = await f.arrayBuffer()
-      images.push({
-        base64: Buffer.from(buf).toString('base64'),
-        mimeType: f.type,
-      })
-    }
+    // Extract each file INDEPENDENTLY in parallel. Bundling mixed doc
+    // types (mulkiya + insurance + passing) into a single vision call
+    // causes cross-contamination — the model picks barcode digits from
+    // one doc as the plate of another, or sees a premium "1984.5" and
+    // calls it the year. Per-file extraction gives each doc its own
+    // clean context; the merge step picks the authoritative value per
+    // field from the priority table in extract-mulkiya.ts.
+    const perFile = await Promise.all(
+      imageFiles.map(async (f) => {
+        try {
+          const buf = await f.arrayBuffer()
+          const b64 = Buffer.from(buf).toString('base64')
+          const result = await extractMulkiyaFromImage([
+            { base64: b64, mimeType: f.type },
+          ])
+          return result
+        } catch (err) {
+          console.error('[runExtraction] per-file failed', err)
+          return null
+        }
+      }),
+    )
+    const validResults = perFile.filter(
+      (r): r is ExtractedMulkiya => r !== null,
+    )
 
-    const extracted = await extractMulkiyaFromImage(images)
+    const extracted = mergeExtractions(validResults)
 
     const supabase = await createClient()
 
@@ -251,20 +267,35 @@ async function runMulkiyaExtraction(
     // and the detected value matches one of the allowed enum strings on
     // the column — otherwise we leave doc_type='auto' and rely on the
     // jsonb for downstream reads.
+    // Store the merged record as the top-level extracted_data (the
+    // shape every UI reader expects), but also tuck the per-file array
+    // inside so we can audit later which doc contributed which value.
+    // 30 days from now we'll mine this to see what's actually in users'
+    // garages and design the proper UI around the real distribution.
     const docUpdates: Record<string, unknown> = {
-      extracted_data: extracted,
+      extracted_data: {
+        ...extracted,
+        per_file_extractions: validResults,
+        per_file_count: validResults.length,
+      },
       extraction_status: 'applied',
       extracted_at: new Date().toISOString(),
     }
     if (extracted.expires_at) {
       docUpdates.expires_at = extracted.expires_at
     }
-    if (
-      extracted.detected_doc_type &&
-      (extracted.detected_doc_confidence ?? 0) >= 0.6
-    ) {
-      // Map the model's broader vocabulary back to the on-column enum.
-      // Anything we can't map stays as 'auto' on the parent row.
+    // Only promote doc_type when the bundle is unambiguously one kind
+    // of document. A mixed bundle (mulkiya + insurance + passing) keeps
+    // doc_type='auto' — otherwise the reminder cron mis-labels the
+    // renewal and the UI shows the wrong category.
+    const uniqueTypes = new Set(
+      validResults
+        .filter((r) => (r.detected_doc_confidence ?? 0) >= 0.6)
+        .map((r) => r.detected_doc_type)
+        .filter((t): t is NonNullable<typeof t> => t != null),
+    )
+    if (uniqueTypes.size === 1) {
+      const singleType = [...uniqueTypes][0]!
       const mapping: Record<string, string> = {
         mulkiya: 'mulkiya',
         insurance_certificate: 'insurance_policy',
@@ -272,10 +303,11 @@ async function runMulkiyaExtraction(
         driving_licence: 'driving_licence',
         noc: 'noc',
         pollution_test: 'pollution_test',
+        rta_passing_certificate: 'pollution_test',
         service_invoice: 'service_history',
         service_history: 'service_history',
       }
-      const mapped = mapping[extracted.detected_doc_type]
+      const mapped = mapping[singleType]
       if (mapped) docUpdates.doc_type = mapped
     }
     await supabase.from('vehicle_documents').update(docUpdates).eq('id', docId)

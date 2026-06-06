@@ -999,6 +999,8 @@ function DetailsTable({
 function prettyDocLabel(docType: string, customLabel: string | null): string {
   if (customLabel && customLabel.trim().length > 0) return customLabel
   switch (docType) {
+    case 'auto':
+      return 'Document'
     case 'driving_licence':
       return 'Driving licence'
     case 'noc':
