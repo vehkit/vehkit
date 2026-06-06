@@ -105,85 +105,96 @@ export type ExtractedMulkiya = {
 
 export type MulkiyaImageInput = { base64: string; mimeType: string }
 
-// Field-level priority: when the user uploads a bundle (e.g. mulkiya
+// Field-level allowlist: when the user uploads a bundle (e.g. mulkiya
 // + insurance + passing), each document is authoritative for different
-// fields. Order matters — first match in the priority list wins.
+// fields. For each field we list the doc types that are CREDIBLE
+// sources of that value, in priority order. Anything not on the list
+// is rejected — even if a stray vision call returns a value, we don't
+// trust it.
 //
-// The "any" sentinel means "if no authoritative doc had the value, fall
-// back to whichever document did, regardless of type". Keeps the merged
-// result populated even when classification was off.
+// This prevents the classic failure where an insurance schedule's
+// barcode "784-1994-3284753-3" gets parsed as plate_number=784, or
+// "1984.5" (the premium amount inside a chassis-no concatenation) gets
+// parsed as year=1984. Identity fields ONLY come from documents that
+// physically carry that identity.
 const FIELD_PRIORITY: Partial<
-  Record<keyof ExtractedMulkiya, ReadonlyArray<DetectedDocType | 'any'>>
+  Record<keyof ExtractedMulkiya, ReadonlyArray<DetectedDocType>>
 > = {
-  // Vehicle identity — mulkiya is the source of truth, insurance cert
-  // mirrors it. Passing report often has model + chassis but rarely
-  // the legal owner record.
-  vehicle_make: ['mulkiya', 'insurance_certificate', 'insurance_policy_schedule', 'rta_passing_certificate', 'any'],
-  vehicle_model: ['mulkiya', 'insurance_certificate', 'insurance_policy_schedule', 'rta_passing_certificate', 'any'],
-  year: ['mulkiya', 'rta_passing_certificate', 'insurance_certificate', 'insurance_policy_schedule', 'any'],
-  vin: ['mulkiya', 'insurance_certificate', 'rta_passing_certificate', 'any'],
-  engine_number: ['mulkiya', 'insurance_certificate', 'rta_passing_certificate', 'any'],
+  // Vehicle identity — mulkiya is the source of truth. Passing report
+  // is RTA-issued and carries the same data. Insurance certificates
+  // are derived (and often badly transcribed); we don't trust them
+  // for identity but they're allowed as a last resort.
+  vehicle_make: ['mulkiya', 'rta_passing_certificate', 'insurance_certificate', 'insurance_policy_schedule'],
+  vehicle_model: ['mulkiya', 'rta_passing_certificate', 'insurance_certificate', 'insurance_policy_schedule'],
+  year: ['mulkiya', 'rta_passing_certificate', 'insurance_certificate'],
+  vin: ['mulkiya', 'rta_passing_certificate', 'insurance_certificate'],
+  engine_number: ['mulkiya', 'rta_passing_certificate', 'insurance_certificate'],
 
-  // Technical specs — RTA passing report is the most reliable source.
-  color: ['rta_passing_certificate', 'mulkiya', 'insurance_certificate', 'any'],
-  body_type: ['rta_passing_certificate', 'mulkiya', 'insurance_certificate', 'any'],
-  cylinders: ['rta_passing_certificate', 'mulkiya', 'insurance_certificate', 'any'],
-  doors: ['rta_passing_certificate', 'mulkiya', 'any'],
-  seats: ['mulkiya', 'insurance_certificate', 'rta_passing_certificate', 'any'],
-  fuel_type: ['rta_passing_certificate', 'mulkiya', 'any'],
-  country_of_origin: ['mulkiya', 'any'],
-  category: ['mulkiya', 'any'],
-  gross_weight_kg: ['mulkiya', 'any'],
-  empty_weight_kg: ['mulkiya', 'any'],
-  use_of_vehicle: ['mulkiya', 'rta_passing_certificate', 'any'],
+  // Technical specs — RTA passing report is the gold standard. Mulkiya
+  // back has these too. Insurance schedules sometimes have garbled
+  // versions; we don't include them.
+  color: ['rta_passing_certificate', 'mulkiya'],
+  body_type: ['rta_passing_certificate', 'mulkiya', 'insurance_certificate'],
+  cylinders: ['rta_passing_certificate', 'mulkiya'],
+  doors: ['rta_passing_certificate', 'mulkiya'],
+  seats: ['mulkiya', 'insurance_certificate', 'rta_passing_certificate'],
+  fuel_type: ['rta_passing_certificate', 'mulkiya'],
+  country_of_origin: ['mulkiya'],
+  category: ['mulkiya'],
+  gross_weight_kg: ['mulkiya', 'rta_passing_certificate'],
+  empty_weight_kg: ['mulkiya', 'rta_passing_certificate'],
+  use_of_vehicle: ['mulkiya', 'rta_passing_certificate'],
 
-  // Registration — only the mulkiya carries this. We pick the mulkiya
-  // plate over any plate-looking string from an insurance barcode.
-  plate_number: ['mulkiya', 'any'],
-  plate_emirate: ['mulkiya', 'rta_passing_certificate', 'any'],
-  plate_type: ['mulkiya', 'rta_passing_certificate', 'any'],
-  registration_date: ['mulkiya', 'any'],
-  registration_authority: ['mulkiya', 'any'],
-  mortgage_by: ['mulkiya', 'insurance_certificate', 'any'],
-  expires_at: ['mulkiya', 'any'],
+  // Registration — only the mulkiya / passing carry this. We REFUSE
+  // to read plate_number from an insurance certificate barcode.
+  plate_number: ['mulkiya', 'rta_passing_certificate'],
+  plate_emirate: ['mulkiya', 'rta_passing_certificate'],
+  plate_type: ['mulkiya', 'rta_passing_certificate'],
+  registration_date: ['mulkiya'],
+  registration_authority: ['mulkiya'],
+  mortgage_by: ['mulkiya', 'insurance_certificate'],
+  expires_at: ['mulkiya'],
 
   // Owner — mulkiya is the legal owner record. Insurance carries the
-  // insured name which may match but should not override.
-  owner_name: ['mulkiya', 'insurance_certificate', 'any'],
-  owner_nationality: ['mulkiya', 'any'],
-  traffic_code_no: ['mulkiya', 'any'],
+  // insured name which may match but is rejected as a primary source
+  // (a leaseholder is not always the owner).
+  owner_name: ['mulkiya', 'insurance_certificate'],
+  owner_nationality: ['mulkiya'],
+  traffic_code_no: ['mulkiya'],
 
   // Insurance — the policy schedule is the definitive source. The
   // certificate is a summary; the schedule has full premium + cover.
-  insurance_company: ['insurance_policy_schedule', 'insurance_certificate', 'mulkiya', 'any'],
-  insurance_policy_number: ['insurance_policy_schedule', 'insurance_certificate', 'mulkiya', 'any'],
-  insurance_cover_type: ['insurance_policy_schedule', 'insurance_certificate', 'any'],
-  insurance_cover_plan: ['insurance_policy_schedule', 'insurance_certificate', 'any'],
-  insurance_commencement_at: ['insurance_policy_schedule', 'insurance_certificate', 'any'],
-  insurance_expires_at: ['insurance_policy_schedule', 'insurance_certificate', 'mulkiya', 'any'],
-  insurance_premium_aed: ['insurance_policy_schedule', 'insurance_certificate', 'any'],
-  insurance_insured_value_aed: ['insurance_policy_schedule', 'insurance_certificate', 'any'],
-
-  // Document number — keep whatever the doc itself said about itself.
-  document_number: ['any'],
+  insurance_company: ['insurance_policy_schedule', 'insurance_certificate', 'mulkiya'],
+  insurance_policy_number: ['insurance_policy_schedule', 'insurance_certificate', 'mulkiya'],
+  insurance_cover_type: ['insurance_policy_schedule', 'insurance_certificate'],
+  insurance_cover_plan: ['insurance_policy_schedule', 'insurance_certificate'],
+  insurance_commencement_at: ['insurance_policy_schedule', 'insurance_certificate'],
+  insurance_expires_at: ['insurance_policy_schedule', 'insurance_certificate', 'mulkiya'],
+  insurance_premium_aed: ['insurance_policy_schedule', 'insurance_certificate'],
+  insurance_insured_value_aed: ['insurance_policy_schedule', 'insurance_certificate'],
 }
 
 /**
  * Merge N per-file extraction results into a single consolidated record.
- * Each field is filled from the most authoritative document for THAT
- * field, falling back through the priority chain until a non-null value
- * is found.
  *
- * The detected_doc_type and detected_doc_confidence on the merged result
- * reflect the FIRST extraction in the list — generally the file the
- * user uploaded first. These two fields are about "what type of doc is
- * this", which doesn't make sense to merge across a bundle.
+ * For every field, we ONLY accept values from documents whose detected
+ * type is on the field's allowlist (FIELD_PRIORITY). Values from
+ * unrelated doc types are rejected — even if vision returned them — to
+ * prevent insurance-barcode digits leaking into plate_number, or a
+ * misread Make/Model column header polluting the color field.
+ *
+ * Result: missing data is better than wrong data. The data lake still
+ * has every per-file extraction archived in extracted_data so we can
+ * mine the misses later.
+ *
+ * detected_doc_type / detected_doc_confidence on the merged record
+ * inherit from the first extraction — those describe individual docs,
+ * not a bundle, so they're informational only.
  */
 export function mergeExtractions(
   results: ExtractedMulkiya[],
 ): ExtractedMulkiya | null {
   if (results.length === 0) return null
-  if (results.length === 1) return results[0]!
 
   const out = { ...results[0]! }
 
@@ -191,20 +202,20 @@ export function mergeExtractions(
     if (field === 'detected_doc_type' || field === 'detected_doc_confidence') {
       continue
     }
-    const priority = FIELD_PRIORITY[field]
-    if (!priority) {
-      // No explicit rule — keep first non-null across the bundle.
-      const v = pickFirstNonNull(results, field)
-      ;(out as Record<string, unknown>)[field] = v
+    const allowed = FIELD_PRIORITY[field]
+    if (!allowed) {
+      // No explicit rule — pick first non-null across the bundle.
+      // (Used by tail fields like document_number where any doc is fine.)
+      const found = results.find((r) => r[field] != null)
+      ;(out as Record<string, unknown>)[field] = found ? found[field] : null
       continue
     }
 
     let resolved: unknown = null
-    for (const wanted of priority) {
-      const candidate = results.find((r) => {
-        if (wanted === 'any') return r[field] != null
-        return r.detected_doc_type === wanted && r[field] != null
-      })
+    for (const wantedType of allowed) {
+      const candidate = results.find(
+        (r) => r.detected_doc_type === wantedType && r[field] != null,
+      )
       if (candidate) {
         resolved = candidate[field]
         break
@@ -213,16 +224,6 @@ export function mergeExtractions(
     ;(out as Record<string, unknown>)[field] = resolved
   }
   return out
-}
-
-function pickFirstNonNull<K extends keyof ExtractedMulkiya>(
-  results: ExtractedMulkiya[],
-  field: K,
-): ExtractedMulkiya[K] | null {
-  for (const r of results) {
-    if (r[field] != null) return r[field]
-  }
-  return null
 }
 
 /**
@@ -417,7 +418,11 @@ Critical rules:
 - registration_date is when the vehicle was first registered, not insurance dates.
 - mortgage_by is a bank or finance company name (e.g. "Emirates NBD Bank").
 - owner_name is the full name printed next to "Owner" or "Name" — not a transliteration of the issuing authority.
-- color and body_type usually appear on the BACK of the mulkiya. Look across all images.
+- color is the LAST cell labelled "Colour" / "Color" / "Vehicle Color" / "اللون". If that cell is blank, return null. NEVER copy the value from the adjacent "Make and Model" column as the colour.
+- body_type usually appears on the BACK of the mulkiya. Look across all images.
+- plate_number is the digits next to "Traffic Plate No.", "Plate No.", or "رقم اللوحة" (UAE plates are 3-5 digits). DO NOT read barcodes or QR codes as plate numbers. DO NOT pull digits from concatenated strings like "784-1994-3284753-3" — that is a barcode, not a plate.
+- year is the 4-digit "Year of Manufacture" or "سنة الصنع". DO NOT mistake premium amounts like "1984.5" (the trailing ".5" gives it away as currency) or chassis-no fragments for years. Years for a UAE-registered car are typically 2000-current.
+- vin / chassis is a 17-character alphanumeric code (no I, O, Q).
 - document_number is any printed reference / certificate / policy number on the doc.
 - For any field where you cannot read the value clearly, return null. Do NOT use a section heading or label like "Type Of Cover", "Seating Capacity", "Motor Vehicle Insurance Certificate" as a value.
 
@@ -1016,7 +1021,7 @@ function validate(e: ExtractedMulkiya): ExtractedMulkiya {
     gross_weight_kg: clampInt(e.gross_weight_kg, 200, 50_000),
     empty_weight_kg: clampInt(e.empty_weight_kg, 200, 50_000),
     use_of_vehicle: cleanText(e.use_of_vehicle),
-    plate_number: cleanCode(e.plate_number, 1, 6),
+    plate_number: cleanPlate(e.plate_number),
     plate_type: cleanText(e.plate_type),
     registration_date: validIsoDate(e.registration_date),
     registration_authority: cleanText(e.registration_authority),
@@ -1107,7 +1112,37 @@ function cleanText(s: string | null | undefined): string | null {
   return t
 }
 function cleanColor(s: string | null | undefined): string | null {
-  return cleanText(s)
+  const t = cleanText(s)
+  if (!t) return null
+  // Reject obvious make/model contamination — colour fields on the
+  // policy schedule are often blank, and the model can confuse the
+  // adjacent Make-and-Model column header with the colour cell.
+  if (/toyota|honda|nissan|ford|hyundai|kia|mitsubishi|mercedes|bmw|audi|lexus|land\s*cruiser|prado|corolla|camry|accord|civic/i.test(t)) {
+    return null
+  }
+  // Reject anything with a hyphen and brand-looking words (e.g.
+  // "Toyota - Land Cruiser"). Real colour values are 1-2 words.
+  if (/\s-\s/.test(t) && t.split(/\s+/).length > 3) return null
+  return t
+}
+
+/**
+ * UAE plate numbers are 3–5 numeric digits. The text may arrive with a
+ * code prefix like "CC / 52243" or "C 52243" — strip those, keep only
+ * the digit run. Reject anything that doesn't end up as a 3-5 digit
+ * number (this catches insurance barcode fragments like "784" parsed
+ * from "784-1994-3284753-3").
+ */
+function cleanPlate(s: string | null | undefined): string | null {
+  if (!s) return null
+  const t = s.toString().trim()
+  if (!t) return null
+  // Extract the longest numeric run.
+  const matches = t.match(/\d+/g)
+  if (!matches || matches.length === 0) return null
+  const digits = matches.reduce((a, b) => (b.length > a.length ? b : a), '')
+  if (digits.length < 3 || digits.length > 5) return null
+  return digits
 }
 function cleanInsurer(s: string | null | undefined): string | null {
   const t = cleanText(s)
