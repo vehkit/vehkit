@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { nukeUserAction } from '@/app/admin/_actions/users'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,10 +67,14 @@ type GrantLite = {
 
 export default async function AdminUserPreviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ error?: string }>
 }) {
   const { id } = await params
+  const sp = await searchParams
+  const errorMsg = sp.error
   const supabase = createAdminClient()
 
   // Audit-log this preview load BEFORE rendering anything. Even partial
@@ -403,6 +408,52 @@ export default async function AdminUserPreviewPage({
           </ul>
         </section>
       )}
+
+      {/* DANGER ZONE — nuke user */}
+      <section className="mt-12 border-2 border-signal/40 rounded-DEFAULT p-5 bg-signal/5">
+        <p className="text-[10px] tracking-widest uppercase text-signal font-bold">
+          Danger zone
+        </p>
+        <h2 className="text-xl font-semibold text-chalk tracking-tighter mt-2">
+          Nuke this user
+        </h2>
+        <p className="text-sm text-ash mt-2 leading-relaxed">
+          Permanently delete{' '}
+          <span className="font-mono text-chalk">{p.email ?? p.id}</span> and
+          every row attached: vehicles ({vehicles.length}), services (
+          {records.length}), documents ({documents.length}), bookings, reviews,
+          agent grants ({grants.length}), and the auth account. Cannot be
+          undone. Storage files are listed in the result so you can purge
+          buckets manually.
+        </p>
+        {errorMsg && (
+          <p className="text-sm text-signal mt-3 font-mono">
+            {decodeURIComponent(errorMsg)}
+          </p>
+        )}
+        <form action={nukeUserAction} className="mt-4 flex gap-2 items-center flex-wrap">
+          <input type="hidden" name="userId" value={p.id} />
+          <input
+            type="text"
+            name="confirmEmail"
+            required
+            placeholder={`Type "${p.email ?? 'email'}" to confirm`}
+            className="field max-w-xs font-mono text-xs"
+            autoComplete="off"
+          />
+          <button
+            type="submit"
+            className="text-xs tracking-widest uppercase font-bold bg-signal text-white px-4 py-2.5 rounded-pill hover:bg-signal/85 transition-colors"
+          >
+            Nuke user
+          </button>
+        </form>
+        <p className="text-[11px] text-ash mt-3 leading-relaxed">
+          Logged in <span className="font-mono">admin_audit_log</span> with the
+          deleted email, vehicle count, and a list of storage paths to clear
+          from the buckets.
+        </p>
+      </section>
 
       {/* AGENT GRANTS issued by this customer */}
       {grants.length > 0 && (
