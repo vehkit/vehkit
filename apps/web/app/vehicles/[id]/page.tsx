@@ -1,6 +1,6 @@
 import { headers } from 'next/headers'
 import Link from 'next/link'
-import { notFound, redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { deleteVehicle } from '@/app/actions/vehicles'
 import { snoozeReminder, completeReminder } from '@/app/actions/reminders'
@@ -73,7 +73,12 @@ export default async function VehiclePage({
     ])
 
   const vehicle = vehicleRes.data
-  if (vehicleRes.error || !vehicle) notFound()
+  // If the vehicle doesn't exist OR the signed-in user has no row-level
+  // access to it (e.g. a stale share link, an old bookmark, or a redirect
+  // /vehicles/<id> that survived the magic-link flow), send them to
+  // their own garage instead of a dead-end 404. notFound() stays only
+  // for truly-deleted ids when nothing in the user's context applies.
+  if (vehicleRes.error || !vehicle) redirect('/mycars')
   const scoreData = scoreRes.data as Parameters<typeof VehicleScoreChip>[0]['data']
 
   const records = recordsRes.data

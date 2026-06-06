@@ -143,11 +143,30 @@ export async function GET(request: NextRequest) {
 
   // Resolve final destination.
   let destination = explicitNext
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  // Guard rail: a stale `next=/vehicles/<id>` (from a forwarded share
+  // link, a recovered bookmark, or another household's session) will
+  // 404 a brand-new user as soon as the redirect lands. Verify the
+  // signed-in user can actually read the row before honouring it.
+  if (destination && user) {
+    const m = destination.match(/^\/vehicles\/([0-9a-f-]{36})(?:[/?#].*)?$/i)
+    if (m) {
+      const { data: vehicleRow } = await supabase
+        .from('vehicles')
+        .select('id')
+        .eq('id', m[1])
+        .maybeSingle()
+      if (!vehicleRow) {
+        destination = null // fall through to role detection
+      }
+    }
+  }
+
   if (!destination) {
     // No explicit intent — air gap by role.
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
     destination = user
       ? await detectPrimaryRoleDestination(user.id)
       : '/mycars'
