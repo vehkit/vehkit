@@ -860,58 +860,144 @@ function DetailsTable({
         ] as [string, string],
     )
 
-  const rows: Array<[string, string | number | null]> = [
-    ['Vehicle', vehicleLine],
-    ['Plate', plate],
-    ['Odometer', odoLabel],
-    ['VIN', (get('vin') as string) ?? null],
-    ['Engine no.', (extracted.engine_number as string) ?? null],
-    ['Cylinders', (extracted.cylinders as number) ?? null],
-    ['Mulkiya expires', mulkiyaExp],
-    [
-      insuranceLabel ? `Insurance (${insuranceLabel}) expires` : 'Insurance expires',
-      insuranceExp,
-    ],
-    ...otherExpiries.map(
-      ([label, date]) => [`${label} expires`, date] as [string, string],
-    ),
+  const aed = (n: unknown): string | null => {
+    if (typeof n !== 'number' || !Number.isFinite(n)) return null
+    return `AED ${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+  }
+
+  type Row = [string, string | number | null, { mono?: boolean }?]
+  const sections: Array<{ heading: string; rows: Row[] }> = [
+    {
+      heading: 'Vehicle',
+      rows: [
+        ['Vehicle', vehicleLine],
+        ['Color', (get('color') as string) ?? (extracted.color as string) ?? null],
+        ['Body type', (extracted.body_type as string) ?? null],
+        ['Category', (extracted.category as string) ?? null],
+        ['Country of origin', (extracted.country_of_origin as string) ?? null],
+        ['Fuel', (extracted.fuel_type as string) ?? null],
+        ['Doors', (extracted.doors as number) ?? null, { mono: true }],
+        ['Seats', (extracted.seats as number) ?? null, { mono: true }],
+        ['Cylinders', (extracted.cylinders as number) ?? null, { mono: true }],
+        ['Engine no.', (extracted.engine_number as string) ?? null, { mono: true }],
+        ['VIN', (get('vin') as string) ?? null, { mono: true }],
+        [
+          'Gross weight',
+          extracted.gross_weight_kg
+            ? `${extracted.gross_weight_kg} kg`
+            : null,
+          { mono: true },
+        ],
+        [
+          'Empty weight',
+          extracted.empty_weight_kg
+            ? `${extracted.empty_weight_kg} kg`
+            : null,
+          { mono: true },
+        ],
+        ['Use', (extracted.use_of_vehicle as string) ?? null],
+        ['Odometer', odoLabel, { mono: true }],
+      ],
+    },
+    {
+      heading: 'Registration',
+      rows: [
+        ['Plate', plate, { mono: true }],
+        ['Plate type', (extracted.plate_type as string) ?? null],
+        ['Authority', (extracted.registration_authority as string) ?? null],
+        ['Registered on', (extracted.registration_date as string) ?? null, { mono: true }],
+        ['Mortgage by', (extracted.mortgage_by as string) ?? null],
+        ['Mulkiya expires', mulkiyaExp, { mono: true }],
+      ],
+    },
+    {
+      heading: 'Owner',
+      rows: [
+        ['Name', (extracted.owner_name as string) ?? null],
+        ['Nationality', (extracted.owner_nationality as string) ?? null],
+        ['Traffic code', (extracted.traffic_code_no as string) ?? null, { mono: true }],
+      ],
+    },
+    {
+      heading: 'Insurance',
+      rows: [
+        ['Insurer', (extracted.insurance_company as string) ?? insuranceLabel ?? null],
+        ['Policy no.', (extracted.insurance_policy_number as string) ?? null, { mono: true }],
+        ['Cover type', (extracted.insurance_cover_type as string) ?? null],
+        ['Cover plan', (extracted.insurance_cover_plan as string) ?? null],
+        [
+          'Started',
+          (extracted.insurance_commencement_at as string) ?? null,
+          { mono: true },
+        ],
+        ['Expires', insuranceExp, { mono: true }],
+        [
+          'Premium',
+          aed(extracted.insurance_premium_aed),
+          { mono: true },
+        ],
+        [
+          'Insured value',
+          aed(extracted.insurance_insured_value_aed),
+          { mono: true },
+        ],
+      ],
+    },
   ]
 
-  const populated = rows.filter(
-    ([, v]) => v != null && String(v).trim() !== '',
-  )
-  if (populated.length === 0) return null
+  // Append "Other docs" if any.
+  if (otherExpiries.length > 0) {
+    sections.push({
+      heading: 'Other documents',
+      rows: otherExpiries.map(
+        ([label, date]) =>
+          [`${label} expires`, date, { mono: true }] as Row,
+      ),
+    })
+  }
+
+  const renderedSections = sections
+    .map((s) => ({
+      heading: s.heading,
+      rows: s.rows.filter(
+        ([, v]) => v != null && String(v).trim() !== '',
+      ),
+    }))
+    .filter((s) => s.rows.length > 0)
+
+  if (renderedSections.length === 0) return null
 
   return (
-    <div className="mt-3 border border-seam rounded-DEFAULT overflow-hidden">
-      <dl className="grid grid-cols-1 sm:grid-cols-2">
-        {populated.map(([label, value], i) => {
-          const isMono =
-            label === 'VIN' ||
-            label === 'Plate' ||
-            label === 'Odometer' ||
-            label === 'Year' ||
-            label === 'Cylinders' ||
-            label === 'Engine no.'
-          return (
-            <div
-              key={label}
-              className={`flex items-center justify-between gap-4 px-4 py-2.5 border-b border-seam ${
-                i % 2 === 1 ? 'sm:border-l' : ''
-              } last:border-b-0`}
-            >
-              <dt className="text-xs tracking-widest uppercase text-ash">
-                {label}
-              </dt>
-              <dd
-                className={`text-sm text-chalk text-right truncate ${isMono ? 'font-mono tabular-nums' : ''}`}
+    <div className="mt-3 space-y-4">
+      {renderedSections.map((section) => (
+        <div
+          key={section.heading}
+          className="border border-seam rounded-DEFAULT overflow-hidden"
+        >
+          <p className="px-4 py-2 text-[10px] tracking-[0.28em] uppercase text-leaf font-bold bg-iron/30 border-b border-seam">
+            {section.heading}
+          </p>
+          <dl className="grid grid-cols-1 sm:grid-cols-2">
+            {section.rows.map(([label, value, opts], i) => (
+              <div
+                key={label}
+                className={`flex items-center justify-between gap-4 px-4 py-2.5 border-b border-seam ${
+                  i % 2 === 1 ? 'sm:border-l' : ''
+                } last:border-b-0`}
               >
-                {value as React.ReactNode}
-              </dd>
-            </div>
-          )
-        })}
-      </dl>
+                <dt className="text-xs tracking-widest uppercase text-ash">
+                  {label}
+                </dt>
+                <dd
+                  className={`text-sm text-chalk text-right truncate ${opts?.mono ? 'font-mono tabular-nums' : ''}`}
+                >
+                  {value as React.ReactNode}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ))}
     </div>
   )
 }

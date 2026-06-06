@@ -43,17 +43,47 @@ const EMIRATES = [
 ] as const
 
 export type ExtractedMulkiya = {
+  // ── vehicle identity ──
   vehicle_make: string | null
   vehicle_model: string | null
   year: number | null
+  color: string | null
+  body_type: string | null
+  country_of_origin: string | null
+  category: string | null
+  fuel_type: string | null
+  doors: number | null
+  seats: number | null
+  cylinders: number | null
+  engine_number: string | null
+  vin: string | null
+  gross_weight_kg: number | null
+  empty_weight_kg: number | null
+  use_of_vehicle: string | null
+
+  // ── registration ──
   plate_number: string | null
   plate_emirate: (typeof EMIRATES)[number] | null
-  vin: string | null
+  plate_type: string | null
+  registration_date: string | null
+  registration_authority: string | null
+  mortgage_by: string | null
   expires_at: string | null
-  // Added per user request, June 2026:
+
+  // ── owner ──
+  owner_name: string | null
+  owner_nationality: string | null
+  traffic_code_no: string | null
+
+  // ── insurance ──
+  insurance_company: string | null
+  insurance_policy_number: string | null
+  insurance_cover_type: string | null
+  insurance_cover_plan: string | null
+  insurance_commencement_at: string | null
   insurance_expires_at: string | null
-  engine_number: string | null
-  cylinders: number | null
+  insurance_premium_aed: number | null
+  insurance_insured_value_aed: number | null
 }
 
 export async function extractMulkiyaFromImage(
@@ -202,16 +232,124 @@ export function parseMulkiyaText(text: string): ExtractedMulkiya {
   const upper = norm.toUpperCase()
 
   return {
+    // vehicle
     vehicle_make: findMake(norm),
     vehicle_model: findModel(norm),
     year: findYear(norm),
+    color: labelText(upper, ['COLOR', 'COLOUR'], '[A-Z][A-Z \\-]{2,20}'),
+    body_type: labelText(upper, ['BODY\\s*TYPE'], '[A-Z0-9][A-Z0-9 \\-/]{1,30}'),
+    country_of_origin: labelText(
+      upper,
+      ['COUNTRY\\s*OF\\s*ORIGIN', 'ORIGIN'],
+      '[A-Z][A-Z \\-]{2,30}',
+    ),
+    category: labelText(upper, ['CATEGORY'], '[A-Z][A-Z \\-]{2,30}'),
+    fuel_type: labelText(
+      upper,
+      ['FUEL\\s*TYPE', 'FUEL'],
+      '[A-Z][A-Z \\-()]{2,30}',
+    ),
+    doors: labelNumber(upper, ['DOORS'], 2, 6),
+    seats: labelNumber(upper, ['SEATS'], 1, 30),
+    cylinders: findCylinders(upper),
+    engine_number: findEngineNumber(upper),
+    vin: findVin(upper),
+    gross_weight_kg: labelNumber(
+      upper,
+      ['GROSS\\s*VEHICLE\\s*WEIGHT', 'GVW', 'GROSS\\s*WEIGHT'],
+      200,
+      50000,
+    ),
+    empty_weight_kg: labelNumber(
+      upper,
+      ['EMPTY\\s*WEIGHT', 'KERB\\s*WEIGHT', 'CURB\\s*WEIGHT', 'TARE\\s*WEIGHT'],
+      200,
+      50000,
+    ),
+    use_of_vehicle: labelText(
+      upper,
+      ['USE\\s*OF\\s*VEHICLE', 'VEHICLE\\s*USE'],
+      '[A-Z][A-Z \\-]{2,30}',
+    ),
+
+    // registration
     plate_number: findPlateNumber(upper),
     plate_emirate: findEmirate(norm),
-    vin: findVin(upper),
+    plate_type: labelText(
+      upper,
+      ['PLATE\\s*TYPE'],
+      '[A-Z][A-Z \\-]{2,30}',
+    ),
+    registration_date: labelDate(upper, [
+      'REGISTRATION\\s*DATE',
+      'REG(?:ISTRATION)?\\s*DT',
+    ]),
+    registration_authority: labelText(
+      upper,
+      ['REGISTRATION\\s*AUTHORITY', 'AUTHORITY'],
+      '[A-Z][A-Z \\-]{2,40}',
+    ),
+    mortgage_by: labelText(
+      upper,
+      ['MORTGAGE\\s*BY', 'MORTGAGED\\s*BY', 'MORTGAGE'],
+      '[A-Z0-9][A-Z0-9 .,&\\-]{2,60}',
+    ),
     expires_at: findExpiry(upper),
+
+    // owner
+    owner_name: labelText(
+      upper,
+      ['OWNER\\s*NAME'],
+      '[A-Z][A-Z .\\-]{4,80}',
+    ),
+    owner_nationality: labelText(
+      upper,
+      ['NATIONALITY'],
+      '[A-Z][A-Z \\-]{2,30}',
+    ),
+    traffic_code_no: labelText(
+      upper,
+      ['TRAFFIC\\s*CODE(?:\\s*NO\\.?|\\s*NUMBER)?'],
+      '[0-9]{4,12}',
+    ),
+
+    // insurance
+    insurance_company: labelText(
+      upper,
+      ['INSURANCE\\s*COMPANY', 'INSURER'],
+      '[A-Z0-9][A-Z0-9 .,()&\\-]{2,80}',
+    ),
+    insurance_policy_number: labelText(
+      upper,
+      ['POLICY\\s*NUMBER', 'POLICY\\s*NO\\.?'],
+      '[A-Z0-9][A-Z0-9 \\-/]{3,30}',
+    ),
+    insurance_cover_type: labelText(
+      upper,
+      ['COVER\\s*TYPE'],
+      '[A-Z][A-Z \\-]{2,40}',
+    ),
+    insurance_cover_plan: labelText(
+      upper,
+      ['COVER\\s*PLAN'],
+      '[A-Z][A-Z 0-9()\\-]{2,60}',
+    ),
+    insurance_commencement_at: labelDate(upper, [
+      'COMMENCEMENT\\s*DATE',
+      'POLICY\\s*START',
+      'START\\s*DATE',
+    ]),
     insurance_expires_at: findInsuranceExpiry(upper),
-    engine_number: findEngineNumber(upper),
-    cylinders: findCylinders(upper),
+    insurance_premium_aed: labelAed(upper, [
+      'TOTAL\\s*PAID',
+      'TOTAL\\s*PREMIUM',
+      'PREMIUM',
+    ]),
+    insurance_insured_value_aed: labelAed(upper, [
+      'INSURED\\s*VALUE',
+      'VEHICLE\\s*INSURED\\s*VALUE',
+      'SUM\\s*INSURED',
+    ]),
   }
 }
 
@@ -307,6 +445,105 @@ function normaliseDate(raw: string): string | null {
   return `${yyyy.toString().padStart(4, '0')}-${mm
     .toString()
     .padStart(2, '0')}-${dd.toString().padStart(2, '0')}`
+}
+
+// ─── generic label-keyed extractors ────────────────────────────────
+// UAE registration + insurance documents are highly structured. Every
+// field has a clear label like "OWNER NAME:" followed by the value.
+// These three helpers pick a value by label keyword.
+
+function labelText(
+  upper: string,
+  labels: string[],
+  valuePattern: string,
+): string | null {
+  const re = new RegExp(
+    `(?:${labels.join('|')})\\s*[:.\\-]*\\s*(${valuePattern})`,
+    'i',
+  )
+  const m = upper.match(re)
+  const raw = m?.[1]
+  if (!raw) return null
+  return titleCase(raw.trim().replace(/\s{2,}/g, ' '))
+}
+
+function labelNumber(
+  upper: string,
+  labels: string[],
+  min: number,
+  max: number,
+): number | null {
+  const re = new RegExp(
+    `(?:${labels.join('|')})\\s*[:.\\-]*\\s*(\\d{1,7})`,
+    'i',
+  )
+  const m = upper.match(re)
+  if (!m?.[1]) return null
+  const n = Number(m[1])
+  if (!Number.isFinite(n) || n < min || n > max) return null
+  return n
+}
+
+function labelDate(upper: string, labels: string[]): string | null {
+  const re = new RegExp(
+    `(?:${labels.join('|')})\\s*[:.\\-]*\\s*(\\d{1,2}[\\/\\-\\.A-Z]{1,5}\\d{1,2}[\\/\\-\\.A-Z]{1,5}\\d{2,4}|\\d{4}[\\/\\-\\.]\\d{1,2}[\\/\\-\\.]\\d{1,2})`,
+    'i',
+  )
+  const m = upper.match(re)
+  const raw = m?.[1]
+  if (!raw) return null
+  // Try ISO format first.
+  const iso = normaliseDate(raw)
+  if (iso) return iso
+  // Try DD-Mon-YYYY (e.g. "06-DEC-2024").
+  const monthMatch = raw.match(
+    /^(\d{1,2})[\\-\\.\\/](JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[\\-\\.\\/](\d{2,4})$/i,
+  )
+  if (monthMatch) {
+    const dd = Number(monthMatch[1])
+    const mm = MONTH_MAP[monthMatch[2]!.toUpperCase()]
+    let yyyy = Number(monthMatch[3])
+    if (yyyy < 100) yyyy += 2000
+    if (mm && dd >= 1 && dd <= 31 && yyyy >= 1980 && yyyy <= 2099) {
+      return `${yyyy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`
+    }
+  }
+  return null
+}
+
+function labelAed(upper: string, labels: string[]): number | null {
+  // Match AED amounts like "AED 1,984.50" or "1,984.50 AED" near a label.
+  const re = new RegExp(
+    `(?:${labels.join('|')})\\s*[:.\\-]*\\s*(?:AED\\s*)?([0-9][0-9,]{0,10}(?:\\.[0-9]{1,2})?)`,
+    'i',
+  )
+  const m = upper.match(re)
+  if (!m?.[1]) return null
+  const n = Number(m[1].replace(/,/g, ''))
+  if (!Number.isFinite(n) || n <= 0 || n > 1_000_000_000) return null
+  return n
+}
+
+function titleCase(s: string): string {
+  // Convert SHOUTY label values to Title Case for nicer display.
+  return s
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (m) => m.toUpperCase())
+}
+
+const MONTH_MAP: Record<string, number> = {
+  JAN: 1,
+  FEB: 2,
+  MAR: 3,
+  APR: 4,
+  MAY: 5,
+  JUN: 6,
+  JUL: 7,
+  AUG: 8,
+  SEP: 9,
+  OCT: 10,
+  NOV: 11,
+  DEC: 12,
 }
 
 // Insurance expiry. UAE mulkiya prints it as "INS EXP" or
