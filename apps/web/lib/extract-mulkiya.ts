@@ -191,6 +191,47 @@ const STRICT_FIELDS: ReadonlySet<keyof ExtractedMulkiya> = new Set([
 ])
 
 /**
+ * Heuristic classifier. Runs after the model returns, before the merge.
+ * If the model didn't classify (detected_doc_type=null) — which happens
+ * when it's uncertain — we infer the type from the shape of the
+ * extracted fields. This restores the priority allowlist's gatekeeping
+ * power even on bundles where the model went conservative.
+ */
+function inferDocTypeFromShape(
+  e: ExtractedMulkiya,
+): DetectedDocType | null {
+  if (e.detected_doc_type) return e.detected_doc_type
+
+  // Mulkiya markers: legal owner fields, traffic code, mortgage. The
+  // only doc that carries these together.
+  if (e.owner_name || e.owner_nationality || e.traffic_code_no || e.mortgage_by) {
+    return 'mulkiya'
+  }
+
+  // Insurance schedule: full vehicle spec table (cylinders + use_of_vehicle)
+  // AND insurance amounts. The schedule is the only doc with both.
+  if (
+    (e.insurance_premium_aed || e.insurance_insured_value_aed) &&
+    (e.cylinders || e.use_of_vehicle)
+  ) {
+    return 'insurance_policy_schedule'
+  }
+
+  // Insurance certificate: insurance fields but no full spec table.
+  if (e.insurance_company || e.insurance_policy_number || e.insurance_expires_at) {
+    return 'insurance_certificate'
+  }
+
+  // RTA passing: vehicle specs (cylinders/fuel/use) but no insurance,
+  // no owner.
+  if (e.cylinders || e.fuel_type || e.use_of_vehicle) {
+    return 'rta_passing_certificate'
+  }
+
+  return null
+}
+
+/**
  * Merge N per-file extraction results into a single consolidated record.
  *
  * Two-pass algorithm:
@@ -212,7 +253,14 @@ export function mergeExtractions(
 ): ExtractedMulkiya | null {
   if (results.length === 0) return null
 
-  const out = { ...results[0]! }
+  // Backfill detected_doc_type from field shape for any extraction
+  // where the model returned null. The priority allowlist depends on
+  // this — without it, every STRICT field stays empty.
+  const inferred: ExtractedMulkiya[] = results.map((r) => ({
+    ...r,
+    detected_doc_type: r.detected_doc_type ?? inferDocTypeFromShape(r),
+  }))
+  const out = { ...inferred[0]! }
 
   for (const field of Object.keys(out) as Array<keyof ExtractedMulkiya>) {
     if (field === 'detected_doc_type' || field === 'detected_doc_confidence') {
@@ -224,7 +272,7 @@ export function mergeExtractions(
     let resolved: unknown = null
     if (allowed) {
       for (const wantedType of allowed) {
-        const candidate = results.find(
+        const candidate = inferred.find(
           (r) => r.detected_doc_type === wantedType && r[field] != null,
         )
         if (candidate) {
@@ -238,7 +286,7 @@ export function mergeExtractions(
     // fields where contamination is unlikely. STRICT_FIELDS stay null
     // if the priority pass didn't find them.
     if (resolved == null && !STRICT_FIELDS.has(field)) {
-      const found = results.find((r) => r[field] != null)
+      const found = inferred.find((r) => r[field] != null)
       if (found) resolved = found[field]
     }
 
@@ -383,8 +431,8 @@ async function parseImagesWithVision(
   )
 
   const schema = `{
-  "detected_doc_type": "one of: mulkiya | insurance_certificate | insurance_policy_schedule | driving_licence | noc | pollution_test | rta_passing_certificate | service_invoice | service_history | salik_statement | fine_receipt | other",
-  "detected_doc_confidence": "number between 0 and 1",
+  "detected_doc_type": "REQUIRED. NEVER null. MUST be exactly one of these snake_case strings: mulkiya, insurance_certificate, insurance_policy_schedule, driving_licence, noc, pollution_test, rta_passing_certificate, service_invoice, service_history, salik_statement, fine_receipt, other. If you cannot tell, return 'other'.",
+  "detected_doc_confidence": "REQUIRED. Number between 0 and 1. Use 0.9+ if you are certain, 0.5-0.7 if reasonably sure, 0.0-0.3 if guessing.",
   "document_number": "string | null (any official reference / certificate number printed on the doc)",
   "vehicle_make": "string | null",
   "vehicle_model": "string | null",
