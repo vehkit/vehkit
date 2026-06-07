@@ -874,7 +874,11 @@ function DetailsTable({
     return `AED ${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
   }
 
-  type Row = [string, string | number | null, { mono?: boolean }?]
+  type Row = [
+    string,
+    string | number | null,
+    { mono?: boolean; date?: boolean }?,
+  ]
   const sections: Array<{ heading: string; rows: Row[] }> = [
     {
       heading: 'Vehicle',
@@ -914,9 +918,9 @@ function DetailsTable({
         ['Plate', plate, { mono: true }],
         ['Plate type', (extracted.plate_type as string) ?? null],
         ['Authority', (extracted.registration_authority as string) ?? null],
-        ['Registered on', (extracted.registration_date as string) ?? null, { mono: true }],
+        ['Registered on', (extracted.registration_date as string) ?? null, { mono: true, date: true }],
         ['Mortgage by', (extracted.mortgage_by as string) ?? null],
-        ['Mulkiya expires', mulkiyaExp, { mono: true }],
+        ['Mulkiya expires', mulkiyaExp, { mono: true, date: true }],
       ],
     },
     {
@@ -937,9 +941,9 @@ function DetailsTable({
         [
           'Started',
           (extracted.insurance_commencement_at as string) ?? null,
-          { mono: true },
+          { mono: true, date: true },
         ],
-        ['Expires', insuranceExp, { mono: true }],
+        ['Expires', insuranceExp, { mono: true, date: true }],
         [
           'Premium',
           aed(extracted.insurance_premium_aed),
@@ -960,7 +964,7 @@ function DetailsTable({
       heading: 'Other documents',
       rows: otherExpiries.map(
         ([label, date]) =>
-          [`${label} expires`, date, { mono: true }] as Row,
+          [`${label} expires`, date, { mono: true, date: true }] as Row,
       ),
     })
   }
@@ -1001,6 +1005,9 @@ function DetailsTable({
                   className={`text-sm text-chalk text-right truncate ${opts?.mono ? 'font-mono tabular-nums' : ''}`}
                 >
                   {value as React.ReactNode}
+                  {opts?.date && typeof value === 'string' && (
+                    <RelativeExpiry iso={value} />
+                  )}
                 </dd>
               </div>
             ))}
@@ -1008,6 +1015,75 @@ function DetailsTable({
         </div>
       ))}
     </div>
+  )
+}
+
+/**
+ * Subtle "· in 7m 27d" / "· 5m ago" suffix appended to a date cell.
+ * Past dates render in signal-red, within 30 days in wallet-amber,
+ * further out in faded ash. Always smaller than the date itself so the
+ * absolute date stays the primary read.
+ *
+ * Renders server-side using the current date — fine for our use case
+ * (vehicle pages aren't aggressively cached and the resolution is days,
+ * not seconds).
+ */
+function RelativeExpiry({ iso }: { iso: string }) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null
+  const target = new Date(iso + 'T00:00:00Z').getTime()
+  const today = new Date()
+  today.setUTCHours(0, 0, 0, 0)
+  const diffMs = target - today.getTime()
+  const days = Math.round(diffMs / 86_400_000)
+
+  let label: string
+  let tone: 'past' | 'soon' | 'far'
+
+  if (days < 0) {
+    const abs = -days
+    if (abs >= 365) {
+      const y = Math.floor(abs / 365)
+      label = `${y}y ago`
+    } else if (abs >= 30) {
+      const m = Math.floor(abs / 30)
+      const d = abs % 30
+      label = d > 0 ? `${m}m ${d}d ago` : `${m}m ago`
+    } else if (abs === 1) {
+      label = '1d ago'
+    } else {
+      label = `${abs}d ago`
+    }
+    tone = 'past'
+  } else if (days === 0) {
+    label = 'today'
+    tone = 'soon'
+  } else if (days <= 30) {
+    label = days === 1 ? 'in 1d' : `in ${days}d`
+    tone = 'soon'
+  } else if (days >= 365) {
+    const y = Math.floor(days / 365)
+    const remDays = days % 365
+    const m = Math.floor(remDays / 30)
+    label = m > 0 ? `in ${y}y ${m}m` : `in ${y}y`
+    tone = 'far'
+  } else {
+    const m = Math.floor(days / 30)
+    const d = days % 30
+    label = d > 0 ? `in ${m}m ${d}d` : `in ${m}m`
+    tone = 'far'
+  }
+
+  const cls =
+    tone === 'past'
+      ? 'text-signal'
+      : tone === 'soon'
+        ? 'text-wallet'
+        : 'text-ash/60'
+
+  return (
+    <span className={`ml-2 text-[10px] tracking-wider uppercase font-medium ${cls}`}>
+      · {label}
+    </span>
   )
 }
 
