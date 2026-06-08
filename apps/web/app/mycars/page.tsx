@@ -249,20 +249,20 @@ export default async function MyCarsPage() {
           </Link>
         </header>
 
-        {/* Borderless list. One row per car. Avatar plus name plus
-            plate. Tap to open detail. Status only surfaces when there
-            is something to act on. Everything else stays on the detail
-            page so this surface stays calm. */}
+        {/* One row per car. Bigger photo, multi-line stack on the right
+            with a subtle stat strip. Borderless — the whitespace between
+            rows IS the separator. The whole row is a tap target. */}
         <section className="mt-10">
-          <p className="text-[11px] tracking-[0.28em] uppercase text-leaf font-bold mb-3">
+          <p className="text-[11px] tracking-[0.28em] uppercase text-leaf font-bold mb-4">
             Your cars
           </p>
-          <ul className="space-y-1">
+          <ul className="space-y-2">
             {vehicles.map((v) => {
               const isShared = v.owner_id !== user.id
               const pending = pendingByVehicle.get(v.id) ?? 0
               const mulkiyaExp = mulkiyaByVehicle.get(v.id) ?? null
               const insuranceExp = insuranceByVehicle.get(v.id) ?? null
+              const lastService = lastServiceByVehicle.get(v.id) ?? null
 
               const title =
                 v.nickname ??
@@ -273,7 +273,7 @@ export default async function MyCarsPage() {
                   : null
               const plate =
                 v.plate_emirate && v.plate_number
-                  ? `${v.plate_emirate} . ${v.plate_number}`
+                  ? `${v.plate_emirate} · ${v.plate_number}`
                   : v.plate_number ?? null
 
               const status = computeStatus({
@@ -289,51 +289,79 @@ export default async function MyCarsPage() {
                 .slice(0, 2)
                 .join('')
 
+              const stats: string[] = []
+              if (v.current_odometer && v.current_odometer > 0) {
+                stats.push(`${v.current_odometer.toLocaleString()} km`)
+              }
+              if (lastService?.date) {
+                stats.push(`Last service ${relativeDate(lastService.date)}`)
+              } else {
+                stats.push('No service logged')
+              }
+              const nextExpiry = pickNextExpiry(mulkiyaExp, insuranceExp)
+              if (nextExpiry) stats.push(nextExpiry)
+
               return (
                 <li key={v.id}>
                   <Link
                     href={`/vehicles/${v.id}`}
-                    className="flex items-center gap-4 py-3 -mx-2 px-2 rounded-DEFAULT hover:bg-leaf/5 transition-colors"
+                    className="group flex items-stretch gap-4 md:gap-6 py-3 -mx-3 px-3 rounded-DEFAULT hover:bg-leaf/5 transition-colors"
                   >
-                    {/* avatar / DP */}
-                    <span className="shrink-0 w-14 h-14 rounded-pill overflow-hidden bg-iron flex items-center justify-center">
+                    {/* Hero block — landscape photo or initials slab */}
+                    <span className="shrink-0 w-[120px] h-[80px] md:w-[180px] md:h-[112px] rounded-DEFAULT overflow-hidden bg-iron flex items-center justify-center">
                       {v.hero_image_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={v.hero_image_url}
                           alt=""
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
                         />
                       ) : (
-                        <span className="text-sm font-bold text-mute tracking-wider">
+                        <span className="text-2xl md:text-3xl font-bold text-mute tracking-wider">
                           {initials || '—'}
                         </span>
                       )}
                     </span>
-                    {/* identity */}
-                    <span className="flex-1 min-w-0">
-                      <span className="flex items-center gap-2 min-w-0">
-                        <span className="text-base font-semibold text-ink truncate">
-                          {title}
-                        </span>
-                        {isShared && (
-                          <span className="text-[9px] tracking-widest uppercase text-mute">
-                            shared
+
+                    {/* Info stack */}
+                    <span className="flex-1 min-w-0 flex flex-col justify-between py-1">
+                      <span className="min-w-0">
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className="text-lg md:text-xl font-semibold text-ink truncate leading-tight">
+                            {title}
                           </span>
-                        )}
+                          {isShared && (
+                            <span className="text-[9px] tracking-widest uppercase text-mute">
+                              shared
+                            </span>
+                          )}
+                          {status !== 'ok' && <StatusPill status={status} />}
+                        </span>
+                        <span className="block text-xs md:text-sm text-mute mt-1 truncate">
+                          {[sub, plate].filter(Boolean).join(' · ')}
+                        </span>
                       </span>
-                      <span className="block text-xs text-mute truncate">
-                        {[sub, plate].filter(Boolean).join(' . ')}
-                      </span>
+
+                      {/* Stat strip */}
+                      {stats.length > 0 && (
+                        <span className="hidden md:flex items-center gap-x-4 gap-y-1 flex-wrap text-[11px] tracking-wide uppercase text-mute mt-2">
+                          {stats.map((s, i) => (
+                            <span
+                              key={i}
+                              className="font-medium"
+                            >
+                              {s}
+                            </span>
+                          ))}
+                        </span>
+                      )}
                     </span>
-                    {/* status pill only if something needs attention */}
-                    {status !== 'ok' && <StatusPill status={status} />}
                   </Link>
                 </li>
               )
             })}
           </ul>
-          <div className="mt-4">
+          <div className="mt-5">
             <Link
               href="/vehicles/new"
               className="text-sm font-semibold text-leaf hover:text-leaf-dk"
@@ -427,6 +455,40 @@ function computeStatus(opts: {
     if (daysAway <= 14) return 'due_soon'
   }
   return 'ok'
+}
+
+/**
+ * Returns a short "Mulkiya in 8m" / "Insurance overdue 3d" hint for the
+ * stat strip — whichever expiry is more pressing wins. Null when none
+ * are within 90 days of attention (already covered, far future, or not
+ * yet uploaded).
+ */
+function pickNextExpiry(
+  mulkiya: string | null,
+  insurance: string | null,
+): string | null {
+  const today = Date.now()
+  const dayMs = 86_400_000
+  const candidates: Array<{ label: string; days: number }> = []
+  for (const [label, iso] of [
+    ['Mulkiya', mulkiya],
+    ['Insurance', insurance],
+  ] as const) {
+    if (!iso) continue
+    const days = Math.floor((new Date(iso).getTime() - today) / dayMs)
+    candidates.push({ label, days })
+  }
+  if (candidates.length === 0) return null
+  // Pick the most pressing: any expired first; otherwise soonest upcoming.
+  candidates.sort((a, b) => a.days - b.days)
+  const top = candidates[0]!
+  if (top.days < 0) return `${top.label} overdue ${-top.days}d`
+  if (top.days <= 30) return `${top.label} in ${top.days}d`
+  if (top.days <= 365) {
+    const m = Math.floor(top.days / 30)
+    return `${top.label} in ${m}m`
+  }
+  return null
 }
 
 function StatusPill({ status }: { status: Status }) {

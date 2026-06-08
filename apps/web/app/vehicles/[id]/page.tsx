@@ -937,13 +937,42 @@ function DetailsTable({
   if (renderedSections.length === 0) return null
 
   return (
-    <div className="mt-4 space-y-8">
-      {renderedSections.map((section) => (
-        <div key={section.heading}>
-          <p className="text-[10px] tracking-[0.28em] uppercase text-leaf font-bold mb-3">
-            {section.heading}
-          </p>
-          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10">
+    <div className="mt-4 space-y-2">
+      {renderedSections.map((section, sIdx) => (
+        // Native <details> — works without JS, accessible, collapses
+        // server-side. First section opens by default so the page has
+        // immediate substance; the rest stay closed and the user pulls
+        // them open when they care.
+        <details
+          key={section.heading}
+          className="group border-b border-seam/40 last:border-b-0 pb-2"
+          {...(sIdx === 0 ? { open: true } : {})}
+        >
+          <summary className="flex items-center justify-between gap-3 cursor-pointer list-none py-2 select-none">
+            <span className="text-[10px] tracking-[0.28em] uppercase text-leaf font-bold">
+              {section.heading}
+            </span>
+            <span className="flex items-center gap-3 text-[10px] tracking-wider uppercase text-ash">
+              <span className="font-mono tabular-nums">
+                {section.rows.length}
+              </span>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="transition-transform duration-200 group-open:rotate-180 text-ash"
+                aria-hidden
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </span>
+          </summary>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 mt-1 mb-2">
             {section.rows.map(([label, value, opts]) => (
               <div
                 key={label}
@@ -963,7 +992,7 @@ function DetailsTable({
               </div>
             ))}
           </dl>
-        </div>
+        </details>
       ))}
     </div>
   )
