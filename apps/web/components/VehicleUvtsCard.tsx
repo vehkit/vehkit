@@ -12,32 +12,24 @@
  *
  * Empty state when result is null: "Upload a document to start earning XP".
  */
-import Link from 'next/link'
-import type { UvtsResult, XpSlot } from '@/lib/uvts'
+import type { UvtsResult } from '@/lib/uvts'
 import { deriveXpView } from '@/lib/uvts'
 
 export function VehicleUvtsCard({
   result,
   vehicleId,
   variant = 'hero',
-  showEarnMore = true,
 }: {
   result: UvtsResult | null
+  /** Reserved for future "How to earn more XP" surface — not used by
+   *  the inline card today. Keep passing it from owner-side pages so
+   *  routing stays wired when we re-introduce the guide. */
   vehicleId?: string
   variant?: 'hero' | 'compact'
-  /** When false (e.g. share view for buyers) the "Earn more XP"
-   *  chips and locked footer are hidden — buyers don't need owner-CTAs. */
-  showEarnMore?: boolean
 }) {
   if (!result) return <EmptyState variant={variant} />
   if (variant === 'compact') return <CompactBadge result={result} />
-  return (
-    <HeroCard
-      result={result}
-      vehicleId={vehicleId ?? ''}
-      showEarnMore={showEarnMore}
-    />
-  )
+  return <HeroCard result={result} vehicleId={vehicleId ?? ''} />
 }
 
 // ─── Empty state ────────────────────────────────────────────────────
@@ -87,11 +79,9 @@ function CompactBadge({ result }: { result: UvtsResult }) {
 function HeroCard({
   result,
   vehicleId,
-  showEarnMore,
 }: {
   result: UvtsResult
   vehicleId: string
-  showEarnMore: boolean
 }) {
   const xp = deriveXpView(result, vehicleId)
   const totalAvailable = xp.earnMore.reduce(
@@ -187,36 +177,11 @@ function HeroCard({
         </section>
       )}
 
-      {/* Earn more — owner only. Buyers on /r/[token] don't need
-          upload CTAs; they just want to see the data the car has. */}
-      {showEarnMore && xp.earnMore.length > 0 && (
-        <section className="mt-8">
-          <p className="text-[10px] tracking-[0.28em] uppercase text-leaf font-bold mb-3">
-            Earn more XP
-          </p>
-          <ul className="space-y-2">
-            {dedupeByAction(xp.earnMore).map(({ slot, totalGain }) => (
-              <li key={slot.unlock?.action ?? slot.label}>
-                <ChipLink slot={slot} totalGain={totalGain} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* Locked footer — owner only too, same reasoning. */}
-      {showEarnMore && xp.locked.length > 0 && (
-        <section className="mt-8 pt-4 border-t border-seam/50">
-          <p className="text-[10px] tracking-[0.28em] uppercase text-ash font-bold mb-2">
-            Locked · coming soon
-          </p>
-          <p className="text-xs text-ash/70 leading-relaxed">
-            {xp.locked
-              .map((s) => `${s.label} (+${s.max - s.xp} XP)`)
-              .join(' · ')}
-          </p>
-        </section>
-      )}
+      {/* Earn-more list intentionally lives elsewhere. The "+X XP
+          available" hint in the meta line above tells the user there's
+          headroom; pushing a checklist onto this surface kills the
+          calm-profile vibe. If we want a dedicated guide later, build
+          /vehicles/[id]/xp as its own screen. */}
 
       {/* Explanation */}
       <p className="text-[11px] text-ash/60 mt-8 leading-relaxed">
@@ -225,65 +190,6 @@ function HeroCard({
       </p>
     </div>
   )
-}
-
-// ─── Chip + helpers ────────────────────────────────────────────────
-
-function ChipLink({
-  slot,
-  totalGain,
-}: {
-  slot: XpSlot
-  totalGain: number
-}) {
-  const href = slot.unlock?.href
-  const body = (
-    <span className="group flex items-center justify-between gap-3 py-3 px-4 -mx-1 rounded-DEFAULT border border-seam hover:border-leaf hover:bg-leaf/5 transition-colors">
-      <span className="flex items-center gap-3 min-w-0">
-        <span className="w-7 h-7 rounded-pill bg-leaf/15 text-leaf flex items-center justify-center text-xs font-bold shrink-0 group-hover:bg-leaf group-hover:text-white transition-colors">
-          +
-        </span>
-        <span className="min-w-0">
-          <span className="block text-sm font-semibold text-chalk truncate">
-            {slot.unlock?.action ?? slot.label}
-          </span>
-        </span>
-      </span>
-      <span className="font-mono tabular-nums text-sm font-semibold text-leaf shrink-0">
-        +{totalGain} XP
-      </span>
-    </span>
-  )
-  if (!href) return body
-  if (href.startsWith('#')) {
-    // Anchor link triggers the FAB upload from anywhere on the page.
-    return <a href={href}>{body}</a>
-  }
-  return <Link href={href}>{body}</Link>
-}
-
-/**
- * Multiple slots can unlock via the same action (e.g. uploading a
- * mulkiya fills VIN + engine + ownership + plate). Collapse them into
- * a single chip whose +XP total is the sum of remaining gains for that
- * action. Keeps the list short and the user motivated by big numbers.
- */
-function dedupeByAction(
-  slots: XpSlot[],
-): Array<{ slot: XpSlot; totalGain: number }> {
-  const map = new Map<string, { slot: XpSlot; totalGain: number }>()
-  for (const slot of slots) {
-    const key = slot.unlock?.action ?? slot.label
-    const gain = slot.max - slot.xp
-    const existing = map.get(key)
-    if (existing) {
-      existing.totalGain += gain
-    } else {
-      map.set(key, { slot, totalGain: gain })
-    }
-  }
-  // Sort by total gain descending — biggest wins first.
-  return [...map.values()].sort((a, b) => b.totalGain - a.totalGain)
 }
 
 function CheckIcon() {

@@ -181,7 +181,7 @@ export default async function ResaleReportPage({
             buyers can see the data the car has, not be nudged to add
             more. */}
         <section className="mt-8 print:mt-6">
-          <VehicleUvtsCard result={uvts} showEarnMore={false} />
+          <VehicleUvtsCard result={uvts} />
         </section>
 
         {/* Headline stats */}
