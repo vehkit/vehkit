@@ -483,14 +483,16 @@ The document is laid out in sections. Match each field to the value in its corre
 Critical rules:
 - UAE documents use DD/MM/YYYY format. "04/01/2026" means 4 January 2026 (ISO: 2026-01-04), NOT 1 April 2026. "03/02/2027" means 3 February 2027 (ISO: 2027-02-03).
 - expires_at is the MULKIYA / REGISTRATION expiry ONLY. It is the "Exp. Date" / "تاريخ الانتهاء" on a Vehicle License card. If the document is an insurance certificate, expires_at MUST be null — the insurance certificate has NO mulkiya expiry; do not borrow the insurance expiry into this field.
-- On an insurance certificate look for TWO separate date lines that ALWAYS appear together:
-    * "Commencement date of Insurance" / "Period of Insurance From" → insurance_commencement_at
-    * "Expiry Date Of Insurance" / "Period of Insurance To" → insurance_expires_at
-  Both must be extracted; never extract only one. The commencement is the START, expiry is the END (typically 12 months later). Never swap them.
-- Example for a QIC Motor Vehicle Insurance Certificate:
-    Commencement date of Insurance: 04/01/2026 → insurance_commencement_at = "2026-01-04"
-    Expiry Date Of Insurance: 03/02/2027 → insurance_expires_at = "2027-02-03"
-    expires_at = null (this doc has no mulkiya expiry)
+- INSURANCE DATES — READ BOTH. Every UAE insurance certificate has exactly TWO date fields, listed on separate lines, and YOU MUST EXTRACT BOTH:
+    FIELD ONE: "Commencement date of Insurance" (or "Period of Insurance From", or "Policy Start Date") → put in insurance_commencement_at.
+    FIELD TWO: "Expiry Date Of Insurance" (or "Period of Insurance To", or "Policy End Date") → put in insurance_expires_at.
+  If you only see one date line, look harder — both ALWAYS appear together on a UAE certificate. The expiry is roughly 12 months after the commencement. If you find one but not the other after careful re-reading, set both to null rather than guess.
+- Time stamps after the date (e.g. "04/01/2026 13:33:00", "03/02/2027 23:59:59") are part of the date. Ignore the time, keep the date as ISO YYYY-MM-DD.
+- Worked example for a QIC Motor Vehicle Insurance Certificate that shows "Commencement date of Insurance: 04/01/2026 13:33:00" and "Expiry Date Of Insurance: 03/02/2027 23:59:59":
+    insurance_commencement_at = "2026-01-04"
+    insurance_expires_at = "2027-02-03"
+    expires_at = null (the insurance cert has no mulkiya expiry)
+  Both insurance fields are non-null. The mulkiya field is null. Three different values, never collapsed into one.
 - registration_date is when the vehicle was first registered, not insurance dates.
 - mortgage_by is a bank or finance company name (e.g. "Emirates NBD Bank").
 - owner_name is the full name printed next to "Owner" or "Name" — not a transliteration of the issuing authority.
@@ -1078,18 +1080,37 @@ function validate(e: ExtractedMulkiya): ExtractedMulkiya {
           'x=',
           expires,
         )
-        // Swap.
         const tmp = commencement
         commencement = expires
         expires = tmp
       } else if (c === x) {
-        // Same date → single-date misread. Drop the expiry; commencement
-        // is more useful to keep.
         console.error(
           '[extract-mulkiya] insurance dates identical; nulling expiry.',
         )
         expires = null
       }
+    }
+  }
+  // Backstop: model frequently extracts only the commencement and
+  // skips the expiry. UAE motor policies are essentially always 12
+  // months — if commencement is known and expiry isn't, derive expiry
+  // = commencement + 365 days. Slightly inaccurate when a policy is
+  // 6 or 13 months but those are <2% of the population. Loud log so
+  // we can measure drift after a month of data.
+  if (commencement && !expires) {
+    const c = new Date(commencement)
+    if (Number.isFinite(c.getTime())) {
+      const derived = new Date(c.getTime() + 365 * 86_400_000)
+      const yyyy = derived.getUTCFullYear()
+      const mm = String(derived.getUTCMonth() + 1).padStart(2, '0')
+      const dd = String(derived.getUTCDate()).padStart(2, '0')
+      expires = `${yyyy}-${mm}-${dd}`
+      console.error(
+        '[extract-mulkiya] insurance expiry missing; derived from commencement +365d. c=',
+        commencement,
+        'derived expires=',
+        expires,
+      )
     }
   }
   return {

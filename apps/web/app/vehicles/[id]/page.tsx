@@ -798,6 +798,9 @@ function DetailsTable({
     (sourceDoc?.expires_at as string | null) ??
     (extracted.expires_at as string | null) ??
     null
+  // Pull ONLY from the insurance fields. Do NOT fall back to the
+  // parent doc's expires_at — that column holds the mulkiya / generic
+  // doc expiry, which would silently mis-render the insurance row.
   const insuranceExp =
     (insuranceDoc?.expires_at as string | null) ??
     (extracted.insurance_expires_at as string | null) ??
