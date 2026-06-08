@@ -6,7 +6,6 @@ import { deleteVehicle } from '@/app/actions/vehicles'
 import { snoozeReminder, completeReminder } from '@/app/actions/reminders'
 import { ShareSheet } from '@/components/ShareSheet'
 import { WorkshopCodeSheet } from '@/components/WorkshopCodeSheet'
-import { VehicleScoreChip } from '@/components/VehicleScore'
 import { VehicleUvtsCard } from '@/components/VehicleUvtsCard'
 import { computeUvts } from '@/lib/uvts'
 import { ScrollAwareHeader } from '@/components/ScrollAwareHeader'
@@ -38,8 +37,10 @@ export default async function VehiclePage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Parallelize all reads — saves round trips
-  const [vehicleRes, recordsRes, remindersRes, scoreRes, documentsRes] =
+  // Parallelize all reads — saves round trips. The legacy
+  // compute_vehicle_score RPC has been retired in favour of UVTS, which
+  // is computed inline from documents + service records.
+  const [vehicleRes, recordsRes, remindersRes, documentsRes] =
     await Promise.all([
       supabase.from('vehicles').select('*').eq('id', id).single(),
       supabase
@@ -57,13 +58,9 @@ export default async function VehiclePage({
         .eq('vehicle_id', id)
         .eq('status', 'open')
         .order('due_date', { ascending: true, nullsFirst: false }),
-      supabase.rpc('compute_vehicle_score', { p_vehicle_id: id }),
       supabase
         .from('vehicle_documents')
         .select(
-          // Embed child file rows so the card can show "Front + Back · 2 files"
-          // without an extra round trip. extracted_data feeds the Details
-          // table above Documents (cylinders, engine_number, insurance expiry).
           `id, doc_type, label, storage_path, file_type, file_size_bytes,
            issued_date, expires_at, extracted_data, extraction_status,
            extraction_error, created_at,
@@ -81,7 +78,6 @@ export default async function VehiclePage({
   // their own garage instead of a dead-end 404. notFound() stays only
   // for truly-deleted ids when nothing in the user's context applies.
   if (vehicleRes.error || !vehicle) redirect('/mycars')
-  const scoreData = scoreRes.data as Parameters<typeof VehicleScoreChip>[0]['data']
 
   const records = recordsRes.data
   const reminders = remindersRes.data
@@ -210,28 +206,13 @@ export default async function VehiclePage({
       {/* Content container — padded on mobile, column-bound on desktop */}
       <div className="max-w-[1240px] mx-auto px-5 md:px-10">
 
-        {/* HEADLINE STRIP — the CAR is the hero, not the score.
-            Title is the biggest text. Score appears as a small badge
-            inline next to the title only when it's meaningful. */}
+        {/* HEADLINE STRIP — the CAR is the hero. The UVTS score lives
+            below in its own card; we don't repeat it as a badge. */}
         <section className="mt-6">
           <div className="flex items-end gap-3 flex-wrap">
             <h1 className="text-3xl md:text-5xl font-semibold text-chalk tracking-tighter leading-tight">
               {vehicleTitle}
             </h1>
-            {scoreData?.score != null && (
-              <Link
-                href="/score"
-                className="inline-flex items-baseline gap-1.5 px-3 py-1 rounded-pill bg-leaf/15 text-leaf hover:bg-leaf/20 transition-colors"
-                aria-label="Vehkit score"
-              >
-                <span className="font-mono text-base font-semibold tabular-nums tracking-tight leading-none">
-                  {scoreData.score}
-                </span>
-                <span className="text-[10px] tracking-widest uppercase font-medium">
-                  / 100
-                </span>
-              </Link>
-            )}
           </div>
           <p className="text-sm md:text-base text-ash mt-2">
             {[
@@ -272,43 +253,6 @@ export default async function VehiclePage({
           <div className="mt-4 bg-signal/10 border border-signal/30 text-signal text-sm px-4 py-3 rounded-DEFAULT">
             {decodeURIComponent(errorMsg)}
           </div>
-        )}
-
-        {/* SCORE BREAKDOWN — only when there's a score */}
-        {scoreData?.score != null && (
-          <section className="mt-10">
-            <SectionHeader
-              title="Score breakdown"
-              hint="What the number is made of"
-            />
-            <div className="card p-5 space-y-3">
-              <ScoreLine
-                label="Verification"
-                value={Number(scoreData.verification_pts) ?? 0}
-                max={40}
-              />
-              <ScoreLine
-                label="Compliance"
-                value={Number(scoreData.compliance_pts) ?? 0}
-                max={30}
-              />
-              <ScoreLine
-                label="Consistency"
-                value={Number(scoreData.consistency_pts) ?? 0}
-                max={20}
-              />
-              <ScoreLine
-                label="Recency"
-                value={Number(scoreData.recency_pts) ?? 0}
-                max={10}
-              />
-              <p className="text-[11px] text-ash/70 leading-relaxed pt-3 border-t border-seam">
-                Higher score = stronger passport at resale. Verified entries by
-                multiple workshops, on-time reminder compliance, and recent
-                service all contribute.
-              </p>
-            </div>
-          </section>
         )}
 
         {/* TOP WORKSHOP — PF insight-card visual language */}
@@ -786,38 +730,6 @@ function QuickStat({ value, label }: { value: string; label: string }) {
       <p className="text-[10px] tracking-widest uppercase text-ash mt-1.5 truncate">
         {label}
       </p>
-    </div>
-  )
-}
-
-function ScoreLine({
-  label,
-  value,
-  max,
-}: {
-  label: string
-  value: number
-  max: number
-}) {
-  const pct = Math.min(100, (value / max) * 100)
-  const color =
-    value >= max * 0.66
-      ? 'bg-volt'
-      : value >= max * 0.33
-        ? 'bg-wallet'
-        : 'bg-signal/70'
-  return (
-    <div>
-      <div className="flex items-center justify-between text-[11px]">
-        <span className="text-ash tracking-wide">{label}</span>
-        <span className="font-mono tabular-nums text-chalk">
-          {value}
-          <span className="text-ash"> / {max}</span>
-        </span>
-      </div>
-      <div className="h-1 bg-iron rounded-full mt-1 overflow-hidden">
-        <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
-      </div>
     </div>
   )
 }

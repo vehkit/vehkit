@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { PrintButton } from '@/components/PrintButton'
-import { VehicleScorePanel } from '@/components/VehicleScore'
 import { VehicleUvtsCard } from '@/components/VehicleUvtsCard'
 import { computeUvts } from '@/lib/uvts'
 
@@ -71,25 +70,20 @@ export default async function ResaleReportPage({
     .single()
   if (!vehicle) notFound()
 
-  const [{ data: records }, { data: documents }, { data: scoreRaw }] =
-    await Promise.all([
-      supabase
-        .from('service_records')
-        .select('*, service_files(storage_path)')
-        .eq('vehicle_id', share.vehicle_id)
-        .order('service_date', { ascending: false }),
-      supabase
-        .from('vehicle_documents')
-        .select(
-          'doc_type, expires_at, created_at, extracted_data, archived_at',
-        )
-        .eq('vehicle_id', share.vehicle_id)
-        .is('archived_at', null),
-      supabase.rpc('compute_vehicle_score', {
-        p_vehicle_id: share.vehicle_id,
-      }),
-    ])
-  const scoreData = scoreRaw as Parameters<typeof VehicleScorePanel>[0]['data']
+  const [{ data: records }, { data: documents }] = await Promise.all([
+    supabase
+      .from('service_records')
+      .select('*, service_files(storage_path)')
+      .eq('vehicle_id', share.vehicle_id)
+      .order('service_date', { ascending: false }),
+    supabase
+      .from('vehicle_documents')
+      .select(
+        'doc_type, expires_at, created_at, extracted_data, archived_at',
+      )
+      .eq('vehicle_id', share.vehicle_id)
+      .is('archived_at', null),
+  ])
 
   // UVTS — headline trust signal. Computed from the same data shown
   // elsewhere on the passport so the buyer can audit every input.
@@ -181,25 +175,12 @@ export default async function ResaleReportPage({
           />
         )}
 
-        {/* UVTS — the headline value of the passport. Vehicle-axis
-            trust score (Identity + Usage + Maintenance in Phase 1).
-            Lives above the workshop-axis review aggregate so a buyer
-            sees the car's trust score first. */}
+        {/* UVTS — the only vehicle score. Workshop-axis ratings live
+            on the workshop pages, not here. One number, one source of
+            truth for "is this car trustworthy". */}
         <section className="mt-8 print:mt-6">
           <VehicleUvtsCard result={uvts} />
         </section>
-
-        {/* Workshop reviews — secondary signal. Aggregate of how the
-            workshops the owner used were rated. Useful but not the
-            primary trust statement. */}
-        {scoreData && (
-          <section className="mt-6 print:mt-4">
-            <p className="text-[10px] tracking-[0.28em] uppercase text-ash mb-3">
-              Workshop reviews
-            </p>
-            <VehicleScorePanel data={scoreData} />
-          </section>
-        )}
 
         {/* Headline stats */}
         <section className="mt-6 grid grid-cols-3 gap-3 print:gap-2">
