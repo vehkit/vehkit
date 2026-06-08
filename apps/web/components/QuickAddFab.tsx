@@ -252,10 +252,11 @@ export function QuickAddFab({ vehicles }: { vehicles: FabVehicle[] }) {
         <div className="relative max-w-3xl mx-auto px-4 md:px-6 h-14">
           <button
             type="button"
+            id="upload-doc"
             onClick={() => setOpen(true)}
             aria-label="Quick add"
             aria-expanded={open}
-            className="absolute right-4 md:right-6 w-14 h-14 rounded-pill bg-leaf hover:bg-leaf-dk text-white flex items-center justify-center transition-transform active:scale-95 pointer-events-auto"
+            className="absolute right-4 md:right-6 w-14 h-14 rounded-pill bg-leaf hover:bg-leaf-dk text-white flex items-center justify-center transition-transform active:scale-95 pointer-events-auto scroll-mt-24"
             style={{
               boxShadow:
                 '0 10px 30px -8px rgba(33,192,122,0.55), 0 4px 8px -2px rgba(0,0,0,0.25)',

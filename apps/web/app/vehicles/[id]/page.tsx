@@ -346,6 +346,7 @@ export default async function VehiclePage({
             in the card prompts the user to upload). */}
         <section className="mt-10">
           <VehicleUvtsCard
+            vehicleId={id}
             result={computeUvts(
               {
                 id: vehicle.id as string,

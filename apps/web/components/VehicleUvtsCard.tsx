@@ -1,45 +1,43 @@
 /**
- * UVTS hero card — the primary vehicle trust score surface.
+ * Vehicle Trust XP card — the gamified UVTS surface.
  *
- * Server component. Receives a precomputed UvtsResult; never computes
- * itself. Two variants:
- *   - "hero" (default): full card with score ring, grade, confidence,
- *     category bars, strengths / warnings / red flags
- *   - "compact": small badge for use in lists and the owner dashboard
+ * Server component. Takes a precomputed UvtsResult and an optional
+ * vehicleId for routing the "Earn more XP" chips. Renders:
  *
- * Honest by default: when result is null (no docs uploaded yet), the
- * component renders a "unlock your score" hint instead of a fake number.
+ *   - Big XP number / 100 + progress bar
+ *   - Buy recommendation + confidence band
+ *   - Earned XP list (compact, leaf-coloured ticks)
+ *   - Earn more XP chips — each tappable to the right upload/log flow
+ *   - Locked slots (Phase 2/3) shown as a quiet footer
+ *
+ * Empty state when result is null: "Upload a document to start earning XP".
  */
-import type { UvtsResult } from '@/lib/uvts'
-
-const GRADE_COLOR: Record<string, string> = {
-  'A+': 'text-leaf',
-  A: 'text-leaf',
-  'A-': 'text-leaf',
-  'B+': 'text-leaf',
-  B: 'text-leaf',
-  'B-': 'text-wallet',
-  'C+': 'text-wallet',
-  C: 'text-wallet',
-  'C-': 'text-wallet',
-  D: 'text-signal',
-  F: 'text-signal',
-}
+import Link from 'next/link'
+import type { UvtsResult, XpSlot } from '@/lib/uvts'
+import { deriveXpView } from '@/lib/uvts'
 
 export function VehicleUvtsCard({
   result,
+  vehicleId,
   variant = 'hero',
+  showEarnMore = true,
 }: {
   result: UvtsResult | null
+  vehicleId?: string
   variant?: 'hero' | 'compact'
+  /** When false (e.g. share view for buyers) the "Earn more XP"
+   *  chips and locked footer are hidden — buyers don't need owner-CTAs. */
+  showEarnMore?: boolean
 }) {
   if (!result) return <EmptyState variant={variant} />
-
-  if (variant === 'compact') {
-    return <CompactBadge result={result} />
-  }
-
-  return <HeroCard result={result} />
+  if (variant === 'compact') return <CompactBadge result={result} />
+  return (
+    <HeroCard
+      result={result}
+      vehicleId={vehicleId ?? ''}
+      showEarnMore={showEarnMore}
+    />
+  )
 }
 
 // ─── Empty state ────────────────────────────────────────────────────
@@ -48,22 +46,21 @@ function EmptyState({ variant }: { variant: 'hero' | 'compact' }) {
   if (variant === 'compact') {
     return (
       <span className="inline-flex items-center gap-2 text-xs text-ash">
-        <span className="w-2 h-2 rounded-pill bg-seam" />
-        Score not yet calculated
+        <span className="w-2 h-2 rounded-pill bg-seam" />0 XP
       </span>
     )
   }
   return (
-    <div className="border border-seam rounded-DEFAULT p-5">
+    <div>
       <p className="text-[10px] tracking-[0.28em] uppercase text-leaf font-bold">
-        Vehicle Trust Score
+        Vehicle Trust XP
       </p>
-      <h2 className="text-xl font-semibold tracking-tighter text-chalk mt-2">
-        Upload a document to unlock your score
+      <h2 className="text-2xl font-semibold tracking-tighter text-chalk mt-3">
+        Upload a document to start earning XP
       </h2>
       <p className="text-sm text-ash mt-2 leading-relaxed">
-        Your mulkiya, insurance, or RTA passing certificate gets you to a
-        first score in under a minute. Service records lift it from there.
+        Mulkiya unlocks ~16 XP. Insurance certificate adds ~10. RTA
+        passing report adds ~8. Service records keep stacking from there.
       </p>
     </div>
   )
@@ -72,27 +69,35 @@ function EmptyState({ variant }: { variant: 'hero' | 'compact' }) {
 // ─── Compact badge ──────────────────────────────────────────────────
 
 function CompactBadge({ result }: { result: UvtsResult }) {
-  const gradeClass = GRADE_COLOR[result.grade] ?? 'text-chalk'
   return (
     <span className="inline-flex items-center gap-2 text-xs">
       <span className="text-[10px] tracking-widest uppercase text-ash">
-        Trust
+        Trust XP
       </span>
-      <span className={`font-mono tabular-nums font-semibold text-chalk`}>
+      <span className="font-mono tabular-nums font-semibold text-chalk">
         {result.overallScore}
       </span>
-      <span className={`font-semibold ${gradeClass}`}>{result.grade}</span>
-      <span className="text-ash/60 text-[10px]">
-        · conf {result.confidence}
-      </span>
+      <span className="text-ash/60 text-[10px]">/ 100</span>
     </span>
   )
 }
 
 // ─── Hero card ──────────────────────────────────────────────────────
 
-function HeroCard({ result }: { result: UvtsResult }) {
-  const gradeClass = GRADE_COLOR[result.grade] ?? 'text-chalk'
+function HeroCard({
+  result,
+  vehicleId,
+  showEarnMore,
+}: {
+  result: UvtsResult
+  vehicleId: string
+  showEarnMore: boolean
+}) {
+  const xp = deriveXpView(result, vehicleId)
+  const totalAvailable = xp.earnMore.reduce(
+    (acc, s) => acc + (s.max - s.xp),
+    0,
+  )
   const buyTone =
     result.recommendation.riskLevel === 'low'
       ? 'text-leaf'
@@ -105,232 +110,198 @@ function HeroCard({ result }: { result: UvtsResult }) {
             : 'text-ash'
 
   return (
-    <div className="border border-seam rounded-DEFAULT overflow-hidden">
-      {/* Header strip */}
-      <div className="px-5 pt-4 pb-3 border-b border-seam">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[10px] tracking-[0.28em] uppercase text-leaf font-bold">
-            Vehicle Trust Score
-          </p>
-          <p className="text-[10px] tracking-wider uppercase text-ash">
-            Phase {result.phase} of 3
-          </p>
-        </div>
+    <div>
+      {/* Header */}
+      <div className="flex items-baseline justify-between mb-4">
+        <p className="text-[10px] tracking-[0.28em] uppercase text-leaf font-bold">
+          Vehicle Trust XP
+        </p>
+        <p className="text-[10px] tracking-wider uppercase text-ash">
+          Phase {result.phase} of 3
+        </p>
       </div>
 
       {/* Score block */}
-      <div className="px-5 py-6 grid grid-cols-[auto_1fr] gap-5 items-center">
-        <ScoreRing score={result.overallScore} grade={result.grade} />
+      <div className="flex items-end justify-between gap-6 mb-3">
         <div className="min-w-0">
-          <p
-            className={`text-3xl md:text-4xl font-semibold tracking-tighter ${gradeClass}`}
-          >
-            {result.grade}
+          <p className="text-5xl md:text-6xl font-semibold tracking-tighter text-chalk leading-none tabular-nums">
+            {result.overallScore}
+            <span className="text-2xl text-ash ml-2 font-normal">
+              / 100 XP
+            </span>
           </p>
-          <p
-            className={`text-sm font-semibold mt-1 ${buyTone}`}
-          >
+          <p className={`text-sm font-semibold mt-3 ${buyTone}`}>
             {result.recommendation.buy}
           </p>
-          <div className="mt-3 flex items-center gap-3 text-xs text-ash">
-            <span>
-              Confidence{' '}
-              <span className="text-chalk font-mono tabular-nums">
-                {result.confidence}
-              </span>
-            </span>
-            <span className="w-px h-3 bg-seam" />
-            <span>
-              Resale{' '}
-              <span className="text-chalk">{result.recommendation.resale}</span>
-            </span>
-          </div>
         </div>
       </div>
 
-      {/* Category bars. Damage shows its default (18/20 — "no damage
-          reported") so the visible numbers add up to the overall score.
-          Market still surfaces "Coming soon" because in Phase 1 it
-          contributes 0 — showing 0/20 visually as a maxed-out bar would
-          mislead. */}
-      <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-5 gap-3">
-        <CategoryBar label="Identity" value={result.categories.identity} />
-        <CategoryBar label="Usage" value={result.categories.usage} />
-        <CategoryBar
-          label="Maintenance"
-          value={result.categories.maintenance}
-        />
-        <CategoryBar
-          label="Damage"
-          value={result.categories.damage}
-          note="No damage reported"
-        />
-        <CategoryBar
-          label="Market"
-          value={result.categories.market}
-          pending="Coming soon"
+      {/* Progress */}
+      <div className="h-1.5 bg-seam rounded-pill overflow-hidden mb-3">
+        <div
+          className="h-full bg-leaf rounded-pill transition-[width] duration-500"
+          style={{ width: `${clamp(result.overallScore, 0, 100)}%` }}
         />
       </div>
 
-      {/* Red flags */}
-      {result.redFlags.length > 0 && (
-        <div className="px-5 pb-4 border-t border-seam pt-4">
-          <p className="text-[10px] tracking-widest uppercase text-signal font-bold mb-2">
-            Red flags
+      <p className="text-xs text-ash">
+        Confidence{' '}
+        <span className="text-chalk font-mono tabular-nums">
+          {result.confidence}
+        </span>{' '}
+        · Resale{' '}
+        <span className="text-chalk">{result.recommendation.resale}</span>
+        {totalAvailable > 0 && (
+          <>
+            {' '}
+            ·{' '}
+            <span className="text-leaf">
+              +{totalAvailable} XP available
+            </span>
+          </>
+        )}
+      </p>
+
+      {/* Earned */}
+      {xp.earned.length > 0 && (
+        <section className="mt-8">
+          <p className="text-[10px] tracking-[0.28em] uppercase text-leaf font-bold mb-3">
+            Earned
           </p>
-          <ul className="space-y-1">
-            {result.redFlags.map((f) => (
-              <li key={f} className="text-sm text-signal flex items-start gap-2">
-                <span aria-hidden>·</span>
-                <span>{f}</span>
+          <ul className="space-y-1.5">
+            {xp.earned.map((slot) => (
+              <li
+                key={slot.label}
+                className="flex items-center justify-between gap-3 text-sm"
+              >
+                <span className="flex items-center gap-2 min-w-0">
+                  <CheckIcon />
+                  <span className="text-chalk truncate">{slot.label}</span>
+                </span>
+                <span className="font-mono tabular-nums text-leaf text-xs shrink-0">
+                  +{slot.xp} XP
+                </span>
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
-      {/* Warnings + Strengths grid */}
-      {(result.warnings.length > 0 || result.strengths.length > 0) && (
-        <div className="px-5 pb-5 border-t border-seam pt-4 grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {result.strengths.length > 0 && (
-            <div>
-              <p className="text-[10px] tracking-widest uppercase text-leaf font-bold mb-2">
-                Strengths
-              </p>
-              <ul className="space-y-1">
-                {result.strengths.map((s) => (
-                  <li
-                    key={s}
-                    className="text-sm text-chalk/85 flex items-start gap-2"
-                  >
-                    <span aria-hidden className="text-leaf">·</span>
-                    <span>{s}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {result.warnings.length > 0 && (
-            <div>
-              <p className="text-[10px] tracking-widest uppercase text-wallet font-bold mb-2">
-                Watch-outs
-              </p>
-              <ul className="space-y-1">
-                {result.warnings.map((w) => (
-                  <li
-                    key={w}
-                    className="text-sm text-chalk/85 flex items-start gap-2"
-                  >
-                    <span aria-hidden className="text-wallet">·</span>
-                    <span>{w}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+      {/* Earn more — owner only. Buyers on /r/[token] don't need
+          upload CTAs; they just want to see the data the car has. */}
+      {showEarnMore && xp.earnMore.length > 0 && (
+        <section className="mt-8">
+          <p className="text-[10px] tracking-[0.28em] uppercase text-leaf font-bold mb-3">
+            Earn more XP
+          </p>
+          <ul className="space-y-2">
+            {dedupeByAction(xp.earnMore).map(({ slot, totalGain }) => (
+              <li key={slot.unlock?.action ?? slot.label}>
+                <ChipLink slot={slot} totalGain={totalGain} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Locked footer — owner only too, same reasoning. */}
+      {showEarnMore && xp.locked.length > 0 && (
+        <section className="mt-8 pt-4 border-t border-seam/50">
+          <p className="text-[10px] tracking-[0.28em] uppercase text-ash font-bold mb-2">
+            Locked · coming soon
+          </p>
+          <p className="text-xs text-ash/70 leading-relaxed">
+            {xp.locked
+              .map((s) => `${s.label} (+${s.max - s.xp} XP)`)
+              .join(' · ')}
+          </p>
+        </section>
       )}
 
       {/* Explanation */}
-      <div className="px-5 pb-5 border-t border-seam pt-4">
-        <p className="text-xs text-ash leading-relaxed">{result.explanation}</p>
-        <p className="text-[10px] text-ash/60 mt-2 leading-relaxed">
-          UVTS measures trust and risk based on uploaded records. It does
-          not replace a physical inspection or OBD diagnostic scan.
-        </p>
-      </div>
+      <p className="text-[11px] text-ash/60 mt-8 leading-relaxed">
+        XP measures trust based on uploaded records. A physical
+        inspection and OBD scan are still advised before any purchase.
+      </p>
     </div>
   )
 }
 
-// ─── Score ring (SVG) ───────────────────────────────────────────────
+// ─── Chip + helpers ────────────────────────────────────────────────
 
-function ScoreRing({ score, grade }: { score: number; grade: string }) {
-  const radius = 38
-  const stroke = 6
-  const circumference = 2 * Math.PI * radius
-  const offset = circumference - (clamp(score, 0, 100) / 100) * circumference
-  const ringColor =
-    score >= 80
-      ? 'var(--color-leaf, #21c07a)'
-      : score >= 60
-        ? 'var(--color-wallet, #f2b035)'
-        : 'var(--color-signal, #ef4444)'
-
-  return (
-    <div className="relative w-[96px] h-[96px] shrink-0">
-      <svg width="96" height="96" viewBox="0 0 96 96" aria-hidden>
-        <circle
-          cx="48"
-          cy="48"
-          r={radius}
-          stroke="var(--color-seam, #2a2d32)"
-          strokeWidth={stroke}
-          fill="none"
-        />
-        <circle
-          cx="48"
-          cy="48"
-          r={radius}
-          stroke={ringColor}
-          strokeWidth={stroke}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          transform="rotate(-90 48 48)"
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-semibold text-chalk tabular-nums leading-none">
-          {score}
-        </span>
-        <span className="text-[10px] tracking-widest uppercase text-ash mt-1">
-          out of 100
-        </span>
-      </div>
-      {/* Hidden text so screen readers get the grade too */}
-      <span className="sr-only">Grade {grade}</span>
-    </div>
-  )
-}
-
-// ─── Category bar ───────────────────────────────────────────────────
-
-function CategoryBar({
-  label,
-  value,
-  pending,
-  note,
+function ChipLink({
+  slot,
+  totalGain,
 }: {
-  label: string
-  value: { score: number; max: number }
-  pending?: string
-  note?: string
+  slot: XpSlot
+  totalGain: number
 }) {
-  const pct = value.max > 0 ? (value.score / value.max) * 100 : 0
+  const href = slot.unlock?.href
+  const body = (
+    <span className="group flex items-center justify-between gap-3 py-3 px-4 -mx-1 rounded-DEFAULT border border-seam hover:border-leaf hover:bg-leaf/5 transition-colors">
+      <span className="flex items-center gap-3 min-w-0">
+        <span className="w-7 h-7 rounded-pill bg-leaf/15 text-leaf flex items-center justify-center text-xs font-bold shrink-0 group-hover:bg-leaf group-hover:text-white transition-colors">
+          +
+        </span>
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold text-chalk truncate">
+            {slot.unlock?.action ?? slot.label}
+          </span>
+        </span>
+      </span>
+      <span className="font-mono tabular-nums text-sm font-semibold text-leaf shrink-0">
+        +{totalGain} XP
+      </span>
+    </span>
+  )
+  if (!href) return body
+  if (href.startsWith('#')) {
+    // Anchor link triggers the FAB upload from anywhere on the page.
+    return <a href={href}>{body}</a>
+  }
+  return <Link href={href}>{body}</Link>
+}
+
+/**
+ * Multiple slots can unlock via the same action (e.g. uploading a
+ * mulkiya fills VIN + engine + ownership + plate). Collapse them into
+ * a single chip whose +XP total is the sum of remaining gains for that
+ * action. Keeps the list short and the user motivated by big numbers.
+ */
+function dedupeByAction(
+  slots: XpSlot[],
+): Array<{ slot: XpSlot; totalGain: number }> {
+  const map = new Map<string, { slot: XpSlot; totalGain: number }>()
+  for (const slot of slots) {
+    const key = slot.unlock?.action ?? slot.label
+    const gain = slot.max - slot.xp
+    const existing = map.get(key)
+    if (existing) {
+      existing.totalGain += gain
+    } else {
+      map.set(key, { slot, totalGain: gain })
+    }
+  }
+  // Sort by total gain descending — biggest wins first.
+  return [...map.values()].sort((a, b) => b.totalGain - a.totalGain)
+}
+
+function CheckIcon() {
   return (
-    <div className="min-w-0">
-      <div className="flex items-baseline justify-between mb-1.5">
-        <p className="text-[10px] tracking-widest uppercase text-ash">
-          {label}
-        </p>
-        <p className="text-xs font-mono tabular-nums text-chalk">
-          {pending ? '—' : `${value.score}/${value.max}`}
-        </p>
-      </div>
-      <div className="h-1 bg-seam rounded-pill overflow-hidden">
-        {!pending && (
-          <div
-            className="h-full bg-leaf rounded-pill"
-            style={{ width: `${pct}%` }}
-          />
-        )}
-      </div>
-      {(pending || note) && (
-        <p className="text-[10px] text-ash/60 mt-1">{pending ?? note}</p>
-      )}
-    </div>
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="text-leaf shrink-0"
+      aria-hidden
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
   )
 }
 

@@ -176,10 +176,12 @@ export default async function ResaleReportPage({
         )}
 
         {/* UVTS — the only vehicle score. Workshop-axis ratings live
-            on the workshop pages, not here. One number, one source of
-            truth for "is this car trustworthy". */}
+            on the workshop pages, not here. On the share view we don't
+            pass vehicleId so the "Earn more XP" chips don't render —
+            buyers can see the data the car has, not be nudged to add
+            more. */}
         <section className="mt-8 print:mt-6">
-          <VehicleUvtsCard result={uvts} />
+          <VehicleUvtsCard result={uvts} showEarnMore={false} />
         </section>
 
         {/* Headline stats */}

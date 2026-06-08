@@ -74,6 +74,181 @@ export type UvtsResult = {
   explanation: string
 }
 
+// ─── XP view-model ──────────────────────────────────────────────────
+
+export type XpSlot = {
+  label: string
+  xp: number // earned right now
+  max: number
+  category: 'identity' | 'usage' | 'maintenance' | 'damage' | 'market'
+  unlock?: XpUnlock // present when xp < max AND something the user can do
+}
+
+export type XpUnlock = {
+  action: string // user-facing CTA copy ("Upload insurance certificate")
+  kind: 'upload' | 'log_service' | 'edit_vehicle' | 'periodic' | 'locked'
+  href?: string // optional anchor; FAB upload uses '#upload-doc'
+}
+
+export type XpView = {
+  earned: XpSlot[]
+  earnMore: XpSlot[] // unearned with concrete actions
+  locked: XpSlot[] // can't earn yet (Phase 2/3 features)
+}
+
+/**
+ * Convert a UVTS result into a flat XP slot list grouped by status.
+ * Same numbers, but framed as gameplay: every sub-score becomes an XP
+ * slot, and the unearned ones get a concrete "do this to earn X XP"
+ * call-to-action.
+ */
+export function deriveXpView(
+  result: UvtsResult,
+  vehicleId: string,
+): XpView {
+  const collected: Array<XpSlot & { _key: string }> = []
+
+  const push = (
+    sub: { label: string; score: number; max: number },
+    category: XpSlot['category'],
+  ) => {
+    const unlock = sub.score < sub.max ? inferUnlock(sub.label, vehicleId) : undefined
+    collected.push({
+      _key: `${category}.${sub.label}`,
+      label: humanise(sub.label),
+      xp: sub.score,
+      max: sub.max,
+      category,
+      unlock,
+    })
+  }
+  result.categories.identity.subs.forEach((s) => push(s, 'identity'))
+  result.categories.usage.subs.forEach((s) => push(s, 'usage'))
+  result.categories.maintenance.subs.forEach((s) => push(s, 'maintenance'))
+  result.categories.damage.subs.forEach((s) => push(s, 'damage'))
+  result.categories.market.subs.forEach((s) => push(s, 'market'))
+
+  // Three buckets:
+  //   earned   — xp ≥ 80% of max
+  //   earnMore — partial / zero AND there's a concrete action
+  //   locked   — Phase 2/3 categories with no user action available
+  const earned: XpSlot[] = []
+  const earnMore: XpSlot[] = []
+  const locked: XpSlot[] = []
+  for (const slot of collected) {
+    const pct = slot.max > 0 ? slot.xp / slot.max : 0
+    if (pct >= 0.8) earned.push(slot)
+    else if (slot.unlock?.kind === 'locked' || slot.unlock == null)
+      locked.push(slot)
+    else earnMore.push(slot)
+  }
+
+  // Sort earn-more by potential gain (max - earned) descending so the
+  // biggest wins are at the top.
+  earnMore.sort((a, b) => b.max - b.xp - (a.max - a.xp))
+  // Sort earned by xp descending so the strongest signals come first.
+  earned.sort((a, b) => b.xp - a.xp)
+
+  return { earned, earnMore, locked }
+}
+
+/**
+ * Map a UVTS sub-label to the action the user takes to fill it. The
+ * mapping is intentionally coarse — we want chips like "Upload
+ * insurance" rather than per-sub micro-actions. Multiple sub-scores
+ * collapse to the same chip (e.g. owner_name + ownership both unlock
+ * via mulkiya upload).
+ */
+function inferUnlock(label: string, vehicleId: string): XpUnlock {
+  const l = label.toLowerCase()
+  if (l.includes('market')) {
+    return { action: 'Coming in Phase 3', kind: 'locked' }
+  }
+  if (l.includes('accident') || l.includes('damage')) {
+    return { action: 'Coming in Phase 2', kind: 'locked' }
+  }
+  if (l.includes('recall')) {
+    return { action: 'Coming soon', kind: 'locked' }
+  }
+  if (l.includes('inspection')) {
+    return {
+      action: 'Upload RTA passing certificate',
+      kind: 'upload',
+      href: '#upload-doc',
+    }
+  }
+  if (l.includes('insurance') || l.includes('policy')) {
+    return {
+      action: 'Upload insurance certificate',
+      kind: 'upload',
+      href: '#upload-doc',
+    }
+  }
+  if (
+    l.includes('service history') ||
+    l.includes('service frequency') ||
+    l.includes('major scheduled') ||
+    l.includes('major services')
+  ) {
+    return {
+      action: 'Log a service record',
+      kind: 'log_service',
+      href: `/vehicles/${vehicleId}/service/new`,
+    }
+  }
+  if (l.includes('odometer integrity') || l.includes('pattern stability')) {
+    return {
+      action: 'Log mileage updates every few months',
+      kind: 'periodic',
+    }
+  }
+  if (l.includes('mileage vs age') || l.includes('mileage')) {
+    return {
+      action: 'Update odometer',
+      kind: 'edit_vehicle',
+      href: `/vehicles/${vehicleId}/edit`,
+    }
+  }
+  if (l.includes('owner count') || l.includes('ownership')) {
+    return {
+      action: 'Upload mulkiya',
+      kind: 'upload',
+      href: '#upload-doc',
+    }
+  }
+  if (
+    l.includes('vin') ||
+    l.includes('engine') ||
+    l.includes('registration') ||
+    l.includes('plate')
+  ) {
+    return {
+      action: 'Upload mulkiya',
+      kind: 'upload',
+      href: '#upload-doc',
+    }
+  }
+  if (l.includes('usage type') || l.includes('environmental')) {
+    return {
+      action: 'Upload mulkiya',
+      kind: 'upload',
+      href: '#upload-doc',
+    }
+  }
+  // Default — assume a doc upload solves it.
+  return {
+    action: 'Upload a document',
+    kind: 'upload',
+    href: '#upload-doc',
+  }
+}
+
+function humanise(label: string): string {
+  // The sub labels are already human-readable. Strip trailing
+  // qualifiers like "(2)" if any future labels add them.
+  return label.replace(/\s*\(\d+\)\s*$/, '')
+}
+
 // ─── Public entry point ─────────────────────────────────────────────
 
 export function computeUvts(
