@@ -111,6 +111,15 @@ export async function GET(request: NextRequest) {
   const explicitNext = sanitizeNext(cookieRaw) ?? sanitizeNext(queryRaw)
 
   if (!code && !tokenHash) {
+    // Diagnose the missing-params case. Most common cause is the
+    // Supabase email template still using {{ .ConfirmationURL }} (PKCE
+    // flow) without the SSR token_hash that our callback expects.
+    // Logging the full search params helps support tickets debug
+    // template config drift.
+    console.error(
+      '[auth/callback] missing both code and token_hash. params=',
+      Object.fromEntries(searchParams.entries()),
+    )
     return NextResponse.redirect(`${origin}/login?error=auth_failed`)
   }
 

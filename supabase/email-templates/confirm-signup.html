@@ -1,0 +1,126 @@
+<!--
+  Vehkit · Confirm Signup Email
+  Paste this entire HTML into:
+    Supabase Dashboard → Authentication → Email Templates → Confirm signup → Source
+
+  Subject (set in the same panel):
+    Welcome to Vehkit — confirm your email
+
+  IMPORTANT: this template uses the token_hash SSR flow so the link
+  works cross-device (request on desktop, click on phone is fine).
+  We bypass /auth/v1/verify and hit our callback directly with the
+  token_hash so verifyOtp can validate it without a PKCE cookie.
+
+  Available variables:
+    {{ .SiteURL }}    — base site URL
+    {{ .TokenHash }}  — the SSR token hash
+    {{ .Email }}      — recipient's email
+-->
+<!doctype html>
+<html lang="en" style="background:#0A0B0F;">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Welcome to Vehkit</title>
+    <style>
+      @media (prefers-color-scheme: dark) {
+        body { background: #0A0B0F !important; color: #F4F4F2 !important; }
+      }
+    </style>
+  </head>
+  <body
+    style="margin:0;padding:0;background:#0A0B0F;color:#F4F4F2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;"
+  >
+    <div style="display:none;max-height:0;overflow:hidden;color:transparent;">
+      One tap to confirm your email and start your garage.
+    </div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0A0B0F;padding:40px 20px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="540" cellpadding="0" cellspacing="0" border="0" style="max-width:540px;width:100%;">
+            <tr>
+              <td style="padding-bottom:32px;font-size:11px;letter-spacing:0.25em;text-transform:uppercase;color:#8B8E96;">
+                vehkit
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:28px;font-weight:600;letter-spacing:-0.02em;color:#F4F4F2;padding-bottom:12px;">
+                Welcome. One tap to confirm.
+              </td>
+            </tr>
+            <tr>
+              <td style="color:#8B8E96;padding-bottom:28px;line-height:1.6;">
+                You're a tap away from your verified vehicle passport. The link works
+                once, expires in 24 hours, and works on any device.
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-bottom:8px;">
+                <a
+                  href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=signup&next=%2Fmycars"
+                  style="display:inline-block;background:#19E68C;color:#0A0B0F;padding:14px 32px;border-radius:999px;text-decoration:none;font-weight:600;font-size:15px;letter-spacing:-0.01em;"
+                >
+                  Confirm and continue
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:12px;color:#8B8E96;padding-top:8px;padding-bottom:32px;line-height:1.5;">
+                Or paste this link into the same browser:<br />
+                <a
+                  href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=signup&next=%2Fmycars"
+                  style="color:#19E68C;text-decoration:underline;word-break:break-all;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;"
+                  >{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=signup&next=%2Fmycars</a
+                >
+              </td>
+            </tr>
+
+            <tr>
+              <td style="border-top:1px solid #2A2D33;padding-top:32px;padding-bottom:0;"></td>
+            </tr>
+
+            <tr>
+              <td style="padding-bottom:16px;padding-top:24px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#8B8E96;">
+                What you get
+              </td>
+            </tr>
+            <tr>
+              <td style="background:#16181D;border:1px solid #2A2D33;border-radius:12px;padding:20px;color:#F4F4F2;line-height:1.6;font-size:14px;">
+                Every car you own gets a verified passport — service history logged by
+                your workshop, locked after 24 hours, owned by you. When you sell, the
+                buyer sees the truth, not your word.
+                <br /><br />
+                <span style="color:#8B8E96;font-size:13px;">Free for owners. Free for workshops. No ads, ever.</span>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding-top:24px;border-top:1px solid #2A2D33;margin-top:24px;font-size:12px;color:#5B6573;line-height:1.6;padding-bottom:16px;">
+                Didn't sign up? Ignore this email — no account is created until you
+                click the link. The link expires in 24 hours.
+                <br /><br />
+                Sent to <span style="color:#8B8E96;">{{ .Email }}</span>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding-top:32px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#5B6573;">
+                Every car deserves a passport.
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-top:8px;padding-bottom:32px;font-size:11px;color:#5B6573;">
+                <a href="{{ .SiteURL }}" style="color:#5B6573;text-decoration:none;">vehkit.com</a>
+                · Made in Dubai ·
+                <a href="{{ .SiteURL }}/privacy" style="color:#5B6573;text-decoration:none;">Privacy</a>
+                ·
+                <a href="{{ .SiteURL }}/terms" style="color:#5B6573;text-decoration:none;">Terms</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

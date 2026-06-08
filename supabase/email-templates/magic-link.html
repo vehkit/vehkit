@@ -7,7 +7,7 @@
     Sign in to Vehkit
 
   Available variables (Supabase Auth):
-    {{ .ConfirmationURL }}  — the magic link URL
+    {{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink&next=%2Fmycars  — the magic link URL
     {{ .Email }}            — the recipient's email
     {{ .SiteURL }}          — your site URL (vehkit.com)
     {{ .Token }}            — raw OTP token (we don't use it here)
@@ -82,7 +82,7 @@
             <tr>
               <td style="padding-bottom:8px;">
                 <a
-                  href="{{ .ConfirmationURL }}"
+                  href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink&next=%2Fmycars"
                   style="display:inline-block;background:#19E68C;color:#0A0B0F;padding:14px 32px;border-radius:999px;text-decoration:none;font-weight:600;font-size:15px;letter-spacing:-0.01em;"
                 >
                   Sign in to Vehkit
@@ -95,9 +95,9 @@
               >
                 Or paste this link into the same browser:<br />
                 <a
-                  href="{{ .ConfirmationURL }}"
+                  href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink&next=%2Fmycars"
                   style="color:#19E68C;text-decoration:underline;word-break:break-all;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;"
-                  >{{ .ConfirmationURL }}</a
+                  >{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink&next=%2Fmycars</a
                 >
               </td>
             </tr>
