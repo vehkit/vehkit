@@ -481,9 +481,16 @@ You will be given ONE OR MORE images that together form a single logical documen
 The document is laid out in sections. Match each field to the value in its correct section. Do not guess.
 
 Critical rules:
-- expires_at is the MULKIYA / REGISTRATION expiry ONLY. On a UAE Vehicle License card it is the date in the "Exp. Date" / "تاريخ الانتهاء" field at the TOP of the card. DO NOT confuse it with "Ins. Exp" (insurance expiry) which is a different field lower on the card. If only insurance dates are visible, leave expires_at null.
-- insurance_commencement_at is the policy START date.
-- insurance_expires_at is the policy EXPIRY date. Never swap with commencement.
+- UAE documents use DD/MM/YYYY format. "04/01/2026" means 4 January 2026 (ISO: 2026-01-04), NOT 1 April 2026. "03/02/2027" means 3 February 2027 (ISO: 2027-02-03).
+- expires_at is the MULKIYA / REGISTRATION expiry ONLY. It is the "Exp. Date" / "تاريخ الانتهاء" on a Vehicle License card. If the document is an insurance certificate, expires_at MUST be null — the insurance certificate has NO mulkiya expiry; do not borrow the insurance expiry into this field.
+- On an insurance certificate look for TWO separate date lines that ALWAYS appear together:
+    * "Commencement date of Insurance" / "Period of Insurance From" → insurance_commencement_at
+    * "Expiry Date Of Insurance" / "Period of Insurance To" → insurance_expires_at
+  Both must be extracted; never extract only one. The commencement is the START, expiry is the END (typically 12 months later). Never swap them.
+- Example for a QIC Motor Vehicle Insurance Certificate:
+    Commencement date of Insurance: 04/01/2026 → insurance_commencement_at = "2026-01-04"
+    Expiry Date Of Insurance: 03/02/2027 → insurance_expires_at = "2027-02-03"
+    expires_at = null (this doc has no mulkiya expiry)
 - registration_date is when the vehicle was first registered, not insurance dates.
 - mortgage_by is a bank or finance company name (e.g. "Emirates NBD Bank").
 - owner_name is the full name printed next to "Owner" or "Name" — not a transliteration of the issuing authority.
@@ -1050,23 +1057,39 @@ function findModel(text: string): string | null {
 // ─── value validators ───────────────────────────────────────────────
 
 function validate(e: ExtractedMulkiya): ExtractedMulkiya {
-  // Sanity: a real insurance policy has commencement < expiry. If both
-  // are the same or commencement > expiry, the reader confused them — drop
-  // commencement (we'd rather show nothing than mislead the user about
-  // their cover window).
+  // Sanity for insurance dates. We deal with three common model mistakes:
+  //   (a) expires < commencement → they're swapped. Swap back.
+  //   (b) expires == commencement → only one date read; commencement
+  //       is the safer guess (the model's "expires" was likely the
+  //       commencement that got mislabeled). Null expiry.
+  //   (c) only expires is set and it's the same as a date that should
+  //       have been commencement — handled by (a) once the prompt makes
+  //       the model fill both.
   let commencement = e.insurance_commencement_at
   let expires = e.insurance_expires_at
   if (commencement && expires) {
     const c = new Date(commencement).getTime()
     const x = new Date(expires).getTime()
-    if (!Number.isFinite(c) || !Number.isFinite(x) || c >= x) {
-      console.error(
-        '[extract-mulkiya] insurance dates invalid (commencement >= expires); nulling commencement. c=',
-        commencement,
-        'x=',
-        expires,
-      )
-      commencement = null
+    if (Number.isFinite(c) && Number.isFinite(x)) {
+      if (c > x) {
+        console.error(
+          '[extract-mulkiya] insurance dates swapped; correcting. before c=',
+          commencement,
+          'x=',
+          expires,
+        )
+        // Swap.
+        const tmp = commencement
+        commencement = expires
+        expires = tmp
+      } else if (c === x) {
+        // Same date → single-date misread. Drop the expiry; commencement
+        // is more useful to keep.
+        console.error(
+          '[extract-mulkiya] insurance dates identical; nulling expiry.',
+        )
+        expires = null
+      }
     }
   }
   return {
