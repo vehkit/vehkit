@@ -3,6 +3,8 @@ import type { Metadata } from 'next'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { PrintButton } from '@/components/PrintButton'
 import { VehicleScorePanel } from '@/components/VehicleScore'
+import { VehicleUvtsCard } from '@/components/VehicleUvtsCard'
+import { computeUvts } from '@/lib/uvts'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,17 +71,57 @@ export default async function ResaleReportPage({
     .single()
   if (!vehicle) notFound()
 
-  const { data: records } = await supabase
-    .from('service_records')
-    .select('*, service_files(storage_path)')
-    .eq('vehicle_id', share.vehicle_id)
-    .order('service_date', { ascending: false })
-
-  // Vehicle score (key value-prop element on the resale passport)
-  const { data: scoreRaw } = await supabase.rpc('compute_vehicle_score', {
-    p_vehicle_id: share.vehicle_id,
-  })
+  const [{ data: records }, { data: documents }, { data: scoreRaw }] =
+    await Promise.all([
+      supabase
+        .from('service_records')
+        .select('*, service_files(storage_path)')
+        .eq('vehicle_id', share.vehicle_id)
+        .order('service_date', { ascending: false }),
+      supabase
+        .from('vehicle_documents')
+        .select(
+          'doc_type, expires_at, created_at, extracted_data, archived_at',
+        )
+        .eq('vehicle_id', share.vehicle_id)
+        .is('archived_at', null),
+      supabase.rpc('compute_vehicle_score', {
+        p_vehicle_id: share.vehicle_id,
+      }),
+    ])
   const scoreData = scoreRaw as Parameters<typeof VehicleScorePanel>[0]['data']
+
+  // UVTS — headline trust signal. Computed from the same data shown
+  // elsewhere on the passport so the buyer can audit every input.
+  const uvts = computeUvts(
+    {
+      id: vehicle.id as string,
+      make: (vehicle.make as string) ?? null,
+      model: (vehicle.model as string) ?? null,
+      year: (vehicle.year as number) ?? null,
+      vin: (vehicle.vin as string) ?? null,
+      plate_number: (vehicle.plate_number as string) ?? null,
+      plate_emirate: (vehicle.plate_emirate as string) ?? null,
+      color: (vehicle.color as string) ?? null,
+      current_odometer: (vehicle.current_odometer as number) ?? null,
+      current_odometer_at:
+        (vehicle.current_odometer_at as string) ?? null,
+      created_at: vehicle.created_at as string,
+    },
+    (documents ?? []).map((d) => ({
+      doc_type: d.doc_type as string,
+      expires_at: (d.expires_at as string | null) ?? null,
+      created_at: d.created_at as string,
+      extracted_data:
+        (d.extracted_data as Record<string, unknown> | null) ?? null,
+    })),
+    (records ?? []).map((r) => ({
+      service_type: (r.service_type as string | null) ?? null,
+      service_date: (r.service_date as string | null) ?? null,
+      odometer: (r.odometer as number | null) ?? null,
+      status: (r.status as string | null) ?? null,
+    })),
+  )
 
   const totalEntries = records?.length ?? 0
   const verifiedEntries = records?.filter((r) => r.attestation === 'workshop').length ?? 0
@@ -139,10 +181,25 @@ export default async function ResaleReportPage({
           />
         )}
 
-        {/* Vehkit score — the headline value of the passport */}
+        {/* UVTS — the headline value of the passport. Vehicle-axis
+            trust score (Identity + Usage + Maintenance in Phase 1).
+            Lives above the workshop-axis review aggregate so a buyer
+            sees the car's trust score first. */}
         <section className="mt-8 print:mt-6">
-          <VehicleScorePanel data={scoreData} />
+          <VehicleUvtsCard result={uvts} />
         </section>
+
+        {/* Workshop reviews — secondary signal. Aggregate of how the
+            workshops the owner used were rated. Useful but not the
+            primary trust statement. */}
+        {scoreData && (
+          <section className="mt-6 print:mt-4">
+            <p className="text-[10px] tracking-[0.28em] uppercase text-ash mb-3">
+              Workshop reviews
+            </p>
+            <VehicleScorePanel data={scoreData} />
+          </section>
+        )}
 
         {/* Headline stats */}
         <section className="mt-6 grid grid-cols-3 gap-3 print:gap-2">
