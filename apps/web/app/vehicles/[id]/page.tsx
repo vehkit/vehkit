@@ -874,7 +874,7 @@ function DetailsTable({
         ['Plate', plate, { mono: true }],
         ['Plate type', (extracted.plate_type as string) ?? null],
         ['Authority', (extracted.registration_authority as string) ?? null],
-        ['Registered on', (extracted.registration_date as string) ?? null, { mono: true, date: true }],
+        ['Registered on', (extracted.registration_date as string) ?? null, { mono: true }],
         ['Mortgage by', (extracted.mortgage_by as string) ?? null],
         ['Mulkiya expires', mulkiyaExp, { mono: true, date: true }],
       ],
@@ -897,7 +897,7 @@ function DetailsTable({
         [
           'Started',
           (extracted.insurance_commencement_at as string) ?? null,
-          { mono: true, date: true },
+          { mono: true },
         ],
         ['Expires', insuranceExp, { mono: true, date: true }],
         [
@@ -937,22 +937,17 @@ function DetailsTable({
   if (renderedSections.length === 0) return null
 
   return (
-    <div className="mt-3 space-y-4">
+    <div className="mt-4 space-y-8">
       {renderedSections.map((section) => (
-        <div
-          key={section.heading}
-          className="border border-seam rounded-DEFAULT overflow-hidden"
-        >
-          <p className="px-4 py-2 text-[10px] tracking-[0.28em] uppercase text-leaf font-bold bg-iron/30 border-b border-seam">
+        <div key={section.heading}>
+          <p className="text-[10px] tracking-[0.28em] uppercase text-leaf font-bold mb-3">
             {section.heading}
           </p>
-          <dl className="grid grid-cols-1 sm:grid-cols-2">
-            {section.rows.map(([label, value, opts], i) => (
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10">
+            {section.rows.map(([label, value, opts]) => (
               <div
                 key={label}
-                className={`flex items-center justify-between gap-4 px-4 py-2.5 border-b border-seam ${
-                  i % 2 === 1 ? 'sm:border-l' : ''
-                } last:border-b-0`}
+                className="flex items-center justify-between gap-4 py-2.5 border-b border-seam/50 last:border-b-0 sm:[&:nth-last-child(2)]:border-b-0"
               >
                 <dt className="text-xs tracking-widest uppercase text-ash">
                   {label}
