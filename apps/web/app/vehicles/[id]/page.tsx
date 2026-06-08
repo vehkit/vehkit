@@ -1004,10 +1004,10 @@ function DetailsTable({
                 <dd
                   className={`text-sm text-chalk text-right truncate ${opts?.mono ? 'font-mono tabular-nums' : ''}`}
                 >
-                  {value as React.ReactNode}
                   {opts?.date && typeof value === 'string' && (
                     <RelativeExpiry iso={value} />
                   )}
+                  {value as React.ReactNode}
                 </dd>
               </div>
             ))}
@@ -1081,8 +1081,8 @@ function RelativeExpiry({ iso }: { iso: string }) {
         : 'text-ash/60'
 
   return (
-    <span className={`ml-2 text-[10px] tracking-wider uppercase font-medium ${cls}`}>
-      · {label}
+    <span className={`mr-2 text-[10px] tracking-wider uppercase font-medium ${cls}`}>
+      {label} ·
     </span>
   )
 }
