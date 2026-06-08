@@ -148,7 +148,11 @@ function HeroCard({ result }: { result: UvtsResult }) {
         </div>
       </div>
 
-      {/* Category bars */}
+      {/* Category bars. Damage shows its default (18/20 — "no damage
+          reported") so the visible numbers add up to the overall score.
+          Market still surfaces "Coming soon" because in Phase 1 it
+          contributes 0 — showing 0/20 visually as a maxed-out bar would
+          mislead. */}
       <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-5 gap-3">
         <CategoryBar label="Identity" value={result.categories.identity} />
         <CategoryBar label="Usage" value={result.categories.usage} />
@@ -159,7 +163,7 @@ function HeroCard({ result }: { result: UvtsResult }) {
         <CategoryBar
           label="Damage"
           value={result.categories.damage}
-          pending="Coming soon"
+          note="No damage reported"
         />
         <CategoryBar
           label="Market"
@@ -297,10 +301,12 @@ function CategoryBar({
   label,
   value,
   pending,
+  note,
 }: {
   label: string
   value: { score: number; max: number }
   pending?: string
+  note?: string
 }) {
   const pct = value.max > 0 ? (value.score / value.max) * 100 : 0
   return (
@@ -321,8 +327,8 @@ function CategoryBar({
           />
         )}
       </div>
-      {pending && (
-        <p className="text-[10px] text-ash/60 mt-1">{pending}</p>
+      {(pending || note) && (
+        <p className="text-[10px] text-ash/60 mt-1">{pending ?? note}</p>
       )}
     </div>
   )
