@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { PrintButton } from '@/components/PrintButton'
 import { VehicleUvtsCard } from '@/components/VehicleUvtsCard'
-import { computeUvts } from '@/lib/uvts'
+import { computeUvts, deriveDocXpView } from '@/lib/uvts'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,35 +87,43 @@ export default async function ResaleReportPage({
 
   // UVTS — headline trust signal. Computed from the same data shown
   // elsewhere on the passport so the buyer can audit every input.
-  const uvts = computeUvts(
-    {
-      id: vehicle.id as string,
-      make: (vehicle.make as string) ?? null,
-      model: (vehicle.model as string) ?? null,
-      year: (vehicle.year as number) ?? null,
-      vin: (vehicle.vin as string) ?? null,
-      plate_number: (vehicle.plate_number as string) ?? null,
-      plate_emirate: (vehicle.plate_emirate as string) ?? null,
-      color: (vehicle.color as string) ?? null,
-      current_odometer: (vehicle.current_odometer as number) ?? null,
-      current_odometer_at:
-        (vehicle.current_odometer_at as string) ?? null,
-      created_at: vehicle.created_at as string,
-    },
-    (documents ?? []).map((d) => ({
-      doc_type: d.doc_type as string,
-      expires_at: (d.expires_at as string | null) ?? null,
-      created_at: d.created_at as string,
-      extracted_data:
-        (d.extracted_data as Record<string, unknown> | null) ?? null,
-    })),
-    (records ?? []).map((r) => ({
-      service_type: (r.service_type as string | null) ?? null,
-      service_date: (r.service_date as string | null) ?? null,
-      odometer: (r.odometer as number | null) ?? null,
-      status: (r.status as string | null) ?? null,
-    })),
-  )
+  const uvtsVehicle = {
+    id: vehicle.id as string,
+    make: (vehicle.make as string) ?? null,
+    model: (vehicle.model as string) ?? null,
+    year: (vehicle.year as number) ?? null,
+    vin: (vehicle.vin as string) ?? null,
+    plate_number: (vehicle.plate_number as string) ?? null,
+    plate_emirate: (vehicle.plate_emirate as string) ?? null,
+    color: (vehicle.color as string) ?? null,
+    current_odometer: (vehicle.current_odometer as number) ?? null,
+    current_odometer_at:
+      (vehicle.current_odometer_at as string) ?? null,
+    created_at: vehicle.created_at as string,
+  }
+  const uvtsDocs = (documents ?? []).map((d) => ({
+    doc_type: d.doc_type as string,
+    expires_at: (d.expires_at as string | null) ?? null,
+    created_at: d.created_at as string,
+    extracted_data:
+      (d.extracted_data as Record<string, unknown> | null) ?? null,
+  }))
+  const uvtsServices = (records ?? []).map((r) => ({
+    service_type: (r.service_type as string | null) ?? null,
+    service_date: (r.service_date as string | null) ?? null,
+    odometer: (r.odometer as number | null) ?? null,
+    status: (r.status as string | null) ?? null,
+  }))
+  const uvts = computeUvts(uvtsVehicle, uvtsDocs, uvtsServices)
+  const uvtsDocView = uvts
+    ? deriveDocXpView(
+        uvtsVehicle,
+        uvtsDocs,
+        uvtsServices,
+        uvts,
+        share.vehicle_id as string,
+      )
+    : undefined
 
   const totalEntries = records?.length ?? 0
   const verifiedEntries = records?.filter((r) => r.attestation === 'workshop').length ?? 0
@@ -181,7 +189,7 @@ export default async function ResaleReportPage({
             buyers can see the data the car has, not be nudged to add
             more. */}
         <section className="mt-8 print:mt-6">
-          <VehicleUvtsCard result={uvts} />
+          <VehicleUvtsCard result={uvts} docView={uvtsDocView} />
         </section>
 
         {/* Headline stats */}

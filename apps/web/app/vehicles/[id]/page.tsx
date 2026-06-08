@@ -7,7 +7,7 @@ import { snoozeReminder, completeReminder } from '@/app/actions/reminders'
 import { ShareSheet } from '@/components/ShareSheet'
 import { WorkshopCodeSheet } from '@/components/WorkshopCodeSheet'
 import { VehicleUvtsCard } from '@/components/VehicleUvtsCard'
-import { computeUvts } from '@/lib/uvts'
+import { computeUvts, deriveDocXpView } from '@/lib/uvts'
 import { ScrollAwareHeader } from '@/components/ScrollAwareHeader'
 import { VehicleHero } from '@/components/VehicleHero'
 import { ServiceRecordRow } from '@/components/ServiceRecordRow'
@@ -340,45 +340,54 @@ export default async function VehiclePage({
           </section>
         )}
 
-        {/* UVTS hero — primary vehicle trust score. Computed on render
-            from the same data the Details table uses. Pure function in
-            lib/uvts.ts; null when no docs uploaded yet (the empty state
-            in the card prompts the user to upload). */}
-        <section className="mt-10">
-          <VehicleUvtsCard
-            vehicleId={id}
-            result={computeUvts(
-              {
-                id: vehicle.id as string,
-                make: (vehicle.make as string) ?? null,
-                model: (vehicle.model as string) ?? null,
-                year: (vehicle.year as number) ?? null,
-                vin: (vehicle.vin as string) ?? null,
-                plate_number: (vehicle.plate_number as string) ?? null,
-                plate_emirate: (vehicle.plate_emirate as string) ?? null,
-                color: (vehicle.color as string) ?? null,
-                current_odometer:
-                  (vehicle.current_odometer as number) ?? null,
-                current_odometer_at:
-                  (vehicle.current_odometer_at as string) ?? null,
-                created_at: vehicle.created_at as string,
-              },
-              documents.map((d) => ({
-                doc_type: d.doc_type as string,
-                expires_at: (d.expires_at as string | null) ?? null,
-                created_at: d.created_at as string,
-                extracted_data:
-                  (d.extracted_data as Record<string, unknown> | null) ?? null,
-              })),
-              (records ?? []).map((r) => ({
-                service_type: (r.service_type as string | null) ?? null,
-                service_date: (r.service_date as string | null) ?? null,
-                odometer: (r.odometer as number | null) ?? null,
-                status: (r.status as string | null) ?? null,
-              })),
-            )}
-          />
-        </section>
+        {/* UVTS hero — primary vehicle trust score. Compute the
+            score, then derive the doc-centric view from the same
+            inputs so the totals stay consistent and the rows show
+            actual extracted values per document. */}
+        {(() => {
+          const uvtsVehicle = {
+            id: vehicle.id as string,
+            make: (vehicle.make as string) ?? null,
+            model: (vehicle.model as string) ?? null,
+            year: (vehicle.year as number) ?? null,
+            vin: (vehicle.vin as string) ?? null,
+            plate_number: (vehicle.plate_number as string) ?? null,
+            plate_emirate: (vehicle.plate_emirate as string) ?? null,
+            color: (vehicle.color as string) ?? null,
+            current_odometer: (vehicle.current_odometer as number) ?? null,
+            current_odometer_at:
+              (vehicle.current_odometer_at as string) ?? null,
+            created_at: vehicle.created_at as string,
+          }
+          const uvtsDocs = documents.map((d) => ({
+            doc_type: d.doc_type as string,
+            expires_at: (d.expires_at as string | null) ?? null,
+            created_at: d.created_at as string,
+            extracted_data:
+              (d.extracted_data as Record<string, unknown> | null) ?? null,
+          }))
+          const uvtsServices = (records ?? []).map((r) => ({
+            service_type: (r.service_type as string | null) ?? null,
+            service_date: (r.service_date as string | null) ?? null,
+            odometer: (r.odometer as number | null) ?? null,
+            status: (r.status as string | null) ?? null,
+          }))
+          const uvtsResult = computeUvts(uvtsVehicle, uvtsDocs, uvtsServices)
+          const docView = uvtsResult
+            ? deriveDocXpView(
+                uvtsVehicle,
+                uvtsDocs,
+                uvtsServices,
+                uvtsResult,
+                id,
+              )
+            : undefined
+          return (
+            <section className="mt-10">
+              <VehicleUvtsCard result={uvtsResult} docView={docView} />
+            </section>
+          )
+        })()}
 
         {/* DETAILS table. Aggregates everything we know about this
             car: the original add-car form fields, plus anything

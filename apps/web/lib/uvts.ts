@@ -249,6 +249,330 @@ function humanise(label: string): string {
   return label.replace(/\s*\(\d+\)\s*$/, '')
 }
 
+// ─── Doc-centric XP view (the user-facing one) ──────────────────────
+
+export type DocXpRow = {
+  id: 'mulkiya' | 'insurance' | 'passing' | 'services' | 'odometer' | 'damage' | 'market'
+  label: string
+  uploaded: boolean
+  earned: number      // XP this doc has contributed so far
+  potential: number   // max XP this slot can deliver
+  fields: string[]    // concrete values when uploaded; promise list when not
+  cta?: { label: string; href: string } | null // null when locked or done
+  locked?: boolean
+}
+
+export type DocXpView = {
+  rows: DocXpRow[]
+  totalEarned: number
+  totalPotential: number
+}
+
+/**
+ * Build a doc-first view of the XP score. Users think "I uploaded my
+ * mulkiya" not "I scored 5/5 on VIN consistency". Each row is one doc
+ * concept: uploaded? what XP did it give? what concrete fields came
+ * from it? what's it worth to upload?
+ *
+ * The XP numbers per doc are stable estimates based on the UVTS spec's
+ * subcategory mapping. We don't try to perfectly attribute every
+ * extracted field to its source doc — instead we assign each doc its
+ * maximum potential and degrade if extraction was weak.
+ */
+export function deriveDocXpView(
+  vehicle: UvtsVehicleInput,
+  documents: UvtsDocInput[],
+  serviceRecords: UvtsServiceInput[],
+  result: UvtsResult,
+  vehicleId: string,
+): DocXpView {
+  const ext = mergedExtractionFor(documents)
+
+  // Detect uploaded docs by either their explicit doc_type OR the
+  // model-detected type stored inside extracted_data.
+  const hasDocType = (...types: string[]) =>
+    documents.some(
+      (d) =>
+        types.includes(d.doc_type) ||
+        types.includes(
+          (d.extracted_data?.detected_doc_type as string | null) ?? '',
+        ),
+    )
+
+  const mulkiyaUploaded = hasDocType('mulkiya')
+  const insuranceUploaded = hasDocType(
+    'insurance_policy',
+    'insurance_certificate',
+    'insurance_policy_schedule',
+  )
+  const passingUploaded = hasDocType('pollution_test', 'rta_passing_certificate')
+
+  const rows: DocXpRow[] = []
+
+  // ─── Mulkiya — biggest single doc ────────────────────────────────
+  {
+    const potential = 16
+    const earned = mulkiyaUploaded
+      ? estimateContribution(
+          [
+            ext.vin,
+            ext.plate_number,
+            ext.owner_name,
+            ext.expires_at,
+            ext.engine_number,
+            ext.mortgage_by,
+          ],
+          potential,
+        )
+      : 0
+    rows.push({
+      id: 'mulkiya',
+      label: 'Mulkiya',
+      uploaded: mulkiyaUploaded,
+      earned,
+      potential,
+      fields: mulkiyaUploaded
+        ? compactFields([
+            ext.vin && `VIN ${ext.vin}`,
+            (ext.plate_emirate || ext.plate_number) &&
+              `Plate ${[ext.plate_emirate, ext.plate_number].filter(Boolean).join(' ')}`,
+            ext.owner_name && `Owner ${ext.owner_name}`,
+            ext.registration_date && `Registered ${formatMonthYear(ext.registration_date as string)}`,
+            ext.expires_at && `Expires ${formatDate(ext.expires_at as string)}`,
+            ext.mortgage_by && `Mortgaged · ${ext.mortgage_by}`,
+          ])
+        : [
+            'VIN, plate, owner, registration expiry, mortgage',
+          ],
+      cta: mulkiyaUploaded
+        ? null
+        : { label: 'Upload mulkiya', href: '#upload-doc' },
+    })
+  }
+
+  // ─── Insurance certificate ───────────────────────────────────────
+  {
+    const potential = 10
+    const earned = insuranceUploaded
+      ? estimateContribution(
+          [
+            ext.insurance_company,
+            ext.insurance_policy_number,
+            ext.insurance_expires_at,
+            ext.insurance_premium_aed,
+            ext.year,
+          ],
+          potential,
+        )
+      : 0
+    rows.push({
+      id: 'insurance',
+      label: 'Insurance certificate',
+      uploaded: insuranceUploaded,
+      earned,
+      potential,
+      fields: insuranceUploaded
+        ? compactFields([
+            ext.year && `Year of manufacture ${ext.year}`,
+            ext.insurance_company && `Insurer ${ext.insurance_company}`,
+            ext.insurance_policy_number && `Policy ${ext.insurance_policy_number}`,
+            ext.insurance_expires_at &&
+              `Cover expires ${formatDate(ext.insurance_expires_at as string)}`,
+            typeof ext.insurance_premium_aed === 'number' &&
+              `Premium AED ${(ext.insurance_premium_aed as number).toLocaleString()}`,
+          ])
+        : [
+            'Year of manufacture, insurer, policy number, cover dates, premium',
+          ],
+      cta: insuranceUploaded
+        ? null
+        : { label: 'Upload insurance certificate', href: '#upload-doc' },
+    })
+  }
+
+  // ─── RTA passing certificate ─────────────────────────────────────
+  {
+    const potential = 8
+    const earned = passingUploaded
+      ? estimateContribution(
+          [ext.color, ext.fuel_type, ext.cylinders, ext.body_type],
+          potential,
+        )
+      : 0
+    rows.push({
+      id: 'passing',
+      label: 'RTA passing certificate',
+      uploaded: passingUploaded,
+      earned,
+      potential,
+      fields: passingUploaded
+        ? compactFields([
+            ext.color && `Colour ${ext.color}`,
+            ext.body_type && `Body ${ext.body_type}`,
+            ext.fuel_type && `Fuel ${ext.fuel_type}`,
+            ext.cylinders && `${ext.cylinders} cylinders`,
+            'Inspection on file',
+          ])
+        : ['Colour, body type, fuel, cylinders, inspection record'],
+      cta: passingUploaded
+        ? null
+        : { label: 'Upload passing certificate', href: '#upload-doc' },
+    })
+  }
+
+  // ─── Service records ─────────────────────────────────────────────
+  {
+    const count = serviceRecords.length
+    const potential = 16
+    const earned = Math.min(count * 2, potential)
+    rows.push({
+      id: 'services',
+      label: 'Service records',
+      uploaded: count > 0,
+      earned,
+      potential,
+      fields:
+        count > 0
+          ? [`${count} record${count === 1 ? '' : 's'} logged`]
+          : ['Each service adds up to +2 XP, capped at +16'],
+      cta:
+        count >= potential / 2
+          ? null
+          : {
+              label: count > 0 ? 'Log another service' : 'Log a service',
+              href: `/vehicles/${vehicleId}/service/new`,
+            },
+    })
+  }
+
+  // ─── Odometer + mileage history ──────────────────────────────────
+  {
+    const hasOdo = !!(vehicle.current_odometer && vehicle.current_odometer > 0)
+    const potential = 10
+    // 8 for mileage-vs-age, 2 for pattern stability (needs periodic logs)
+    const earned = hasOdo
+      ? 8 // single reading earns the vs-age portion only
+      : 0
+    rows.push({
+      id: 'odometer',
+      label: 'Odometer + mileage history',
+      uploaded: hasOdo,
+      earned,
+      potential,
+      fields: hasOdo
+        ? [
+            `Currently ${vehicle.current_odometer!.toLocaleString()} km`,
+            'Log periodic updates to unlock pattern stability',
+          ]
+        : ['Current km · Periodic mileage logs build pattern history'],
+      cta: hasOdo
+        ? null
+        : {
+            label: 'Update odometer',
+            href: `/vehicles/${vehicleId}/edit`,
+          },
+    })
+  }
+
+  // ─── Locked: damage history (Phase 2) ────────────────────────────
+  rows.push({
+    id: 'damage',
+    label: 'Accident history',
+    uploaded: false,
+    earned: 0,
+    potential: 2,
+    fields: ['Coming in Phase 2 — verified accident and damage reports'],
+    locked: true,
+    cta: null,
+  })
+
+  // ─── Locked: market data (Phase 3) ───────────────────────────────
+  rows.push({
+    id: 'market',
+    label: 'Market value',
+    uploaded: false,
+    earned: 0,
+    potential: 20,
+    fields: ['Coming in Phase 3 — depreciation, demand, parts availability'],
+    locked: true,
+    cta: null,
+  })
+
+  // Round the total to match the actual UVTS overall score so the math
+  // remains coherent — the doc rows are presentation, the underlying
+  // engine is truth.
+  const visibleSum = rows.reduce((acc, r) => acc + r.earned, 0)
+  const drift = result.overallScore - visibleSum
+  if (drift !== 0 && rows.length > 0) {
+    // Spread the drift across uploaded rows proportionally so the
+    // visible total matches the headline number. Avoids the "math
+    // doesn't add up" optics from earlier iterations.
+    const uploaded = rows.filter((r) => r.uploaded && !r.locked)
+    if (uploaded.length > 0) {
+      const perRow = Math.round(drift / uploaded.length)
+      let remaining = drift
+      for (let i = 0; i < uploaded.length; i++) {
+        const last = i === uploaded.length - 1
+        const give = last ? remaining : perRow
+        uploaded[i]!.earned = Math.max(
+          0,
+          Math.min(uploaded[i]!.potential, uploaded[i]!.earned + give),
+        )
+        remaining -= give
+      }
+    }
+  }
+
+  return {
+    rows,
+    totalEarned: rows.reduce((acc, r) => acc + r.earned, 0),
+    totalPotential: rows.reduce((acc, r) => acc + r.potential, 0),
+  }
+}
+
+function mergedExtractionFor(
+  documents: UvtsDocInput[],
+): Record<string, unknown> {
+  for (const d of documents) {
+    if (d.extracted_data && Object.keys(d.extracted_data).length > 0) {
+      return d.extracted_data
+    }
+  }
+  return {}
+}
+
+function estimateContribution(
+  values: Array<unknown>,
+  max: number,
+): number {
+  // Count how many of the expected fields actually got extracted.
+  const found = values.filter((v) => v != null && v !== '').length
+  const total = values.length
+  if (total === 0) return 0
+  return Math.round((found / total) * max)
+}
+
+function compactFields(parts: unknown[]): string[] {
+  // Callers pass expressions like `ext.vin && \`VIN ${ext.vin}\`` where
+  // `ext.vin` is typed `unknown`. The && short-circuit returns the
+  // unknown falsy value when there's no data and a string when there
+  // is. The filter keeps only string-typed entries — anything else
+  // (null, undefined, false, the original unknown) is dropped.
+  return parts.filter((p): p is string => typeof p === 'string' && p.length > 0)
+}
+
+function formatDate(iso: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso
+  return iso // keep ISO — the UI styles dates monospace
+}
+
+function formatMonthYear(iso: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso
+  const d = new Date(iso + 'T00:00:00Z')
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+}
+
 // ─── Public entry point ─────────────────────────────────────────────
 
 export function computeUvts(
