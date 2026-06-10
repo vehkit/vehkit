@@ -569,7 +569,11 @@ export default async function VehiclePage({
           <div className="min-w-0">
             {/* TRUST */}
             <section id="trust" className="scroll-mt-28 md:scroll-mt-16">
-              <VehicleTrustPanel result={uvtsResult} docView={docView} />
+              <VehicleTrustPanel
+                result={uvtsResult}
+                docView={docView}
+                isOwner={isOwner}
+              />
             </section>
 
             {/* DOCUMENTS */}

@@ -14,15 +14,32 @@ import type { UvtsResult, DocXpView, DocXpRow } from '@/lib/uvts'
 export function VehicleTrustPanel({
   result,
   docView,
+  isOwner = false,
 }: {
   result: UvtsResult | null
   docView?: DocXpView
+  /** Owner view gets builder-framed copy when the score is low purely
+   *  from missing data. Buyer/share views keep the honest risk read. */
+  isOwner?: boolean
 }) {
   if (!result) return <EmptyState />
 
   const risk = result.recommendation.riskLevel
-  const verdictTone =
-    risk === 'low'
+
+  // Same data, audience-appropriate copy. A low score with zero red
+  // flags means "not enough evidence yet", not "this car is risky" —
+  // telling an owner their own car is High Risk because they haven't
+  // uploaded the mulkiya punishes the exact behaviour we want to
+  // encourage. Any actual red flag keeps the honest verdict.
+  const lowDataOwner =
+    isOwner && result.redFlags.length === 0 && result.overallScore < 60
+
+  const verdict = lowDataOwner
+    ? 'Building trust — add documents and service records to raise this score.'
+    : result.recommendation.buy
+  const verdictTone = lowDataOwner
+    ? 'text-chalk'
+    : risk === 'low'
       ? 'text-leaf'
       : risk === 'medium'
         ? 'text-chalk'
@@ -31,8 +48,9 @@ export function VehicleTrustPanel({
           : risk === 'high'
             ? 'text-signal'
             : 'text-ash'
-  const arcTone =
-    risk === 'high'
+  const arcTone = lowDataOwner
+    ? 'rgb(var(--leaf))'
+    : risk === 'high'
       ? 'rgb(var(--signal))'
       : risk === 'elevated'
         ? 'rgb(var(--wallet))'
@@ -54,18 +72,25 @@ export function VehicleTrustPanel({
         <ScoreArc score={result.overallScore} color={arcTone} />
         <div className="min-w-0 flex-1">
           <p className={`text-sm font-semibold leading-snug ${verdictTone}`}>
-            {result.recommendation.buy}
+            {verdict}
           </p>
-          <p className="text-xs text-ash mt-2 leading-relaxed">
-            Confidence{' '}
-            <span className="text-chalk font-mono tabular-nums">
-              {result.confidence}
-            </span>
-            {' · '}Resale{' '}
-            <span className="text-chalk">
-              {result.recommendation.resale}
-            </span>
-          </p>
+          {lowDataOwner ? (
+            <p className="text-xs text-ash mt-2 leading-relaxed">
+              Buyers see this score when you share the passport — every
+              document moves it.
+            </p>
+          ) : (
+            <p className="text-xs text-ash mt-2 leading-relaxed">
+              Confidence{' '}
+              <span className="text-chalk font-mono tabular-nums">
+                {result.confidence}
+              </span>
+              {' · '}Resale{' '}
+              <span className="text-chalk">
+                {result.recommendation.resale}
+              </span>
+            </p>
+          )}
         </div>
       </div>
 
