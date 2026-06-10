@@ -515,6 +515,32 @@ Critical rules:
 - UAE documents use DD/MM/YYYY format. "04/01/2026" means 4 January 2026 (ISO: 2026-01-04), NOT 1 April 2026. "03/02/2027" means 3 February 2027 (ISO: 2027-02-03).
 - expires_at is the MULKIYA / REGISTRATION expiry ONLY. It is the "Exp. Date" / "تاريخ الانتهاء" on a Vehicle License card. If the document is an insurance certificate, expires_at MUST be null — the insurance certificate has NO mulkiya expiry; do not borrow the insurance expiry into this field.
 - On a UAE Vehicle License card, "Ins. Exp" / "إنتهاء التأمين" is the INSURANCE expiry (goes in insurance_expires_at), NOT the registration expiry. The registration expiry is on a different line labelled "Exp. Date" / "تاريخ الانتهاء". If the card only shows "Ins. Exp" and not a clearly labelled "Exp. Date", set expires_at to null — do NOT copy the Ins. Exp value into expires_at.
+- ROW-SHIFT ON VEHICLE LICENSE CARDS — CHECK BEFORE PAIRING. The card is a
+  label/value table, but long values WRAP onto extra lines and push every
+  following value one visual row BELOW its label. This happens constantly with
+  long owner names. Do NOT pair label and value by visual adjacency alone —
+  pair by SEQUENCE and TYPE. The label order on the card is fixed:
+  Owner → Nationality → Exp. Date (registration expiry) → Ins. Exp (insurance
+  expiry) → Policy No. → Mortgage By. Walk the values in reading order and
+  assign each to the next label whose type it satisfies: nationality is a
+  COUNTRY name, the two expiries are DATES, policy number is NUMERIC, mortgage
+  is a BANK name.
+  Worked example of a shifted card (owner name wrapped to two lines):
+    "Owner: AMEEN AHSAN PADASSERI PPADIKKAL HUSSAN" / next line
+    "Nationality: PADASSERI PPADIKKAL" / "Exp. Date: India" /
+    "Ins. Exp.: 2027-01-03" / "Policy No.: 2027-02-03" /
+    "Mortgage By: 2420047507" / next line "EMIRATES NBD BANK"
+  Correct extraction:
+    owner_name = "AMEEN AHSAN PADASSERI PPADIKKAL HUSSAN PADASSERI PPADIKKAL"
+    owner_nationality = "India"
+    expires_at = "2027-01-03"
+    insurance_expires_at = "2027-02-03"
+    insurance_policy_number = "2420047507"
+    mortgage_by = "EMIRATES NBD BANK"
+  The giveaway is a TYPE MISMATCH: a country sitting next to "Exp. Date", or a
+  date sitting next to "Policy No.", means the rows are shifted — realign by
+  sequence before extracting. NEVER emit a value whose type contradicts its
+  field (a date is never a policy number; a country is never a date).
 - On a mulkiya, do NOT extract year of manufacture. Mulkiyas show "Reg. Date" (when the car was first registered) but they do NOT show the model year directly. If you only see a mulkiya, return year=null. Year of manufacture comes from insurance certificates and RTA passing reports only.
 - INSURANCE DATES — READ BOTH. Every UAE insurance certificate has exactly TWO date fields, listed on separate lines, and YOU MUST EXTRACT BOTH:
     FIELD ONE: "Commencement date of Insurance" (or "Period of Insurance From", or "Policy Start Date") → put in insurance_commencement_at.
