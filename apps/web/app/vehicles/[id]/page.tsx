@@ -286,6 +286,22 @@ export default async function VehiclePage({
     { id: 'details', label: 'Details' },
   ]
 
+  // A passport with zero documents AND zero records is in setup, not
+  // in use. Showing the full dashboard scaffold (empty vitals, anchor
+  // nav, empty sections) reads as clutter; show a focused checklist
+  // instead and let the dashboard appear once there's data to show.
+  const isEmptyPassport = documents.length === 0 && records.length === 0
+
+  // Subline: never repeat the title. When there's no nickname the H1
+  // already says make + model, so the line carries year/color only.
+  const identityLine = [
+    vehicle.year && String(vehicle.year),
+    vehicle.color,
+    vehicle.nickname ? `${vehicle.make} ${vehicle.model}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
   return (
     <main className="min-h-[100svh] pb-32 bg-noir">
       {/* Sticky condensed header — mobile only */}
@@ -308,17 +324,21 @@ export default async function VehiclePage({
         </Link>
       </div>
 
-      {/* HERO — edge to edge mobile, column-bound desktop */}
-      <div className="md:max-w-[1240px] md:mx-auto md:mt-4 md:px-10">
-        <VehicleHero
-          vehicleId={id}
-          currentUrl={vehicle.hero_image_url}
-          badges={heroBadges}
-          isOwner={isOwner}
-          backHref="/mycars"
-          backLabel="My cars"
-        />
-      </div>
+      {/* HERO — only when a photo exists. The "Add a photo" strip used
+          to lead the page; it now sits below the actions where it
+          doesn't outrank the car itself. */}
+      {vehicle.hero_image_url && (
+        <div className="md:max-w-[1240px] md:mx-auto md:mt-4 md:px-10">
+          <VehicleHero
+            vehicleId={id}
+            currentUrl={vehicle.hero_image_url}
+            badges={heroBadges}
+            isOwner={isOwner}
+            backHref="/mycars"
+            backLabel="My cars"
+          />
+        </div>
+      )}
 
       <div className="max-w-[1240px] mx-auto px-5 md:px-10">
         {/* IDENTITY — title + plate chip. Wallet-card glanceable:
@@ -328,15 +348,15 @@ export default async function VehiclePage({
             {vehicleTitle}
           </h1>
           <div className="mt-3 flex items-center gap-2.5 flex-wrap">
-            <span className="text-sm text-ash">
-              {[
-                vehicle.year && String(vehicle.year),
-                vehicle.color,
-                `${vehicle.make} ${vehicle.model}`,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </span>
+            {identityLine && (
+              <span className="text-sm text-ash">{identityLine}</span>
+            )}
+            {isEmptyPassport &&
+              typeof vehicle.current_odometer === 'number' && (
+                <span className="text-sm text-ash font-mono tabular-nums">
+                  {vehicle.current_odometer.toLocaleString()} km
+                </span>
+              )}
             {vehicle.plate_number && (
               <span className="inline-flex items-center gap-1.5 rounded-[4px] border border-seam bg-carbon px-2.5 py-1 font-mono text-xs font-semibold tracking-wider text-chalk uppercase">
                 {vehicle.plate_emirate && (
@@ -351,22 +371,25 @@ export default async function VehiclePage({
         </section>
 
         {/* VITALS — the four numbers an owner actually checks. Trust
-            links down to the panel. */}
-        <section className="mt-6 grid grid-cols-4 divide-x divide-seam border-y border-seam">
-          <Vital
-            value={vehicle.current_odometer?.toLocaleString() ?? '—'}
-            label="km"
-          />
-          <a href="#trust" className="group">
+            links down to the panel. Hidden during setup: a row of
+            dashes communicates nothing. */}
+        {!isEmptyPassport && (
+          <section className="mt-6 grid grid-cols-4 divide-x divide-seam border-y border-seam">
             <Vital
-              value={uvtsResult ? String(uvtsResult.overallScore) : '—'}
-              label="Trust XP"
-              accent
+              value={vehicle.current_odometer?.toLocaleString() ?? '—'}
+              label="km"
             />
-          </a>
-          <Vital value={String(verifiedRecords)} label="Verified" />
-          <Vital value={nextDueLabel ?? '—'} label="Next due" />
-        </section>
+            <a href="#trust" className="group">
+              <Vital
+                value={uvtsResult ? String(uvtsResult.overallScore) : '—'}
+                label="Trust XP"
+                accent
+              />
+            </a>
+            <Vital value={String(verifiedRecords)} label="Verified" />
+            <Vital value={nextDueLabel ?? '—'} label="Next due" />
+          </section>
+        )}
 
         {/* OWNER QUICK ACTIONS — were buried in the footer; owners
             share and grant workshop access constantly. */}
@@ -381,6 +404,20 @@ export default async function VehiclePage({
               Edit
             </Link>
           </section>
+        )}
+
+        {/* Add-photo strip — below the actions, never above the title */}
+        {!vehicle.hero_image_url && isOwner && (
+          <div className="mt-5 max-w-xl">
+            <VehicleHero
+              vehicleId={id}
+              currentUrl={null}
+              badges={[]}
+              isOwner={isOwner}
+              backHref="/mycars"
+              backLabel="My cars"
+            />
+          </div>
         )}
 
         {errorMsg && (
@@ -558,14 +595,35 @@ export default async function VehiclePage({
           )}
         </section>
 
-        {/* SECTION NAV — sticky anchors */}
-        <div className="mt-8">
-          <VehicleSectionNav sections={navSections} />
-        </div>
+        {/* SECTION NAV — sticky anchors. Hidden during setup: four
+            anchors to mostly-empty sections is noise. */}
+        {!isEmptyPassport && (
+          <div className="mt-8">
+            <VehicleSectionNav sections={navSections} />
+          </div>
+        )}
 
         {/* TWO-COLUMN BODY */}
         <div className="md:grid md:grid-cols-[minmax(0,1fr)_360px] md:gap-10 md:items-start mt-8">
-          {/* LEFT — trust, documents, history */}
+          {/* LEFT — setup checklist while empty; trust → documents →
+              history once the passport has data */}
+          {isEmptyPassport ? (
+            <div className="min-w-0">
+              {isOwner ? (
+                <SetupChecklist vehicleId={id} />
+              ) : (
+                <div className="card p-6">
+                  <p className="text-sm font-medium text-chalk">
+                    No records yet
+                  </p>
+                  <p className="text-xs text-ash mt-2 leading-relaxed">
+                    The owner hasn&apos;t added documents or service
+                    records to this passport.
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
           <div className="min-w-0">
             {/* TRUST */}
             <section id="trust" className="scroll-mt-28 md:scroll-mt-16">
@@ -697,6 +755,7 @@ export default async function VehiclePage({
               )}
             </section>
           </div>
+          )}
 
           {/* RIGHT — sticky reference column: details + manage */}
           <aside className="mt-10 md:mt-0 md:sticky md:top-14">
@@ -752,6 +811,90 @@ export default async function VehiclePage({
 
       {/* The global "+" FAB covers Add service / reminder / doc / fuel. */}
     </main>
+  )
+}
+
+/**
+ * Setup checklist — replaces the dashboard scaffold while the passport
+ * is empty. One card, three concrete steps, each with its XP payoff.
+ * The dashboard (vitals, anchors, trust panel, sections) appears once
+ * the first document or record lands.
+ */
+function SetupChecklist({ vehicleId }: { vehicleId: string }) {
+  const steps = [
+    {
+      label: 'Upload your mulkiya',
+      sub: 'Fills in registration, owner, and insurance details automatically',
+      xp: '+16 XP',
+      href: `/vehicles/${vehicleId}/documents/new`,
+    },
+    {
+      label: 'Add your insurance certificate',
+      sub: 'We remind you before it expires',
+      xp: '+10 XP',
+      href: `/vehicles/${vehicleId}/documents/new`,
+    },
+    {
+      label: 'Log your first service',
+      sub: 'Starts the service timeline buyers and workshops see',
+      xp: '+XP',
+      href: `/vehicles/${vehicleId}/service/new`,
+    },
+  ]
+  return (
+    <div className="card p-6">
+      <p className="text-[10px] tracking-[0.28em] uppercase text-leaf font-bold">
+        Set up the passport
+      </p>
+      <h2 className="text-xl md:text-2xl font-semibold tracking-tighter text-chalk mt-3">
+        Three steps to a passport buyers trust
+      </h2>
+      <p className="text-sm text-ash mt-2 leading-relaxed">
+        Takes about two minutes. Everything you add earns Trust XP and
+        raises this car&apos;s resale story.
+      </p>
+      <ol className="mt-6">
+        {steps.map((s, i) => (
+          <li key={s.label} className="border-b border-seam/40 last:border-b-0">
+            <Link
+              href={s.href}
+              className="flex items-center gap-4 py-4 group hover:bg-iron/30 -mx-2 px-2 rounded-DEFAULT transition-colors"
+            >
+              <span className="shrink-0 w-7 h-7 rounded-pill border border-seam text-ash font-mono text-xs font-semibold flex items-center justify-center group-hover:border-leaf group-hover:text-leaf transition-colors">
+                {i + 1}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-chalk leading-tight">
+                  {s.label}
+                </span>
+                <span className="block text-xs text-ash mt-1 leading-relaxed">
+                  {s.sub}
+                </span>
+              </span>
+              <span className="shrink-0 flex items-center gap-3">
+                <span className="font-mono tabular-nums text-sm font-semibold text-leaf">
+                  {s.xp}
+                </span>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-ash group-hover:text-chalk transition-colors"
+                  aria-hidden
+                >
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ol>
+    </div>
   )
 }
 
