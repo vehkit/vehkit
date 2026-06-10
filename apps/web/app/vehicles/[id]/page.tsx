@@ -984,9 +984,12 @@ function DetailsTable({
   const model = get('model') as string | null
   const vehicleLine = [year, make, model].filter(Boolean).join(' ') || null
 
+  // Mulkiya expiry ONLY from a mulkiya-typed doc or the strictly
+  // mulkiya-sourced extracted field. Never fall back to the bundle's
+  // generic expires_at — that column can carry the insurance expiry,
+  // and mislabelling it as the registration expiry is a fineable error.
   const mulkiyaExp =
     (mulkiyaDoc?.expires_at as string | null) ??
-    (sourceDoc?.expires_at as string | null) ??
     (extracted.expires_at as string | null) ??
     null
   // Pull ONLY from the insurance fields. Do NOT fall back to the
@@ -1003,6 +1006,11 @@ function DetailsTable({
         d.doc_type !== 'mulkiya' &&
         d.doc_type !== 'insurance' &&
         d.doc_type !== 'insurance_policy' &&
+        // Auto-classified bundles already surface their expiries via
+        // the Registration / Insurance rows above. Listing them again
+        // as "Document expires" duplicates the same date with a
+        // meaningless label.
+        d.doc_type !== 'auto' &&
         typeof d.expires_at === 'string',
     )
     .map(

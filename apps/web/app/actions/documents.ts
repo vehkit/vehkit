@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import {
   extractMulkiyaFromImage,
   mergeExtractions,
+  inferDocTypeFromShape,
   type ExtractedMulkiya,
 } from '@/lib/extract-mulkiya'
 
@@ -240,9 +241,17 @@ async function runMulkiyaExtraction(
         }
       }),
     )
-    const validResults = perFile.filter(
-      (r): r is ExtractedMulkiya => r !== null,
-    )
+    // Backfill detected_doc_type from field shape BEFORE persisting.
+    // The model often returns null when unsure; the merge step infers
+    // types internally but used to throw the inference away, so the
+    // stored per_file_extractions carried null types and downstream
+    // readers (labels, UVTS) couldn't tell what was in the bundle.
+    const validResults = perFile
+      .filter((r): r is ExtractedMulkiya => r !== null)
+      .map((r) => ({
+        ...r,
+        detected_doc_type: r.detected_doc_type ?? inferDocTypeFromShape(r),
+      }))
 
     const extracted = mergeExtractions(validResults)
 

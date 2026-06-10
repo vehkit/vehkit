@@ -195,6 +195,14 @@ const STRICT_FIELDS: ReadonlySet<keyof ExtractedMulkiya> = new Set([
   'plate_type',
   'color',
   'year',
+  // Expiry dates must come from their authoritative doc ONLY. Without
+  // this, an unclassified bundle lets the insurance policy's expiry
+  // become the registration expiry ("Mulkiya expires Feb 2027" when
+  // the mulkiya actually expires Jan 2027) — exactly the kind of
+  // wrong-by-one-month error that gets a user fined.
+  'expires_at',
+  'insurance_expires_at',
+  'registration_date',
 ])
 
 /**
@@ -204,7 +212,7 @@ const STRICT_FIELDS: ReadonlySet<keyof ExtractedMulkiya> = new Set([
  * extracted fields. This restores the priority allowlist's gatekeeping
  * power even on bundles where the model went conservative.
  */
-function inferDocTypeFromShape(
+export function inferDocTypeFromShape(
   e: ExtractedMulkiya,
 ): DetectedDocType | null {
   if (e.detected_doc_type) return e.detected_doc_type
