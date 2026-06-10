@@ -288,24 +288,29 @@ export function deriveDocXpView(
 ): DocXpView {
   const ext = mergedExtractionFor(documents)
 
-  // Detect uploaded docs by either their explicit doc_type OR the
-  // model-detected type stored inside extracted_data.
+  // Detect uploaded docs by explicit doc_type, the model-detected type,
+  // or the per-file type list a multi-file bundle carries.
   const hasDocType = (...types: string[]) =>
-    documents.some(
-      (d) =>
-        types.includes(d.doc_type) ||
-        types.includes(
-          (d.extracted_data?.detected_doc_type as string | null) ?? '',
-        ),
-    )
+    docTypePresent(documents, types)
 
-  const mulkiyaUploaded = hasDocType('mulkiya')
-  const insuranceUploaded = hasDocType(
-    'insurance_policy',
-    'insurance_certificate',
-    'insurance_policy_schedule',
+  // Legacy fallback: bundles extracted before detected_doc_types
+  // existed only kept the first file's type. Field shape is decisive
+  // evidence — only the mulkiya carries owner/traffic-code, only
+  // insurance docs carry a policy number.
+  const mulkiyaUploaded =
+    hasDocType('mulkiya') ||
+    !!(ext.owner_name || ext.traffic_code_no || ext.mortgage_by)
+  const insuranceUploaded =
+    hasDocType(
+      'insurance_policy',
+      'insurance_certificate',
+      'insurance_policy_schedule',
+    ) ||
+    !!(ext.insurance_policy_number || ext.insurance_company)
+  const passingUploaded = hasDocType(
+    'pollution_test',
+    'rta_passing_certificate',
   )
-  const passingUploaded = hasDocType('pollution_test', 'rta_passing_certificate')
 
   const rows: DocXpRow[] = []
 
@@ -905,9 +910,11 @@ function scoreMaintenance(
   })
 
   // 5.5 Inspection Results (2)
-  const hasPassing = documents.some(
-    (d) => d.doc_type === 'pollution_test' || d.doc_type === 'rta_passing',
-  )
+  const hasPassing = docTypePresent(documents, [
+    'pollution_test',
+    'rta_passing',
+    'rta_passing_certificate',
+  ])
   const ext = mergedExtraction(documents)
   const hasPassingExtracted =
     !!ext.detected_doc_type &&
@@ -975,7 +982,11 @@ function computeConfidence(
   // Accident history: missing in Phase 1
   c -= 10
   const hasInsurance =
-    documents.some((d) => d.doc_type === 'insurance_policy') ||
+    docTypePresent(documents, [
+      'insurance_policy',
+      'insurance_certificate',
+      'insurance_policy_schedule',
+    ]) ||
     documents.some((d) =>
       /insurance/i.test(
         (d.extracted_data?.detected_doc_type as string | null) ?? '',
@@ -983,14 +994,16 @@ function computeConfidence(
     )
   if (!hasInsurance) c -= 5
   // Registration history
-  const hasMulkiya = documents.some((d) => d.doc_type === 'mulkiya')
+  const hasMulkiya = docTypePresent(documents, ['mulkiya'])
   if (!hasMulkiya) c -= 5
   // Title/legal status: tied to mulkiya for UAE
   // Market valuation data: missing in Phase 1
   c -= 5
-  const hasInspection = documents.some(
-    (d) => d.doc_type === 'pollution_test' || d.doc_type === 'rta_passing',
-  )
+  const hasInspection = docTypePresent(documents, [
+    'pollution_test',
+    'rta_passing',
+    'rta_passing_certificate',
+  ])
   if (!hasInspection) c -= 5
 
   // §8.2 Source quality
@@ -1057,11 +1070,21 @@ function detectWarnings(
   if (serviceRecords.length === 0) {
     warnings.push('No service history on file')
   }
-  if (!documents.some((d) => d.doc_type === 'pollution_test')) {
+  if (
+    !docTypePresent(documents, [
+      'pollution_test',
+      'rta_passing',
+      'rta_passing_certificate',
+    ])
+  ) {
     warnings.push('No RTA passing certificate on record')
   }
   if (
-    !documents.some((d) => d.doc_type === 'insurance_policy') &&
+    !docTypePresent(documents, [
+      'insurance_policy',
+      'insurance_certificate',
+      'insurance_policy_schedule',
+    ]) &&
     !ext.insurance_policy_number
   ) {
     warnings.push('No insurance policy on record')
@@ -1088,16 +1111,26 @@ function detectStrengths(
   if (vehicle.vin && /^[A-HJ-NPR-Z0-9]{17}$/i.test(vehicle.vin)) {
     strengths.push('Verified VIN')
   }
-  if (documents.some((d) => d.doc_type === 'mulkiya')) {
+  if (docTypePresent(documents, ['mulkiya']) || ext.traffic_code_no) {
     strengths.push('Mulkiya on file')
   }
   if (
-    documents.some((d) => d.doc_type === 'insurance_policy') ||
+    docTypePresent(documents, [
+      'insurance_policy',
+      'insurance_certificate',
+      'insurance_policy_schedule',
+    ]) ||
     ext.insurance_policy_number
   ) {
     strengths.push('Active insurance documented')
   }
-  if (documents.some((d) => d.doc_type === 'pollution_test')) {
+  if (
+    docTypePresent(documents, [
+      'pollution_test',
+      'rta_passing',
+      'rta_passing_certificate',
+    ])
+  ) {
     strengths.push('RTA passing on file')
   }
   if (serviceRecords.length >= 3) {
@@ -1218,6 +1251,39 @@ function confidenceBand(c: number): string {
   if (c >= 60) return 'moderate'
   if (c >= 40) return 'low'
   return 'very low'
+}
+
+/**
+ * True when any document matches one of the wanted types — by its
+ * explicit doc_type column, the model-detected type, or any entry in
+ * the per-file detected_doc_types list a multi-file bundle carries.
+ */
+function docTypePresent(
+  documents: UvtsDocInput[],
+  types: string[],
+): boolean {
+  return documents.some((d) => {
+    if (types.includes(d.doc_type)) return true
+    const ext = d.extracted_data
+    if (!ext) return false
+    const single = (ext.detected_doc_type as string | null) ?? ''
+    if (types.includes(single)) return true
+    const many = ext.detected_doc_types
+    if (Array.isArray(many) && many.some((t) => types.includes(t as string)))
+      return true
+    // Bundles store one extraction per file — scan their individual
+    // classifications too (covers rows written before
+    // detected_doc_types existed).
+    const perFile = ext.per_file_extractions
+    return (
+      Array.isArray(perFile) &&
+      perFile.some((r) =>
+        types.includes(
+          ((r as Record<string, unknown>)?.detected_doc_type as string) ?? '',
+        ),
+      )
+    )
+  })
 }
 
 function findDoc(documents: UvtsDocInput[], docType: string): UvtsDocInput | null {

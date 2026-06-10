@@ -58,6 +58,11 @@ export type ExtractedMulkiya = {
   // ── document classification ──
   detected_doc_type: DetectedDocType | null
   detected_doc_confidence: number | null // 0–1
+  /** All doc types detected across a multi-file bundle. Set by
+   *  mergeExtractions; single-file extractions may omit it. This is
+   *  what lets a 5-file upload credit mulkiya AND insurance AND
+   *  passing instead of just whichever file happened to be first. */
+  detected_doc_types?: DetectedDocType[]
   document_number: string | null // any official ref number on the doc
 
   // ── vehicle identity ──
@@ -264,8 +269,24 @@ export function mergeExtractions(
   }))
   const out = { ...inferred[0]! }
 
+  // Preserve EVERY per-file classification on the merged record. The
+  // single detected_doc_type only describes the first file; without
+  // this list, a bundle containing mulkiya + insurance + passing
+  // credits exactly one of them downstream (UVTS, labels, reminders).
+  out.detected_doc_types = Array.from(
+    new Set(
+      inferred
+        .map((r) => r.detected_doc_type)
+        .filter((t): t is DetectedDocType => t != null && t !== 'other'),
+    ),
+  )
+
   for (const field of Object.keys(out) as Array<keyof ExtractedMulkiya>) {
-    if (field === 'detected_doc_type' || field === 'detected_doc_confidence') {
+    if (
+      field === 'detected_doc_type' ||
+      field === 'detected_doc_confidence' ||
+      field === 'detected_doc_types'
+    ) {
       continue
     }
     const allowed = FIELD_PRIORITY[field]

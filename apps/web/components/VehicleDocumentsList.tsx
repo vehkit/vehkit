@@ -36,6 +36,58 @@ const TYPE_LABELS: Record<string, string> = {
   other: 'Document',
 }
 
+// Labels for model-detected types (extraction classifier). Used to name
+// auto-uploaded docs by what's actually inside them instead of the
+// generic "Document".
+const DETECTED_LABELS: Record<string, string> = {
+  mulkiya: 'Mulkiya',
+  insurance_certificate: 'Insurance certificate',
+  insurance_policy_schedule: 'Insurance policy',
+  driving_licence: 'Driving licence',
+  noc: 'NOC',
+  pollution_test: 'Pollution test',
+  rta_passing_certificate: 'RTA passing',
+  service_invoice: 'Service invoice',
+  service_history: 'Service history',
+  salik_statement: 'Salik statement',
+  fine_receipt: 'Fine receipt',
+}
+
+/**
+ * Best display name for a document row:
+ *   1. The owner's custom label, if set
+ *   2. What extraction detected inside it ("Mulkiya + Insurance + RTA
+ *      passing" for a bundle)
+ *   3. The doc_type column label
+ *   4. "Document"
+ */
+function displayName(d: VehicleDocumentRow): string {
+  if (d.label && d.label.trim().length > 0) return d.label
+  const ext = d.extracted_data
+  if (ext) {
+    // Prefer the bundle's type list; fall back to scanning the
+    // per-file extraction results (rows written before
+    // detected_doc_types existed).
+    let detected = (ext.detected_doc_types as string[] | undefined) ?? []
+    if (detected.length === 0 && Array.isArray(ext.per_file_extractions)) {
+      detected = (ext.per_file_extractions as Array<Record<string, unknown>>)
+        .map((r) => r?.detected_doc_type as string)
+        .filter(Boolean)
+    }
+    const many = Array.from(new Set(detected))
+      .map((t) => DETECTED_LABELS[t])
+      .filter(Boolean)
+    if (many.length > 0) {
+      return many.length > 3
+        ? `${many.slice(0, 2).join(' + ')} + ${many.length - 2} more`
+        : many.join(' + ')
+    }
+    const single = ext.detected_doc_type as string | undefined
+    if (single && DETECTED_LABELS[single]) return DETECTED_LABELS[single]
+  }
+  return TYPE_LABELS[d.doc_type] ?? 'Document'
+}
+
 function expiryState(dateStr: string | null): {
   label: string
   tone: 'volt' | 'wallet' | 'signal' | 'ash'
@@ -174,7 +226,7 @@ export function VehicleDocumentsList({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm md:text-base font-semibold text-chalk truncate leading-snug">
-                      {d.label ?? typeLabel}
+                      {displayName(d)}
                     </p>
                     {expiry && (
                       <span
