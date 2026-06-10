@@ -112,7 +112,10 @@ export function AppNavClient({
     <>
       {/* Desktop top nav */}
       <header className="hidden md:block sticky top-0 z-30 bg-noir/90 backdrop-blur border-b border-seam">
-        <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
+        {/* Width matches the page body (max-w-[1240px] px-10) so the logo,
+            tabs, and avatar align with the content rails instead of
+            clustering at a narrower center column. */}
+        <div className="max-w-[1240px] mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
           <Link
             href="/mycars"
             className="hover:opacity-80 transition-opacity"
