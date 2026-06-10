@@ -1150,27 +1150,20 @@ function validate(e: ExtractedMulkiya): ExtractedMulkiya {
       }
     }
   }
-  // Backstop: model frequently extracts only the commencement and
-  // skips the expiry. UAE motor policies are essentially always 12
-  // months — if commencement is known and expiry isn't, derive expiry
-  // = commencement + 365 days. Slightly inaccurate when a policy is
-  // 6 or 13 months but those are <2% of the population. Loud log so
-  // we can measure drift after a month of data.
+  // NO fabricated expiry. We previously derived expiry = commencement
+  // + 365d when the model missed it. That was wrong twice over:
+  //   1. UAE policies are routinely 13 months — the derived date lands
+  //      a month EARLY, and a wrong legal expiry is worse than none.
+  //   2. It runs per file, so every insurance file gets a non-null
+  //      (fake) expiry that then BEATS the genuine reading from the
+  //      policy schedule in the first-non-null merge.
+  // A null here lets the merge pick up the real date from whichever
+  // file in the bundle actually shows it.
   if (commencement && !expires) {
-    const c = new Date(commencement)
-    if (Number.isFinite(c.getTime())) {
-      const derived = new Date(c.getTime() + 365 * 86_400_000)
-      const yyyy = derived.getUTCFullYear()
-      const mm = String(derived.getUTCMonth() + 1).padStart(2, '0')
-      const dd = String(derived.getUTCDate()).padStart(2, '0')
-      expires = `${yyyy}-${mm}-${dd}`
-      console.error(
-        '[extract-mulkiya] insurance expiry missing; derived from commencement +365d. c=',
-        commencement,
-        'derived expires=',
-        expires,
-      )
-    }
+    console.error(
+      '[extract-mulkiya] insurance expiry missing on this file; leaving null (no fabrication). c=',
+      commencement,
+    )
   }
   return {
     ...e,
