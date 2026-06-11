@@ -12,13 +12,16 @@ export async function GET(
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // Defense in depth: RLS already scopes this query, but an explicit
+  // ownership check means an RLS regression can't turn this route into
+  // a full-history IDOR.
   const { data: vehicle } = await supabase
     .from('vehicles')
-    .select('id, make, model, nickname, plate_number')
+    .select('id, owner_id, make, model, nickname, plate_number')
     .eq('id', id)
     .single()
 
-  if (!vehicle) {
+  if (!vehicle || vehicle.owner_id !== user.id) {
     return new Response('Not found', { status: 404 })
   }
 

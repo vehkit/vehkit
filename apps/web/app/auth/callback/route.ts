@@ -116,9 +116,11 @@ export async function GET(request: NextRequest) {
     // flow) without the SSR token_hash that our callback expects.
     // Logging the full search params helps support tickets debug
     // template config drift.
+    // Log parameter NAMES only — values can carry token_hash/OTP
+    // material, and auth tokens must never land in log sinks.
     console.error(
-      '[auth/callback] missing both code and token_hash. params=',
-      Object.fromEntries(searchParams.entries()),
+      '[auth/callback] missing both code and token_hash. param names=',
+      Array.from(searchParams.keys()),
     )
     return NextResponse.redirect(`${origin}/login?error=auth_failed`)
   }

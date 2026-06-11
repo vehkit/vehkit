@@ -281,13 +281,38 @@ async function runMulkiyaExtraction(
     // inside so we can audit later which doc contributed which value.
     // 30 days from now we'll mine this to see what's actually in users'
     // garages and design the proper UI around the real distribution.
+    // Honest status: 'applied' only when extraction actually produced
+    // at least one usable field. An all-null merge is a failure, not a
+    // success that happens to be empty.
+    const populatedCount = Object.entries(extracted).filter(
+      ([k, v]) =>
+        v != null &&
+        k !== 'detected_doc_type' &&
+        k !== 'detected_doc_confidence' &&
+        k !== 'detected_doc_types' &&
+        k !== 'extraction_engine',
+    ).length
+
     const docUpdates: Record<string, unknown> = {
       extracted_data: {
         ...extracted,
         per_file_extractions: validResults,
         per_file_count: validResults.length,
+        // Coverage markers: how many files were attempted vs succeeded,
+        // and whether any non-image files were skipped. Lets downstream
+        // readers (and us, debugging) see partial extraction instead of
+        // a bundle that silently "looks complete".
+        per_file_attempted: imageFiles.length,
+        per_file_failed: imageFiles.length - validResults.length,
+        skipped_non_images: files.length - imageFiles.length,
       },
-      extraction_status: 'applied',
+      extraction_status: populatedCount > 0 ? 'applied' : 'failed',
+      ...(populatedCount === 0
+        ? {
+            extraction_error:
+              'We stored the files but could not read any details from them. Try clearer, full-frame photos.',
+          }
+        : {}),
       extracted_at: new Date().toISOString(),
     }
     if (extracted.expires_at) {
@@ -382,7 +407,14 @@ export async function applyExtractedToVehicle(formData: FormData) {
     .eq('id', docId)
     .maybeSingle()
 
-  if (!doc || doc.extraction_status !== 'ready' || !doc.extracted_data) {
+  // Accept 'ready' OR 'applied' — the pipeline writes 'applied' (it
+  // auto-applies); 'ready' was never actually set, which made this
+  // owner action a silent no-op for every document.
+  if (
+    !doc ||
+    !doc.extracted_data ||
+    (doc.extraction_status !== 'ready' && doc.extraction_status !== 'applied')
+  ) {
     redirect(`/vehicles/${vehicleId}#documents`)
   }
 

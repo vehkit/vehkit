@@ -113,6 +113,8 @@ export default async function ResaleReportPage({
     service_date: (r.service_date as string | null) ?? null,
     odometer: (r.odometer as number | null) ?? null,
     status: (r.status as string | null) ?? null,
+    attestation: (r.attestation as string | null) ?? null,
+    rejected_at: (r.rejected_at as string | null) ?? null,
   }))
   const uvts = computeUvts(uvtsVehicle, uvtsDocs, uvtsServices)
   const uvtsDocView = uvts

@@ -252,8 +252,18 @@ export async function logServiceViaCode(formData: FormData) {
   if (rule) {
     const dueDate = rule.months
       ? (() => {
+          // Overflow-safe month add: clamp to last day of target month
+          // (setMonth alone turns Aug 31 + 6mo into Mar 3).
           const d = new Date(serviceDate)
+          const day = d.getDate()
+          d.setDate(1)
           d.setMonth(d.getMonth() + rule.months!)
+          const lastDay = new Date(
+            d.getFullYear(),
+            d.getMonth() + 1,
+            0,
+          ).getDate()
+          d.setDate(Math.min(day, lastDay))
           return d.toISOString().slice(0, 10)
         })()
       : null

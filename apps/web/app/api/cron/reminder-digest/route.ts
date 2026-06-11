@@ -123,26 +123,24 @@ export async function GET() {
 
     if ('sent' in result && result.sent) {
       sent++
-      // Collect reminder ids to mark notified after the loop
-      for (const v of digestVehicles) {
-        for (const r of v.reminders) {
-          // Need original id — find from digestRows
-        }
-      }
-      // Simpler: collect from owner.vehicles
+      const ownerIds: string[] = []
       for (const [, v] of owner.vehicles) {
         for (const r of v.reminders) {
-          notifiedIds.push(r.reminder_id)
+          ownerIds.push(r.reminder_id)
         }
+      }
+      // Mark THIS owner's reminders immediately after their email
+      // succeeds. Batching all marks after the loop meant a mid-loop
+      // crash re-emailed every already-notified owner on the next run.
+      if (ownerIds.length > 0) {
+        await supabase.rpc('mark_reminders_notified', {
+          p_reminder_ids: ownerIds,
+        })
+        notifiedIds.push(...ownerIds)
       }
     } else {
       failed++
     }
-  }
-
-  // Mark notified in one batch so failed sends retry tomorrow
-  if (notifiedIds.length > 0) {
-    await supabase.rpc('mark_reminders_notified', { p_reminder_ids: notifiedIds })
   }
 
   return Response.json({

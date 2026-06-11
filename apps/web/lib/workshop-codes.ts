@@ -16,11 +16,23 @@ export const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTVWXYZ23456789'
 export const CODE_LENGTH = 6
 
 export function generateCode(): string {
-  let s = ''
-  for (let i = 0; i < CODE_LENGTH; i++) {
-    s += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]
+  // CSPRNG — Math.random() is predictable; these codes grant vehicle
+  // write/agent access, so they get cryptographic randomness. Web
+  // Crypto is used (not node:crypto) because this module is also
+  // imported by client components for formatCode/normalizeCode.
+  // Rejection sampling avoids modulo bias.
+  const out: string[] = []
+  const max = 256 - (256 % CODE_ALPHABET.length) // 240 for a 30-char alphabet
+  while (out.length < CODE_LENGTH) {
+    const buf = new Uint8Array(CODE_LENGTH * 2)
+    globalThis.crypto.getRandomValues(buf)
+    for (const b of buf) {
+      if (b < max && out.length < CODE_LENGTH) {
+        out.push(CODE_ALPHABET[b % CODE_ALPHABET.length]!)
+      }
+    }
   }
-  return s
+  return out.join('')
 }
 
 export function formatCode(code: string): string {

@@ -10,7 +10,19 @@ const COOKIE_NAME = 'vehkit_admin_session'
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7 // 7 days
 
 function getSecret(): string {
-  return process.env.ADMIN_SESSION_SECRET ?? 'dev-only-fallback-secret-change-me'
+  const secret = process.env.ADMIN_SESSION_SECRET
+  if (!secret) {
+    // A known fallback secret means anyone can forge an admin session
+    // cookie. Refuse to operate without a real secret in production;
+    // keep a dev-only fallback for local work.
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'ADMIN_SESSION_SECRET is not set — refusing to sign admin sessions',
+      )
+    }
+    return 'dev-only-fallback-secret-change-me'
+  }
+  return secret
 }
 
 function sign(value: string): string {

@@ -1,6 +1,8 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 
 function strOrNull(v: FormDataEntryValue | null): string | null {
   if (v === null) return null
@@ -19,6 +21,36 @@ function strOrNull(v: FormDataEntryValue | null): string | null {
  * contact_requests table and route by `who`.
  */
 export async function requestCallback(formData: FormData) {
+  // Honeypot: invisible field real users never fill. Bots that do get
+  // the success redirect with no email sent.
+  if (strOrNull(formData.get('company_website'))) {
+    redirect('/?callback=sent#callback')
+  }
+
+  // Rate limit: this is an UNAUTHENTICATED action that triggers an
+  // email — unthrottled it's a Resend-quota / reputation attack vector.
+  // Reuses the shop_attempts limiter (10 per 10 min per IP).
+  let allowed: boolean | null = null
+  try {
+    const h = await headers()
+    const ip =
+      h.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() ??
+      h.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+      '0.0.0.0'
+    const supabase = await createClient()
+    const res = await supabase.rpc('check_and_track_shop_attempt', {
+      p_ip: ip,
+      p_code: 'contact-form',
+    })
+    allowed = res.data as boolean | null
+  } catch {
+    // Limiter failure must not take down the contact form (and
+    // redirect() must stay OUTSIDE this try — it throws internally).
+  }
+  if (allowed === false) {
+    redirect('/?callback=sent#callback') // quiet drop, no oracle for bots
+  }
+
   const name = strOrNull(formData.get('name')) ?? '—'
   const whatsapp = strOrNull(formData.get('whatsapp')) ?? '—'
   const who = strOrNull(formData.get('who')) ?? '—'

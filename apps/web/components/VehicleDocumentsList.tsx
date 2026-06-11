@@ -93,9 +93,12 @@ function expiryState(dateStr: string | null): {
   tone: 'volt' | 'wallet' | 'signal' | 'ash'
 } | null {
   if (!dateStr) return null
+  // UTC on BOTH sides. new Date('YYYY-MM-DD') is UTC midnight; pairing
+  // it with local midnight made "Expired"/"Expires today" off by one
+  // day in negative-UTC server zones.
   const expiry = new Date(dateStr)
   const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  today.setUTCHours(0, 0, 0, 0)
   const days = Math.floor(
     (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
   )

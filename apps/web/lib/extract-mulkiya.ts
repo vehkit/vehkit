@@ -63,6 +63,10 @@ export type ExtractedMulkiya = {
    *  what lets a 5-file upload credit mulkiya AND insurance AND
    *  passing instead of just whichever file happened to be first. */
   detected_doc_types?: DetectedDocType[]
+  /** Which engine produced this extraction. 'ocr' means the degraded
+   *  single-image fallback ran — persist it so silent degradation is
+   *  visible in the data, not just in transient logs. */
+  extraction_engine?: 'vision' | 'ocr'
   document_number: string | null // any official ref number on the doc
 
   // ── vehicle identity ──
@@ -289,11 +293,21 @@ export function mergeExtractions(
     ),
   )
 
+  // Provenance is worst-case: if ANY file fell back to OCR the bundle
+  // is marked degraded, so downstream consumers can't mistake it for
+  // fully vision-grade data.
+  out.extraction_engine = inferred.some((r) => r.extraction_engine === 'ocr')
+    ? 'ocr'
+    : inferred.some((r) => r.extraction_engine === 'vision')
+      ? 'vision'
+      : undefined
+
   for (const field of Object.keys(out) as Array<keyof ExtractedMulkiya>) {
     if (
       field === 'detected_doc_type' ||
       field === 'detected_doc_confidence' ||
-      field === 'detected_doc_types'
+      field === 'detected_doc_types' ||
+      field === 'extraction_engine'
     ) {
       continue
     }
@@ -370,7 +384,7 @@ export async function extractMulkiyaFromImage(
           'fields=',
           survived.map(([k]) => k).join(','),
         )
-        return validated
+        return { ...validated, extraction_engine: 'vision' }
       }
       console.error('[extract-mulkiya] vision returned null; falling back to OCR')
     } catch (err) {
@@ -389,7 +403,11 @@ export async function extractMulkiyaFromImage(
   // multi-image input, and the front of the mulkiya carries enough for
   // a salvage-grade extraction when vision is unavailable.
   const primary = images[0]!
-  return extractViaOcr(primary.base64, primary.mimeType)
+  const ocr = await extractViaOcr(primary.base64, primary.mimeType)
+  // Tag provenance so the degraded path is visible downstream instead
+  // of OCR results masquerading as vision-grade data (the failure mode
+  // that produced silent bad dates in production).
+  return ocr ? { ...ocr, extraction_engine: 'ocr' } : null
 }
 
 // ─── vision path ────────────────────────────────────────────────────
@@ -656,6 +674,11 @@ async function extractViaOcr(
   mimeType: string,
 ): Promise<ExtractedMulkiya | null> {
   const apiKey = process.env.OCR_SPACE_API_KEY ?? 'helloworld'
+  if (!process.env.OCR_SPACE_API_KEY) {
+    console.error(
+      '[extract-mulkiya] OCR_SPACE_API_KEY missing — using shared demo key (rate-limited, degraded)',
+    )
+  }
 
   let compressed: Buffer
   try {

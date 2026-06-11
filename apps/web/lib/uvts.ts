@@ -41,7 +41,11 @@ export type UvtsServiceInput = {
   service_type: string | null
   service_date: string | null // ISO date
   odometer: number | null
-  status: string | null // 'verified', 'pending', etc.
+  status: string | null // 'done', 'in_progress', etc.
+  /** 'workshop' | 'receipt' | 'owner' — drives trust tier */
+  attestation?: string | null
+  /** set when the owner rejected a workshop entry */
+  rejected_at?: string | null
 }
 
 export type UvtsCategory = {
@@ -822,8 +826,13 @@ function scoreMaintenance(
   // 5.1 Service History Completeness (8)
   // Heuristic: expect ~1 service per year OR per 15,000 km. Documented
   // percentage = actual services / expected. Cap at 100%.
+  // A service record is documented maintenance evidence unless it was
+  // rejected. The previous filter required status 'verified'/'approved'
+  // — values this schema never writes — so EVERY car scored 0 on
+  // maintenance regardless of its real history. Attestation tier is
+  // reflected in source-quality/confidence, not by zeroing the count.
   const verified = serviceRecords.filter(
-    (s) => s.status === 'verified' || s.status === 'approved',
+    (s) => s.rejected_at == null && s.status !== 'rejected',
   )
   const age = vehicleAge(vehicle, today)
   const odo = vehicle.current_odometer ?? 0
@@ -1336,7 +1345,11 @@ function annualMileage(
 ): number | null {
   if (!vehicle.current_odometer || !vehicle.year) return null
   const ageYears = today.getUTCFullYear() - vehicle.year
-  if (ageYears <= 0) return vehicle.current_odometer * 12 // < 1y — extrapolate
+  // <1 year old: we can't compute a meaningful annual rate from a
+  // calendar-year diff (the old `odometer * 12` claimed a 5,000 km car
+  // drove 60,000 km/yr and flagged it "high mileage"). Unknown is the
+  // honest answer.
+  if (ageYears <= 0) return null
   return vehicle.current_odometer / ageYears
 }
 

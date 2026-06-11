@@ -32,14 +32,21 @@ export async function createFuelLog(formData: FormData) {
   const notes = String(formData.get('notes') ?? '').trim() || null
 
   const liters = parseFloat(litersRaw)
-  if (!liters || liters <= 0) {
+  if (!Number.isFinite(liters) || liters <= 0) {
     redirect(
       `/vehicles/${vehicle_id}/fuel/new?error=` +
         encodeURIComponent('Enter litres dispensed.'),
     )
   }
-  const total_aed = totalRaw ? parseFloat(totalRaw) : null
-  const odometer_km = odoRaw ? parseInt(odoRaw, 10) : null
+  // NaN guards — parseFloat('abc') is NaN, which would otherwise be
+  // inserted into money/odometer columns and poison the bump check.
+  const totalParsed = totalRaw ? parseFloat(totalRaw) : NaN
+  const total_aed = Number.isFinite(totalParsed) && totalParsed >= 0 ? totalParsed : null
+  const odoParsed = odoRaw ? parseInt(odoRaw, 10) : NaN
+  const odometer_km =
+    Number.isFinite(odoParsed) && odoParsed > 0 && odoParsed < 3_000_000
+      ? odoParsed
+      : null
 
   // Insert fuel log
   const { error: insertErr } = await supabase.from('fuel_logs').insert({
